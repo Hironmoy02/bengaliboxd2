@@ -749,3 +749,166 @@ a {
   text-align: right;
   color: var(--text-muted);
 }
+
+/* Mobile Responsive Adjustments */
+
+/* Toggle Navigation Menu Button */
+.mobile-nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  transition: background-color 0.2s ease;
+}
+
+.mobile-nav-toggle:hover {
+  background: var(--bg-tertiary);
+}
+
+/* Mobile Navbar Styles */
+@media (max-width: 768px) {
+  .mobile-nav-toggle {
+    display: block;
+  }
+
+  .navbar-container {
+    position: relative;
+  }
+
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 72px;
+    left: 0;
+    right: 0;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 20px;
+    gap: 16px;
+    align-items: flex-start;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .nav-links.open {
+    display: flex;
+  }
+
+  .nav-links li {
+    width: 100%;
+  }
+
+  .nav-links li a,
+  .nav-links li button {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .nav-auth-buttons {
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .nav-user-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .nav-user-info .user-badge {
+    width: 100% !important;
+    justify-content: flex-start;
+  }
+}
+
+.nav-auth-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-user-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Smooth Horizontal Scroll for Channel Tabs on Mobile */
+.tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.tab-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Responsive Grid Utilities */
+.responsive-grid-admin {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .responsive-grid-admin {
+    grid-template-columns: 1.2fr 0.8fr;
+  }
+}
+
+.responsive-grid-approval-card {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .responsive-grid-approval-card {
+    grid-template-columns: 120px 1fr auto;
+  }
+}
+
+.responsive-grid-half {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 600px) {
+  .responsive-grid-half {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Utility to hide less critical columns on mobile tables */
+@media (max-width: 600px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* Single column stories grid on small mobile screens */
+@media (max-width: 480px) {
+  .stories-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -231,7 +231,7 @@ export default function StoryDetailPage({ params }: { params: Promise<{ id: stri
             </div>
             <h1 style={{ fontSize: '2.2rem', marginBottom: '16px' }}>{story.title}</h1>
             
-            <div style={{ display: 'flex', gap: '20px', color: 'var(--text-secondary)', fontSize: '0.95rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '20px', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', color: 'var(--text-secondary)', fontSize: '0.95rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '20px', marginBottom: '20px' }}>
               <div>
                 Narrator: <strong style={{ color: 'var(--text-primary)' }}>{story.narrator}</strong>
               </div>
