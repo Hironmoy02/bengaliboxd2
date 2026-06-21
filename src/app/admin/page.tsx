@@ -542,7 +542,7 @@ export default function AdminPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {pendingStories.map((story) => (
-                <div key={story._id} className="glass-card" style={{ display: 'grid', gridTemplateColumns: '120px 1fr auto', gap: '20px', alignItems: 'center' }}>
+                <div key={story._id} className="glass-card responsive-grid-approval-card">
                   <img 
                     src={`https://img.youtube.com/vi/${story.youtubeId}/hqdefault.jpg`}
                     alt="" 
@@ -616,9 +616,9 @@ export default function AdminPage() {
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
                     <th style={{ padding: '12px' }}>Username</th>
-                    <th style={{ padding: '12px' }}>Email</th>
+                    <th style={{ padding: '12px' }} className="hide-mobile">Email</th>
                     <th style={{ padding: '12px' }}>Role</th>
-                    <th style={{ padding: '12px' }}>Joined Date</th>
+                    <th style={{ padding: '12px' }} className="hide-mobile">Joined Date</th>
                     <th style={{ padding: '12px', textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
@@ -626,7 +626,7 @@ export default function AdminPage() {
                   {filteredUsers.map((u) => (
                     <tr key={u._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                       <td style={{ padding: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>{u.username}</td>
-                      <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>{u.email}</td>
+                      <td style={{ padding: '12px', color: 'var(--text-secondary)' }} className="hide-mobile">{u.email}</td>
                       <td style={{ padding: '12px' }}>
                         <span 
                           className="badge" 
@@ -639,7 +639,7 @@ export default function AdminPage() {
                           {u.role}
                         </span>
                       </td>
-                      <td style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      <td style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '0.85rem' }} className="hide-mobile">
                         {new Date(u.createdAt).toLocaleDateString()}
                       </td>
                       <td style={{ padding: '12px', textAlign: 'right' }}>
@@ -664,9 +664,8 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* 4. ADD / SUGGEST AUDIO STORY TAB */}
       {activeTab === 'add' && (
-        <div style={{ display: 'grid', gridTemplateColumns: isAdmin ? '1.2fr 0.8fr' : '1fr', gap: '40px', alignItems: 'start' }}>
+        <div className={isAdmin ? "responsive-grid-admin" : ""}>
           {/* Form panel */}
           <div className="glass-card">
             <h2 style={{ fontSize: '1.5rem', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -751,7 +750,7 @@ export default function AdminPage() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div className="responsive-grid-half">
                 <div className="form-group">
                   <label className="form-label" htmlFor="channel">
                     <Radio size={14} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
