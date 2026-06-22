@@ -1,0 +1,90 @@
+'use client';
+
+import React from 'react';
+import { Box, Typography, Link as MuiLink, Stack } from '@mui/material';
+import StarIcon from '@mui/icons-material/Star';
+import ChatBubbleOutlinedIcon from '@mui/icons-material/ChatBubbleOutlined';
+import Link from 'next/link';
+import { YOUTUBE_THUMBNAIL } from '@/lib/constants';
+
+interface StoryCardProps {
+  _id: string;
+  title: string;
+  channel: string;
+  narrator: string;
+  genre: string;
+  writer?: string;
+  youtubeId: string;
+  thumbnailUrl?: string;
+  averageRating: number;
+  ratingsCount: number;
+}
+
+export default function StoryCard({
+  _id,
+  title,
+  channel,
+  narrator,
+  writer,
+  youtubeId,
+  thumbnailUrl,
+  averageRating,
+  ratingsCount,
+}: StoryCardProps) {
+  return (
+    <Link href={`/story/${_id}`} style={{ textDecoration: 'none' }}>
+      <Box
+        sx={{
+          borderRadius: 2,
+          overflow: 'hidden',
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          transition: 'all 0.2s ease',
+          cursor: 'pointer',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+            borderColor: 'rgba(255,94,43,0.3)',
+          },
+        }}
+      >
+        <Box sx={{ position: 'relative', aspectRatio: '16/9', overflow: 'hidden' }}>
+          <img
+            src={thumbnailUrl || YOUTUBE_THUMBNAIL(youtubeId)}
+            alt=""
+            loading="lazy"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        </Box>
+        <Box sx={{ p: 2 }}>
+          <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            {channel}
+          </Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 0.5, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            {title}
+          </Typography>
+          {writer && (
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+              Written by {writer}
+            </Typography>
+          )}
+          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mt: 1.5 }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {narrator}
+            </Typography>
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+              <StarIcon sx={{ fontSize: 14, color: '#f59e0b' }} />
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                {averageRating > 0 ? averageRating.toFixed(1) : '-'}
+              </Typography>
+              <ChatBubbleOutlinedIcon sx={{ fontSize: 11, color: 'text.secondary', ml: 0.5 }} />
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                {ratingsCount}
+              </Typography>
+            </Stack>
+          </Stack>
+        </Box>
+      </Box>
+    </Link>
+  );
+}

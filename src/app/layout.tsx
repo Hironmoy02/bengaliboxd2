@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { AuthProvider } from '@/context/AuthContext';
+import StoreProvider from '@/store/StoreProvider';
+import ThemeProvider from '@/components/ThemeProvider';
 import Navbar from '@/components/Navbar';
 import './globals.css';
 
@@ -16,21 +17,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body suppressHydrationWarning>
-        <AuthProvider>
-          <Navbar />
-          <main style={{ flex: 1 }}>{children}</main>
-          <footer className="footer">
-            <div className="container">
-              <p className="footer-text">
-                &copy; {new Date().getFullYear()} Bengaliboxd. Made for Bengali Audio Story lovers.
-              </p>
-              <p className="footer-text" style={{ fontSize: '0.8rem', marginTop: '8px' }}>
-                Bengaliboxd is an independent rating system. All audio stories are embedded directly from official YouTube channels.
-              </p>
-            </div>
-          </footer>
-        </AuthProvider>
+        <StoreProvider>
+          <ThemeProvider>
+            <Navbar />
+            <main style={{ flex: 1 }}>{children}</main>
+            <footer className="footer">
+              <div className="container">
+                <p className="footer-text">
+                  &copy; {new Date().getFullYear()} Bengaliboxd. Made for Bengali Audio Story lovers.
+                </p>
+                <p className="footer-text" style={{ fontSize: '0.8rem', marginTop: '8px' }}>
+                  Bengaliboxd is an independent rating system. All audio stories are embedded directly from official YouTube channels.
+                </p>
+              </div>
+            </footer>
+          </ThemeProvider>
+        </StoreProvider>
       </body>
     </html>
   );

@@ -34,4 +34,5 @@ const UserSchema = new Schema(
   { timestamps: true }
 );
 
-export default mongoose.models.User || mongoose.model('User', UserSchema);
+try { mongoose.deleteModel('User'); } catch {}
+export default mongoose.model('User', UserSchema);

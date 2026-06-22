@@ -16,4 +16,5 @@ const DailyVisitorSchema = new Schema(
   { timestamps: true }
 );
 
-export default mongoose.models.DailyVisitor || mongoose.model('DailyVisitor', DailyVisitorSchema);
+try { mongoose.deleteModel('DailyVisitor'); } catch {}
+export default mongoose.model('DailyVisitor', DailyVisitorSchema);

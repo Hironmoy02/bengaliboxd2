@@ -31,4 +31,5 @@ const RatingSchema = new Schema(
 // Compound unique index so a user can only rate a specific story once
 RatingSchema.index({ userId: 1, storyId: 1 }, { unique: true });
 
-export default mongoose.models.Rating || mongoose.model('Rating', RatingSchema);
+try { mongoose.deleteModel('Rating'); } catch {}
+export default mongoose.model('Rating', RatingSchema);

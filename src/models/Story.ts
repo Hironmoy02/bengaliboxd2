@@ -41,6 +41,16 @@ const StorySchema = new Schema(
       default: 'Horror',
       trim: true,
     },
+    writer: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    yearPublished: {
+      type: Number,
+      min: 1900,
+      max: 2100,
+    },
     averageRating: {
       type: Number,
       default: 0,
@@ -61,4 +71,5 @@ const StorySchema = new Schema(
   { timestamps: true }
 );
 
-export default mongoose.models.Story || mongoose.model('Story', StorySchema);
+try { mongoose.deleteModel('Story'); } catch {}
+export default mongoose.model('Story', StorySchema);
