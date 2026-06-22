@@ -3,19 +3,21 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
+import { useAppSelector, useAppDispatch } from '@/lib/hooks';
+import { logoutUser } from '@/store/authSlice';
 import { Headphones, User, PlusCircle, LogOut, LogIn, UserPlus, Menu, X } from 'lucide-react';
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((s) => s.auth);
   const [isOpen, setIsOpen] = useState(false);
 
   const closeMenu = () => setIsOpen(false);
 
   const handleLogout = () => {
     closeMenu();
-    logout();
+    dispatch(logoutUser());
   };
 
   return (
@@ -26,7 +28,6 @@ export default function Navbar() {
           Bengali<span>boxd</span>
         </Link>
 
-        {/* Mobile Hamburger toggle button */}
         <button 
           className="mobile-nav-toggle" 
           onClick={() => setIsOpen(!isOpen)}

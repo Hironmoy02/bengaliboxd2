@@ -1,3 +1,4 @@
+import '@/lib/polyfill';
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import dbConnect from '@/lib/dbConnect';
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     // Upsert the rating
     const rating = await Rating.findOneAndUpdate(
-      { userId: user.id, storyId: new mongoose.Types.ObjectId(storyId) },
+      { userId: user.id as mongoose.Types.ObjectId, storyId: new mongoose.Types.ObjectId(storyId) },
       {
         ratingValue: ratingVal,
         reviewText: reviewText ? reviewText.trim() : '',
@@ -81,11 +82,9 @@ export async function POST(request: NextRequest) {
       rating,
       stats: { averageRating, ratingsCount },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Submit rating error:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to submit rating' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'Failed to submit rating';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

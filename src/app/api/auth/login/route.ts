@@ -1,3 +1,4 @@
+import '@/lib/polyfill';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/dbConnect';
@@ -18,11 +19,14 @@ export async function POST(request: Request) {
 
     const input = emailOrUsername.trim().toLowerCase();
 
-    // Find user by email or username
+    // Escape regex special characters to prevent ReDoS/injection
+    const escaped = input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Find user by email or exact username (case-insensitive)
     const user = await User.findOne({
       $or: [
         { email: input },
-        { username: { $regex: new RegExp(`^${input}$`, 'i') } },
+        { username: { $regex: `^${escaped}$`, $options: 'i' } },
       ],
     });
 
@@ -71,7 +75,7 @@ export async function POST(request: Request) {
     });
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Login error:', error);
     return NextResponse.json(
       { error: 'An error occurred during login' },

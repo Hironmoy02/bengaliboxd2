@@ -1,3 +1,4 @@
+import '@/lib/polyfill';
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import dbConnect from '@/lib/dbConnect';
@@ -17,7 +18,7 @@ export async function GET() {
     const users = await User.find({}).select('-password').sort({ createdAt: -1 });
 
     return NextResponse.json({ users });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Fetch users error:', error);
     return NextResponse.json({ error: 'Failed to retrieve users list' }, { status: 500 });
   }
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
       message: `User '${updatedUser.username}' successfully promoted to Admin!`,
       user: updatedUser,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Promote user error:', error);
     return NextResponse.json({ error: 'Failed to promote user' }, { status: 500 });
   }

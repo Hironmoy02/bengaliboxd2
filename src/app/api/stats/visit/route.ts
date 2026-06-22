@@ -1,3 +1,4 @@
+import '@/lib/polyfill';
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import dbConnect from '@/lib/dbConnect';
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
         activeUsers: totalActiveUsers,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Visitor logging error:', error);
     return NextResponse.json({ error: 'Failed to log visit' }, { status: 500 });
   }

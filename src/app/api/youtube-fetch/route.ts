@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromSession } from '@/lib/auth';
-
-function getYouTubeId(url: string) {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return match && match[2].length === 11 ? match[2] : null;
-}
+import { getYouTubeId } from '@/lib/youtube';
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,14 +35,32 @@ export async function GET(request: NextRequest) {
 
     const data = await res.json();
 
+    let yearPublished: number | undefined;
+    try {
+      const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+      });
+      if (pageRes.ok) {
+        const html = await pageRes.text();
+        const dateMatch = html.match(/"datePublished"\s*:\s*"(\d{4})/);
+        if (dateMatch) {
+          yearPublished = parseInt(dateMatch[1], 10);
+        } else {
+          const uploadMatch = html.match(/"uploadDate"\s*:\s*"(\d{4})/);
+          if (uploadMatch) yearPublished = parseInt(uploadMatch[1], 10);
+        }
+      }
+    } catch { /* ignore page fetch errors */ }
+
     return NextResponse.json({
       youtubeId: videoId,
       title: data.title || '',
       channel: data.author_name || '',
       thumbnailUrl: data.thumbnail_url || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
       description: `Uploaded by ${data.author_name || 'YouTube channel'}.`,
+      yearPublished,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('YouTube fetch error:', error);
     return NextResponse.json({ error: 'Failed to fetch YouTube details' }, { status: 500 });
   }

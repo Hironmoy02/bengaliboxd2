@@ -1,3 +1,4 @@
+import '@/lib/polyfill';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/dbConnect';
@@ -96,11 +97,9 @@ export async function POST(request: Request) {
     });
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Registration error:', error);
-    return NextResponse.json(
-      { error: error.message || 'An error occurred during registration' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'An error occurred during registration';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

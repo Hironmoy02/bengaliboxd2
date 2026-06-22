@@ -1,3 +1,4 @@
+import '@/lib/polyfill';
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import DailyVisitor from '@/models/DailyVisitor';
@@ -60,8 +61,9 @@ export async function GET() {
       },
       traffic: trafficHistory,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Fetch admin stats error:', error);
-    return NextResponse.json({ error: 'Failed to retrieve admin stats' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Failed to retrieve admin stats';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
