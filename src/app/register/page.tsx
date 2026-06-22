@@ -52,7 +52,7 @@ export default function RegisterPage() {
 
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '90vh', px: 2 }}>
-      <Paper sx={{ width: '100%', maxWidth: 440, p: 4, borderRadius: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
+      <Paper sx={{ width: '100%', maxWidth: 440, p: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>Create Account</Typography>
           <Typography color="text.secondary">Join Bengaliboxd to rate, review and list audio stories</Typography>

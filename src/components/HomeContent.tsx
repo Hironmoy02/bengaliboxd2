@@ -115,7 +115,7 @@ export default function HomeContent({ initialStories, initialPagination }: HomeC
   return (
     <div>
       {/* Hero Section */}
-      <Box sx={{ background: 'linear-gradient(135deg, rgba(255,94,43,0.08) 0%, rgba(167,139,250,0.06) 100%)', py: { xs: 6, md: 10 }, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <Box sx={{ background: 'linear-gradient(135deg, rgba(255,94,43,0.08) 0%, rgba(167,139,250,0.06) 100%)', py: { xs: 6, md: 10 }, borderBottom: '1px solid', borderColor: 'divider' }}>
         <div className="container">
           {featuredStory ? (
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={5} sx={{ alignItems: 'center' }}>
@@ -125,8 +125,8 @@ export default function HomeContent({ initialStories, initialPagination }: HomeC
                   {featuredStory.title}
                 </Typography>
                 <Typography sx={{ color: 'text.secondary', mb: 3, lineHeight: 1.6 }}>
-                  Narrated by <strong style={{ color: '#e2e8f0' }}>{featuredStory.narrator}</strong> on{' '}
-                  <span style={{ color: '#ff5e2b', fontWeight: 600 }}>{featuredStory.channel}</span>.
+                  Narrated by <strong style={{ color: 'var(--text-primary)' }}>{featuredStory.narrator}</strong> on{' '}
+                  <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{featuredStory.channel}</span>.
                   {featuredStory.description && ` ${featuredStory.description.slice(0, 180)}...`}
                 </Typography>
                 <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3 }}>
@@ -188,7 +188,7 @@ export default function HomeContent({ initialStories, initialPagination }: HomeC
           <Stack direction="row" spacing={1.5} sx={{ mb: 3, flexWrap: 'wrap', gap: 1 }}>
             {genresList.map((g) => (
               <Chip key={g} label={g === 'All' ? 'All Genres' : g} size="small" variant={genre === g ? 'filled' : 'outlined'} color={genre === g ? 'primary' : 'default'} onClick={() => { setGenre(g); setCurrentPage(1); }}
-                sx={{ borderColor: genre === g ? undefined : 'rgba(255,255,255,0.15)', '&:hover': { borderColor: 'rgba(255,255,255,0.3)' } }}
+                sx={{ borderColor: genre === g ? undefined : 'divider', '&:hover': { borderColor: 'text.disabled' } }}
               />
             ))}
           </Stack>

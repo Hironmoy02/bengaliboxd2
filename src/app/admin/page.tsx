@@ -313,7 +313,7 @@ export default function AdminPage() {
       {success && <AppAlert severity="success" message={success} onClose={() => setSuccess('')} />}
 
       {isAdmin && (
-        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile sx={{ mb: 4, borderBottom: '1px solid rgba(255,255,255,0.08)', minHeight: 44, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.9rem' }, minHeight: 44, minWidth: 0, px: { xs: 1, sm: 2 } }, '& .MuiTab-iconWrapper': { mr: { xs: 0.3, sm: 0.5 } } }}>
+        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile sx={{ mb: 4, borderBottom: '1px solid', borderColor: 'divider', minHeight: 44, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.9rem' }, minHeight: 44, minWidth: 0, px: { xs: 1, sm: 2 } }, '& .MuiTab-iconWrapper': { mr: { xs: 0.3, sm: 0.5 } } }}>
           {tabLabels.map((label, i) => <Tab key={i} label={label} />)}
         </Tabs>
       )}
@@ -329,7 +329,7 @@ export default function AdminPage() {
                 { label: 'Stories in Lobby', value: stats.approvedStories, icon: <BarChartIcon />, color: '#f59e0b' },
                 { label: 'Pending Approvals', value: stats.pendingStories, icon: <CheckCircleOutlinedIcon />, color: 'error.main' },
               ].map((card) => (
-                <Card key={card.label} sx={{ flex: 1, borderRadius: 2, border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.03)' }}>
+                <Card key={card.label} sx={{ flex: 1, borderRadius: 2, border: '1px solid', borderColor: 'divider', background: 'action.hover' }}>
                   <CardContent sx={{ textAlign: 'center', py: 3 }}>
                     <Box sx={{ color: card.color, mb: 1 }}>{card.icon}</Box>
                     <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>{card.label}</Typography>
@@ -338,11 +338,11 @@ export default function AdminPage() {
                 </Card>
               ))}
             </Stack>
-            <Paper sx={{ p: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
+            <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Traffic (Last 7 Days)</Typography>
               <Stack spacing={1}>
                 {traffic.map((day) => (
-                  <Stack key={day.date} direction="row" spacing={2} sx={{ alignItems: 'center', py: 1, px: 2, borderRadius: 1, background: 'rgba(255,255,255,0.02)' }}>
+                  <Stack key={day.date} direction="row" spacing={2} sx={{ alignItems: 'center', py: 1, px: 2, borderRadius: 1, background: 'action.hover' }}>
                     <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 100 }}>{day.date}</Typography>
                     <Box sx={{ height: 8, width: Math.min(day.visitors * 15, 200), background: 'primary.main', borderRadius: 1 }} />
                     <Typography variant="caption" color="text.secondary">{day.visitors} visits</Typography>
@@ -361,7 +361,7 @@ export default function AdminPage() {
         ) : (
           <Stack spacing={2}>
             {pendingStories.map((story) => (
-              <Paper key={story._id} sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', gap: { xs: 1.5, sm: 2 }, alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <Paper key={story._id} sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', gap: { xs: 1.5, sm: 2 }, alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', border: '1px solid', borderColor: 'divider' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={YOUTUBE_THUMBNAIL(story.youtubeId)} alt="" style={{ width: isMobile ? 120 : 160, aspectRatio: '16/9', objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
                 <Box sx={{ flex: 1, minWidth: isMobile ? 'calc(100% - 140px)' : 200 }}>
@@ -390,7 +390,7 @@ export default function AdminPage() {
 
       {/* Tab 2: Users */}
       {isAdmin && activeTab === 2 && (
-        <Paper sx={{ p: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
+        <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, gap: 1, mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>Registered Users</Typography>
             <TextField size="small" placeholder="Search..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)} fullWidth={isMobile} slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 18, color: 'text.secondary' }} /></InputAdornment> } }} />
@@ -437,7 +437,7 @@ export default function AdminPage() {
       {/* Tab 3: Add Story */}
       {activeTab === 3 && (
         <Stack direction={{ xs: 'column', md: isAdmin ? 'row' : 'column' }} spacing={3}>
-          <Paper sx={{ p: 3, flex: 1, border: '1px solid rgba(255,255,255,0.06)' }}>
+          <Paper sx={{ p: 3, flex: 1, border: '1px solid', borderColor: 'divider' }}>
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 3 }}>
               <AddIcon sx={{ color: 'primary.main' }} />
               <Typography variant="h5" sx={{ fontWeight: 700 }}>{isAdmin ? 'Add New Audio Story' : 'Suggest an Audio Story'}</Typography>
@@ -447,7 +447,7 @@ export default function AdminPage() {
                 <Typography variant="body2"><strong>Note:</strong> Your suggestion will be saved as pending and reviewed by an admin.</Typography>
               </Paper>
             )}
-            <Box sx={{ mb: 3, p: 2, background: 'rgba(255,255,255,0.02)', borderRadius: 2, border: '1px solid rgba(255,255,255,0.06)' }}>
+            <Box sx={{ mb: 3, p: 2, background: 'action.hover', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1 }}>
                 <YouTubeIcon sx={{ color: 'error.main' }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>YouTube Video Link</Typography>
@@ -513,7 +513,7 @@ export default function AdminPage() {
             </form>
           </Paper>
           {isAdmin && (
-            <Paper sx={{ p: 3, width: 300, border: '1px solid rgba(255,255,255,0.06)', alignSelf: 'flex-start' }}>
+            <Paper sx={{ p: 3, width: 300, border: '1px solid', borderColor: 'divider', alignSelf: 'flex-start' }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Duplicate Checks</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6, fontSize: '0.85rem' }}>
                 Bengaliboxd extracts the 11-character YouTube video ID and cross-checks the database to prevent duplicate entries, even if titles vary.
@@ -526,7 +526,7 @@ export default function AdminPage() {
       {/* Tab 4: Edit Story */}
       {isAdmin && activeTab === 4 && (
         <Stack spacing={3}>
-          <Paper sx={{ p: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
+          <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Search Stories to Edit</Typography>
             <Stack direction="row" spacing={2}>
               <TextField
@@ -544,11 +544,11 @@ export default function AdminPage() {
           </Paper>
 
           {!editingStory && editResults.length > 0 && (
-            <Paper sx={{ p: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
+            <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>{editResults.length} results found</Typography>
               <Stack spacing={1}>
                 {editResults.map((story) => (
-                  <Paper key={story._id} sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'center', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.06)', '&:hover': { borderColor: 'rgba(255,94,43,0.4)' } }} onClick={() => handleSelectStoryForEdit(story)}>
+                  <Paper key={story._id} sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'center', cursor: 'pointer', border: '1px solid', borderColor: 'divider', '&:hover': { borderColor: 'rgba(255,94,43,0.4)' } }} onClick={() => handleSelectStoryForEdit(story)}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={YOUTUBE_THUMBNAIL(story.youtubeId)} alt="" style={{ width: 120, aspectRatio: '16/9', objectFit: 'cover', borderRadius: 8 }} />
                     <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -624,7 +624,7 @@ export default function AdminPage() {
       {/* Tab 5: Settings */}
       {isAdmin && activeTab === 5 && (
         loadingSettings ? <AppLoadingState message="Loading settings..." /> : (
-          <Paper sx={{ p: 3, maxWidth: 600, border: '1px solid rgba(255,255,255,0.06)' }}>
+          <Paper sx={{ p: 3, maxWidth: 600, border: '1px solid', borderColor: 'divider' }}>
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 3 }}>
               <SettingsIcon sx={{ color: 'primary.main' }} />
               <Typography variant="h6" sx={{ fontWeight: 700 }}>Contributor Permissions</Typography>
@@ -645,7 +645,7 @@ export default function AdminPage() {
 
       {/* Tab 6: Feedback */}
       {isAdmin && activeTab === 6 && (
-        <Paper sx={{ p: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
+        <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>User Feedback</Typography>
             <TextField
@@ -668,7 +668,7 @@ export default function AdminPage() {
           ) : (
             <Stack spacing={2}>
               {feedbacks.map((fb) => (
-                <Paper key={fb._id} sx={{ p: 2, border: '1px solid rgba(255,255,255,0.06)' }}>
+                <Paper key={fb._id} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
                   <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 1 }}>
                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                       <Avatar sx={{ width: 28, height: 28, bgcolor: 'primary.main', fontSize: 11 }}>

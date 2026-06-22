@@ -23,8 +23,8 @@ export default function AppFilterChips({ options, selected, onChange, size = 'sm
           color={selected === opt ? 'primary' : 'default'}
           onClick={() => onChange(opt)}
           sx={{
-            borderColor: selected === opt ? undefined : 'rgba(255,255,255,0.15)',
-            '&:hover': { borderColor: 'rgba(255,255,255,0.3)' },
+            borderColor: selected === opt ? undefined : 'divider',
+            '&:hover': { borderColor: 'text.disabled' },
           }}
         />
       ))}

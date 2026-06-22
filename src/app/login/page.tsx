@@ -46,7 +46,7 @@ export default function LoginPage() {
 
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', px: 2 }}>
-      <Paper sx={{ width: '100%', maxWidth: 420, p: 4, borderRadius: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
+      <Paper sx={{ width: '100%', maxWidth: 420, p: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ textAlign: 'center', mb: 4 }}>
           <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>Welcome Back</Typography>
           <Typography color="text.secondary">Log in to rate and review your favorite audio stories</Typography>

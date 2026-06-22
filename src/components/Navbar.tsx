@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAppSelector, useAppDispatch } from '@/lib/hooks';
 import { logoutUser } from '@/store/authSlice';
+import { useThemeMode } from '@/contexts/ThemeContext';
 import {
   AppBar,
   Toolbar,
@@ -25,11 +26,14 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import LoginIcon from '@mui/icons-material/Login';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import MenuIcon from '@mui/icons-material/Menu';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from '@mui/icons-material/LightMode';
 
 export default function Navbar() {
   const pathname = usePathname();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((s) => s.auth);
+  const { mode, toggleTheme } = useThemeMode();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileAnchor, setMobileAnchor] = useState<null | HTMLElement>(null);
@@ -50,10 +54,11 @@ export default function Navbar() {
     <AppBar
       position="sticky"
       sx={{
-        backgroundColor: 'rgba(17, 17, 17, 0.95)',
+        backgroundColor: 'var(--navbar-bg)',
         backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: 'none',
+        WebkitBackdropFilter: 'blur(12px)',
+        borderBottom: '1px solid var(--navbar-border)',
+        boxShadow: mode === 'light' ? '0 1px 3px rgba(0,0,0,0.04)' : 'none',
       }}
     >
       <Toolbar sx={{ justifyContent: 'space-between', py: 1 }}>
@@ -62,7 +67,7 @@ export default function Navbar() {
           <Typography
             variant="h6"
             sx={{
-              color: '#fff',
+              color: 'text.primary',
               fontWeight: 700,
               '& span': { color: 'primary.main' },
             }}
@@ -73,6 +78,16 @@ export default function Navbar() {
 
         {isMobile ? (
           <>
+            <IconButton
+              onClick={toggleTheme}
+              title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              sx={{
+                color: 'text.secondary',
+                '&:hover': { color: 'primary.main' },
+              }}
+            >
+              {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+            </IconButton>
             <IconButton
               color="inherit"
               onClick={(e) => setMobileAnchor(e.currentTarget)}
@@ -89,8 +104,9 @@ export default function Navbar() {
               slotProps={{
                 paper: {
                   sx: {
-                    bgcolor: 'rgba(25, 25, 25, 0.98)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    bgcolor: 'background.paper',
+                    border: '1px solid',
+                    borderColor: 'divider',
                     mt: 1,
                     minWidth: 180,
                   },
@@ -105,14 +121,14 @@ export default function Navbar() {
                   onClick={() => setMobileAnchor(null)}
                   selected={pathname === link.href}
                   sx={{
-                    color: pathname === link.href ? 'primary.main' : 'rgba(255, 255, 255, 0.8)',
+                    color: pathname === link.href ? 'primary.main' : 'text.primary',
                     fontWeight: pathname === link.href ? 600 : 400,
                   }}
                 >
                   {link.label}
                 </MenuItem>
               ))}
-              <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+              <Divider sx={{ borderColor: 'divider' }} />
               {user ? (
                 <>
                   <MenuItem
@@ -121,7 +137,7 @@ export default function Navbar() {
                     onClick={() => setMobileAnchor(null)}
                     selected={pathname === '/profile'}
                     sx={{
-                      color: pathname === '/profile' ? 'primary.main' : 'rgba(255, 255, 255, 0.8)',
+                      color: pathname === '/profile' ? 'primary.main' : 'text.primary',
                       display: 'flex',
                       gap: 1,
                     }}
@@ -134,7 +150,7 @@ export default function Navbar() {
                       setMobileAnchor(null);
                       handleLogout();
                     }}
-                    sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
+                    sx={{ color: 'text.primary' }}
                   >
                     <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
                     Logout
@@ -146,7 +162,7 @@ export default function Navbar() {
                     component={Link}
                     href="/login"
                     onClick={() => setMobileAnchor(null)}
-                    sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
+                    sx={{ color: 'text.primary' }}
                   >
                     <LoginIcon fontSize="small" sx={{ mr: 1 }} />
                     Sign In
@@ -155,7 +171,7 @@ export default function Navbar() {
                     component={Link}
                     href="/register"
                     onClick={() => setMobileAnchor(null)}
-                    sx={{ color: 'rgba(255, 255, 255, 0.8)' }}
+                    sx={{ color: 'text.primary' }}
                   >
                     <PersonAddIcon fontSize="small" sx={{ mr: 1 }} />
                     Sign Up
@@ -172,7 +188,7 @@ export default function Navbar() {
                 component={Link}
                 href={link.href}
                 sx={{
-                  color: pathname === link.href ? 'primary.main' : 'rgba(255, 255, 255, 0.8)',
+                  color: pathname === link.href ? 'primary.main' : 'text.primary',
                   fontWeight: pathname === link.href ? 600 : 400,
                   textTransform: 'none',
                   fontSize: '0.95rem',
@@ -195,6 +211,17 @@ export default function Navbar() {
               </Button>
             ))}
 
+            <IconButton
+              onClick={toggleTheme}
+              title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              sx={{
+                color: 'text.secondary',
+                '&:hover': { color: 'primary.main' },
+              }}
+            >
+              {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+            </IconButton>
+
             {user ? (
               <>
                 <Button
@@ -202,7 +229,7 @@ export default function Navbar() {
                   href="/profile"
                   startIcon={<PersonIcon />}
                   sx={{
-                    color: pathname === '/profile' ? 'primary.main' : 'rgba(255, 255, 255, 0.8)',
+                    color: pathname === '/profile' ? 'primary.main' : 'text.primary',
                     textTransform: 'none',
                     fontWeight: pathname === '/profile' ? 600 : 400,
                     borderRadius: '20px',
@@ -215,7 +242,7 @@ export default function Navbar() {
                   onClick={handleLogout}
                   title="Logout"
                   sx={{
-                    color: 'rgba(255, 255, 255, 0.6)',
+                    color: 'text.secondary',
                     '&:hover': { color: 'error.main' },
                   }}
                 >
@@ -230,16 +257,9 @@ export default function Navbar() {
                   variant="outlined"
                   startIcon={<LoginIcon />}
                   sx={{
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
-                    color: 'rgba(255, 255, 255, 0.8)',
                     textTransform: 'none',
                     borderRadius: '20px',
                     px: 2,
-                    '&:hover': {
-                      borderColor: 'primary.main',
-                      color: 'primary.main',
-                      bgcolor: 'rgba(255, 94, 43, 0.05)',
-                    },
                   }}
                 >
                   Sign In
@@ -250,12 +270,9 @@ export default function Navbar() {
                   variant="contained"
                   startIcon={<PersonAddIcon />}
                   sx={{
-                    bgcolor: 'primary.main',
-                    color: '#fff',
                     textTransform: 'none',
                     borderRadius: '20px',
                     px: 2,
-                    '&:hover': { bgcolor: 'primary.dark' },
                   }}
                 >
                   Sign Up

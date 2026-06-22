@@ -187,7 +187,7 @@ export default function ProfilePage() {
         allowScrollButtonsMobile
         sx={{
           mb: { xs: 3, sm: 4 },
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          borderBottom: '1px solid', borderColor: 'divider',
           minHeight: 44,
           '& .MuiTab-root': {
             textTransform: 'none',
@@ -209,7 +209,7 @@ export default function ProfilePage() {
 
       {/* Tab 0: Account */}
       {activeTab === 0 && (
-        <Paper sx={{ p: { xs: 2, sm: 3 }, maxWidth: 500, border: '1px solid rgba(255,255,255,0.06)' }}>
+        <Paper sx={{ p: { xs: 2, sm: 3 }, maxWidth: 500, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Account Settings</Typography>
           <Stack spacing={2}>
             <TextField fullWidth label="Username" value={username} onChange={(e) => setUsername(e.target.value)} size={isMobile ? 'small' : 'medium'} />
@@ -233,7 +233,7 @@ export default function ProfilePage() {
         ) : isMobile ? (
           <Stack spacing={1.5}>
             {stories.map((s) => (
-              <Paper key={s._id} sx={{ p: 1.5, display: 'flex', gap: 1.5, alignItems: 'center', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <Paper key={s._id} sx={{ p: 1.5, display: 'flex', gap: 1.5, alignItems: 'center', border: '1px solid', borderColor: 'divider' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={YOUTUBE_THUMBNAIL(s.youtubeId)} alt="" style={{ width: 80, aspectRatio: '16/9', objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
                 <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -255,13 +255,13 @@ export default function ProfilePage() {
               <Box component="thead">
                 <Box component="tr">
                   {['Story', 'Channel', 'Status', 'Rating', 'Added'].map((h) => (
-                    <Box key={h} component="th" sx={{ textAlign: 'left', fontWeight: 600, pb: 1, px: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', whiteSpace: 'nowrap', fontSize: '0.85rem', color: 'text.secondary' }}>{h}</Box>
+                    <Box key={h} component="th" sx={{ textAlign: 'left', fontWeight: 600, pb: 1, px: 1, borderBottom: '1px solid', borderColor: 'divider', whiteSpace: 'nowrap', fontSize: '0.85rem', color: 'text.secondary' }}>{h}</Box>
                   ))}
                 </Box>
               </Box>
               <Box component="tbody">
                 {stories.map((s) => (
-                  <Box key={s._id} component="tr" sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.02)' } }}>
+                  <Box key={s._id} component="tr" sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                     <Box component="td" sx={{ py: 1.5, px: 1 }}>
                       <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -350,7 +350,7 @@ export default function ProfilePage() {
           ) : (
             <Stack spacing={1.5}>
               {filteredRatings.map((r) => (
-                <Paper key={r._id} sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', gap: { xs: 1.5, sm: 2 }, alignItems: 'flex-start', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <Paper key={r._id} sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', gap: { xs: 1.5, sm: 2 }, alignItems: 'flex-start', border: '1px solid', borderColor: 'divider' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={`https://img.youtube.com/vi/${r.storyId!.youtubeId}/hqdefault.jpg`} alt="" style={{ width: isMobile ? 80 : 100, aspectRatio: '16/9', objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
                   <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -400,7 +400,7 @@ export default function ProfilePage() {
             <>
               <Stack spacing={1.5}>
                 {bookmarks.map((b) => (
-                  <Paper key={b._id} sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', gap: { xs: 1.5, sm: 2 }, alignItems: 'center', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <Paper key={b._id} sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', gap: { xs: 1.5, sm: 2 }, alignItems: 'center', border: '1px solid', borderColor: 'divider' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={`https://img.youtube.com/vi/${b.youtubeId}/hqdefault.jpg`} alt="" style={{ width: isMobile ? 80 : 120, aspectRatio: '16/9', objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
                     <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -434,7 +434,7 @@ export default function ProfilePage() {
 
       {/* Tab 4: Feedback */}
       {activeTab === 4 && (
-        <Paper sx={{ p: { xs: 2, sm: 3 }, maxWidth: 600, border: '1px solid rgba(255,255,255,0.06)' }}>
+        <Paper sx={{ p: { xs: 2, sm: 3 }, maxWidth: 600, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Share Your Feedback</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
             Have a suggestion or found a bug? Let us know how to improve Bengaliboxd.
