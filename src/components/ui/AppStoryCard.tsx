@@ -42,8 +42,9 @@ export default function StoryCard({
       sx={{
         borderRadius: 2,
         overflow: 'hidden',
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: 'action.hover',
+        border: '1px solid',
+        borderColor: 'divider',
         transition: 'all 0.2s ease',
         position: 'relative',
         '&:hover': {

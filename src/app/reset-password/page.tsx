@@ -24,7 +24,7 @@ export default function ResetPasswordPage() {
   if (!token) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', px: 2 }}>
-        <Paper sx={{ width: '100%', maxWidth: 420, p: 4, borderRadius: 3, border: '1px solid rgba(255,255,255,0.06)', textAlign: 'center' }}>
+        <Paper sx={{ width: '100%', maxWidth: 420, p: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider', textAlign: 'center' }}>
           <WarningIcon sx={{ fontSize: 64, color: 'warning.main', mb: 2 }} />
           <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>Invalid Link</Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
@@ -60,7 +60,7 @@ export default function ResetPasswordPage() {
 
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', px: 2 }}>
-      <Paper sx={{ width: '100%', maxWidth: 420, p: 4, borderRadius: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
+      <Paper sx={{ width: '100%', maxWidth: 420, p: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
         {resetDone ? (
           <Box sx={{ textAlign: 'center' }}>
             <CheckCircleOutlinedIcon sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />

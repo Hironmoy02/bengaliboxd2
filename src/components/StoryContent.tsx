@@ -144,7 +144,7 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
           </Stack>
           <Typography variant="h4" sx={{ fontWeight: 800, mb: 2, fontSize: { xs: '1.5rem', md: '2rem' } }}>{story.title}</Typography>
 
-          <Stack direction="row" spacing={3} sx={{ flexWrap: 'wrap', color: 'text.secondary', fontSize: '0.95rem', pb: 2, mb: 3, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <Stack direction="row" spacing={3} sx={{ flexWrap: 'wrap', color: 'text.secondary', fontSize: '0.95rem', pb: 2, mb: 3, borderBottom: '1px solid', borderColor: 'divider' }}>
             <Typography>Narrator: <strong style={{ color: '#e2e8f0' }}>{story.narrator}</strong></Typography>
             {story.writer && <Typography>Writer: <strong style={{ color: '#e2e8f0' }}>{story.writer}</strong></Typography>}
             <Typography>
@@ -175,7 +175,7 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
               <>
                 <Stack spacing={2}>
                   {reviews.map((rev) => (
-                    <Paper key={rev._id} sx={{ p: 2.5, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <Paper key={rev._id} sx={{ p: 2.5, background: 'action.hover', border: '1px solid', borderColor: 'divider' }}>
                       <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                         <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
                           <Avatar sx={{ width: 28, height: 28, bgcolor: 'primary.main', fontSize: 12 }}>
@@ -203,7 +203,7 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
         <Stack spacing={3} sx={{ width: { lg: 340 }, flexShrink: 0 }}>
           {/* Bookmark Button */}
           {user && (
-            <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid rgba(255,255,255,0.06)' }}>
+            <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                   {isBookmarked ? 'Bookmarked for later' : 'Save for later'}
@@ -218,7 +218,7 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
           )}
 
           {/* Rating Panel */}
-          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid rgba(255,255,255,0.06)' }}>
+          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>Community Rating</Typography>
             <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3 }}>
               <Typography variant="h2" sx={{ fontWeight: 800, color: '#f59e0b' }}>
@@ -236,7 +236,7 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
                 return (
                   <Stack key={stars} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                     <Typography variant="caption" sx={{ width: 12, textAlign: 'right', color: 'text.secondary' }}>{stars}</Typography>
-                    <LinearProgress variant="determinate" value={pct} sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.06)', '& .MuiLinearProgress-bar': { bgcolor: '#f59e0b', borderRadius: 3 } }} />
+                    <LinearProgress variant="determinate" value={pct} sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { bgcolor: '#f59e0b', borderRadius: 3 } }} />
                     <Typography variant="caption" color="text.secondary" sx={{ width: 20 }}>{count}</Typography>
                   </Stack>
                 );

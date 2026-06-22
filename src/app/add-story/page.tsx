@@ -101,7 +101,7 @@ export default function AddStoryPage() {
       {error && <AppAlert severity="error" message={error} onClose={() => setError('')} />}
       {success && <AppAlert severity="success" message={success} onClose={() => setSuccess('')} />}
 
-      <Paper sx={{ p: 3, mb: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
+      <Paper sx={{ p: 3, mb: 3, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1 }}>
           <YouTubeIcon sx={{ color: 'error.main' }} />
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>YouTube Video Link</Typography>

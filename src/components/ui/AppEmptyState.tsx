@@ -19,7 +19,7 @@ export default function AppEmptyState({
   actionHref,
 }: AppEmptyStateProps) {
   return (
-    <Box sx={{ textAlign: 'center', py: 8, px: 2, background: 'rgba(255,255,255,0.02)', borderRadius: 2, border: '1px dashed rgba(255,255,255,0.1)' }}>
+    <Box sx={{ textAlign: 'center', py: 8, px: 2, background: 'action.hover', borderRadius: 2, border: '1px dashed', borderColor: 'divider' }}>
       <InboxIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
       <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
         {title}
