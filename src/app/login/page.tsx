@@ -72,8 +72,13 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            sx={{ mb: 3 }}
+            sx={{ mb: 1 }}
           />
+          <Typography variant="body2" sx={{ textAlign: 'right', mb: 3 }}>
+            <Link href="/forgot-password" style={{ color: '#ff5e2b', fontWeight: 500, textDecoration: 'none', fontSize: '0.85rem' }}>
+              Forgot Password?
+            </Link>
+          </Typography>
           <Button
             type="submit"
             variant="contained"

@@ -8,7 +8,7 @@ import {
   Box, Typography, Button, Paper, Stack, TextField, Tab, Tabs, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Avatar, Chip, IconButton, Switch, FormGroup,
   FormControlLabel, Divider, Card, CardContent, InputAdornment, TextareaAutosize,
-  Autocomplete,
+  Autocomplete, useMediaQuery, useTheme,
 } from '@mui/material';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
@@ -38,6 +38,8 @@ function getErrorMessage(err: unknown): string { return err instanceof Error ? e
 export default function AdminPage() {
   const { user, loading } = useAppSelector((s) => s.auth);
   const router = useRouter();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [activeTab, setActiveTab] = useState(0);
 
   const [youtubeUrl, setYoutubeUrl] = useState('');
@@ -77,6 +79,13 @@ export default function AdminPage() {
   const [editForm, setEditForm] = useState({ title: '', channel: '', narrator: '', genre: '', writer: '', description: '', thumbnailUrl: '', yearPublished: '', youtubeUrl: '' });
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
+
+  interface FeedbackItem { _id: string; userId: { username: string; email: string }; category: string; message: string; status: string; createdAt: string; }
+  const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
+  const [loadingFeedback, setLoadingFeedback] = useState(true);
+  const [feedbackPage, setFeedbackPage] = useState(1);
+  const [feedbackTotalPages, setFeedbackTotalPages] = useState(1);
+  const [feedbackStatusFilter, setFeedbackStatusFilter] = useState('');
 
   const channelsList = [...CHANNELS];
   const genresList = [...GENRES];
@@ -121,7 +130,8 @@ export default function AdminPage() {
     if (activeTab === 1) fetchPendingStories();
     if (activeTab === 2) fetchUsers();
     if (activeTab === 5) fetchSettings();
-  }, [activeTab, user]);
+    if (activeTab === 6) fetchFeedbacks();
+  }, [activeTab, user, feedbackPage, feedbackStatusFilter]);
 
   useEffect(() => { if (user && user.role !== 'admin') setActiveTab(3); }, [user]);
 
@@ -213,6 +223,29 @@ export default function AdminPage() {
     finally { setSavingSettings(false); }
   };
 
+  const fetchFeedbacks = async () => {
+    if (!user || user.role !== 'admin') return;
+    setLoadingFeedback(true);
+    try {
+      const params: Record<string, string | number> = { page: feedbackPage };
+      if (feedbackStatusFilter) params.status = feedbackStatusFilter;
+      const { data } = await api.get('/api/feedback', { params });
+      setFeedbacks(data.feedbacks || []);
+      setFeedbackTotalPages(data.pagination?.totalPages || 1);
+    } catch { console.error('Failed to load feedback'); }
+    finally { setLoadingFeedback(false); }
+  };
+
+  const handleUpdateFeedbackStatus = async (feedbackId: string, newStatus: string) => {
+    setActionInProgress(feedbackId);
+    try {
+      const { data } = await api.put(`/api/admin/feedback/${feedbackId}`, { status: newStatus });
+      setSuccess(data.message || 'Feedback status updated');
+      fetchFeedbacks();
+    } catch (err) { setError(getErrorMessage(err) || 'Failed to update feedback'); }
+    finally { setActionInProgress(null); }
+  };
+
   const handleSearchStories = async () => {
     if (!editSearch.trim()) return;
     setLoadingEdit(true);
@@ -280,7 +313,7 @@ export default function AdminPage() {
       {success && <AppAlert severity="success" message={success} onClose={() => setSuccess('')} />}
 
       {isAdmin && (
-        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} variant="scrollable" scrollButtons="auto" sx={{ mb: 4, borderBottom: '1px solid rgba(255,255,255,0.08)', '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, fontSize: '0.9rem', minHeight: 48 } }}>
+        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile sx={{ mb: 4, borderBottom: '1px solid rgba(255,255,255,0.08)', minHeight: 44, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.9rem' }, minHeight: 44, minWidth: 0, px: { xs: 1, sm: 2 } }, '& .MuiTab-iconWrapper': { mr: { xs: 0.3, sm: 0.5 } } }}>
           {tabLabels.map((label, i) => <Tab key={i} label={label} />)}
         </Tabs>
       )}
@@ -328,10 +361,10 @@ export default function AdminPage() {
         ) : (
           <Stack spacing={2}>
             {pendingStories.map((story) => (
-              <Paper key={story._id} sx={{ p: 2, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <Paper key={story._id} sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', gap: { xs: 1.5, sm: 2 }, alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', border: '1px solid rgba(255,255,255,0.06)' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={YOUTUBE_THUMBNAIL(story.youtubeId)} alt="" style={{ width: 160, aspectRatio: '16/9', objectFit: 'cover', borderRadius: 8 }} />
-                <Box sx={{ flex: 1, minWidth: 200 }}>
+                <img src={YOUTUBE_THUMBNAIL(story.youtubeId)} alt="" style={{ width: isMobile ? 120 : 160, aspectRatio: '16/9', objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
+                <Box sx={{ flex: 1, minWidth: isMobile ? 'calc(100% - 140px)' : 200 }}>
                   <Chip label={story.channel} size="small" color="primary" variant="outlined" sx={{ mb: 0.5 }} />
                   <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{story.title}</Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -341,12 +374,12 @@ export default function AdminPage() {
                     Play on YouTube
                   </Button>
                 </Box>
-                <Stack direction="row" spacing={1}>
-                  <Button variant="contained" size="small" startIcon={<CheckIcon />} onClick={() => handleApproveStory(story._id)} disabled={actionInProgress !== null}>
+                <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+                  <Button variant="contained" size="small" startIcon={<CheckIcon />} onClick={() => handleApproveStory(story._id)} disabled={actionInProgress !== null} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                     {actionInProgress === story._id ? 'Working...' : 'Approve'}
                   </Button>
-                  <IconButton color="error" onClick={() => handleRejectStory(story._id)} disabled={actionInProgress !== null}>
-                    <DeleteOutlinedIcon />
+                  <IconButton color="error" size="small" onClick={() => handleRejectStory(story._id)} disabled={actionInProgress !== null}>
+                    <DeleteOutlinedIcon fontSize="small" />
                   </IconButton>
                 </Stack>
               </Paper>
@@ -358,13 +391,14 @@ export default function AdminPage() {
       {/* Tab 2: Users */}
       {isAdmin && activeTab === 2 && (
         <Paper sx={{ p: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
-          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, gap: 1, mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>Registered Users</Typography>
-            <TextField size="small" placeholder="Search..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)} sx={{ width: 240 }} slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 18, color: 'text.secondary' }} /></InputAdornment> } }} />
+            <TextField size="small" placeholder="Search..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)} fullWidth={isMobile} slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 18, color: 'text.secondary' }} /></InputAdornment> } }} />
           </Stack>
           {loadingUsers ? <AppLoadingState message="Loading users..." /> : filteredUsers.length === 0 ? (
             <AppEmptyState title="No users found" message="Try a different search query." />
           ) : (
+            <Box sx={{ overflowX: 'auto' }}>
             <TableContainer>
               <Table>
                 <TableHead>
@@ -395,6 +429,7 @@ export default function AdminPage() {
                 </TableBody>
               </Table>
             </TableContainer>
+            </Box>
           )}
         </Paper>
       )}
@@ -417,9 +452,9 @@ export default function AdminPage() {
                 <YouTubeIcon sx={{ color: 'error.main' }} />
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>YouTube Video Link</Typography>
               </Stack>
-              <Stack direction="row" spacing={1}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                 <TextField fullWidth size="small" placeholder="https://www.youtube.com/watch?v=..." value={youtubeUrl} onChange={(e) => setYoutubeUrl(e.target.value)} />
-                <Button variant="outlined" onClick={handleFetchYoutube} disabled={isFetchingYoutube} startIcon={isFetchingYoutube ? <RefreshIcon className="spin-animation" /> : <UploadFileIcon />}>
+                <Button variant="outlined" onClick={handleFetchYoutube} disabled={isFetchingYoutube} startIcon={isFetchingYoutube ? <RefreshIcon className="spin-animation" /> : <UploadFileIcon />} sx={{ whiteSpace: 'nowrap' }}>
                   {isFetchingYoutube ? 'Fetching...' : 'Fetch'}
                 </Button>
               </Stack>
@@ -606,6 +641,76 @@ export default function AdminPage() {
             </Stack>
           </Paper>
         )
+      )}
+
+      {/* Tab 6: Feedback */}
+      {isAdmin && activeTab === 6 && (
+        <Paper sx={{ p: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
+          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>User Feedback</Typography>
+            <TextField
+              select
+              size="small"
+              value={feedbackStatusFilter}
+              onChange={(e) => { setFeedbackStatusFilter(e.target.value); setFeedbackPage(1); }}
+              sx={{ width: 180 }}
+              slotProps={{ select: { native: true } }}
+            >
+              <option value="">All Statuses</option>
+              <option value="new">New</option>
+              <option value="reviewed">Reviewed</option>
+              <option value="implemented">Implemented</option>
+              <option value="dismissed">Dismissed</option>
+            </TextField>
+          </Stack>
+          {loadingFeedback ? <AppLoadingState message="Loading feedback..." /> : feedbacks.length === 0 ? (
+            <AppEmptyState title="No feedback" message="No user feedback submissions found." />
+          ) : (
+            <Stack spacing={2}>
+              {feedbacks.map((fb) => (
+                <Paper key={fb._id} sx={{ p: 2, border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 1 }}>
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                      <Avatar sx={{ width: 28, height: 28, bgcolor: 'primary.main', fontSize: 11 }}>
+                        {fb.userId?.username?.[0]?.toUpperCase() || '?'}
+                      </Avatar>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{fb.userId?.username || 'Unknown'}</Typography>
+                      <Chip label={fb.category} size="small" variant="outlined" sx={{ textTransform: 'capitalize' }} />
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary">{new Date(fb.createdAt).toLocaleString()}</Typography>
+                  </Stack>
+                  <Typography variant="body2" sx={{ mb: 1.5, lineHeight: 1.6 }}>{fb.message}</Typography>
+                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                    <Typography variant="caption" color="text.secondary">Status:</Typography>
+                    <Chip label={fb.status} size="small" color={fb.status === 'new' ? 'info' : fb.status === 'reviewed' ? 'warning' : fb.status === 'implemented' ? 'success' : 'default'} sx={{ textTransform: 'capitalize' }} />
+                    {fb.status !== 'reviewed' && (
+                      <Button size="small" variant="outlined" disabled={actionInProgress === fb._id} onClick={() => handleUpdateFeedbackStatus(fb._id, 'reviewed')}>
+                        Mark Reviewed
+                      </Button>
+                    )}
+                    {fb.status !== 'implemented' && (
+                      <Button size="small" variant="outlined" color="success" disabled={actionInProgress === fb._id} onClick={() => handleUpdateFeedbackStatus(fb._id, 'implemented')}>
+                        Mark Implemented
+                      </Button>
+                    )}
+                    {fb.status !== 'dismissed' && (
+                      <Button size="small" variant="outlined" color="error" disabled={actionInProgress === fb._id} onClick={() => handleUpdateFeedbackStatus(fb._id, 'dismissed')}>
+                        Dismiss
+                      </Button>
+                    )}
+                  </Stack>
+                </Paper>
+              ))}
+              {feedbackTotalPages > 1 && (
+                <Stack direction="row" sx={{ justifyContent: 'center', mt: 2, gap: 1 }}>
+                  <Button size="small" disabled={feedbackPage <= 1} onClick={() => setFeedbackPage((p) => p - 1)}>Previous</Button>
+                  <Typography variant="body2" sx={{ alignSelf: 'center' }}>Page {feedbackPage} of {feedbackTotalPages}</Typography>
+                  <Button size="small" disabled={feedbackPage >= feedbackTotalPages} onClick={() => setFeedbackPage((p) => p + 1)}>Next</Button>
+                </Stack>
+              )}
+            </Stack>
+          )}
+        </Paper>
       )}
 
       <AppConfirmModal open={confirmModal.open} title={confirmModal.title} message={confirmModal.message} severity={confirmModal.severity} onConfirm={confirmModal.action} onCancel={() => setConfirmModal((p) => ({ ...p, open: false }))} confirmLabel={confirmModal.severity === 'error' ? 'Delete' : 'Confirm'} />
