@@ -1,15 +1,17 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useAppSelector } from '@/lib/hooks';
 import api from '@/lib/axios';
 import {
-  Box, Typography, Button, Paper, Stack, Chip, TextField, Divider, Avatar, LinearProgress,
+  Box, Typography, Button, Paper, Stack, Chip, TextField, Divider, Avatar, LinearProgress, IconButton, Tooltip,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SendIcon from '@mui/icons-material/Send';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import BookmarkIcon from '@mui/icons-material/Bookmark';
+import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import { AppPagination, AppAlert, AppStarRating, AppRatingDisplay, AppLoadingState, AppEmptyState } from '@/components/ui';
 
 const YoutubeIcon = ({ size = 16 }: { size?: number }) => (
@@ -61,6 +63,28 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isBookmarked, setIsBookmarked] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      api.get('/api/bookmarks/check', { params: { storyId: story._id } })
+        .then(({ data }) => setIsBookmarked(data.bookmarked))
+        .catch(() => {});
+    }
+  }, [user, story._id]);
+
+  const handleToggleBookmark = async () => {
+    if (!user) return;
+    try {
+      if (isBookmarked) {
+        await api.delete('/api/bookmarks', { data: { storyId: story._id } });
+        setIsBookmarked(false);
+      } else {
+        await api.post('/api/bookmarks', { storyId: story._id });
+        setIsBookmarked(true);
+      }
+    } catch { /* ignore */ }
+  };
 
   const fetchReviews = async (page: number) => {
     setLoadingReviews(true);
@@ -177,6 +201,22 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
 
         {/* Sidebar */}
         <Stack spacing={3} sx={{ width: { lg: 340 }, flexShrink: 0 }}>
+          {/* Bookmark Button */}
+          {user && (
+            <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid rgba(255,255,255,0.06)' }}>
+              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                  {isBookmarked ? 'Bookmarked for later' : 'Save for later'}
+                </Typography>
+                <Tooltip title={isBookmarked ? 'Remove bookmark' : 'Bookmark this story'}>
+                  <IconButton onClick={handleToggleBookmark} sx={{ color: isBookmarked ? 'primary.main' : 'text.secondary' }}>
+                    {isBookmarked ? <BookmarkIcon /> : <BookmarkBorderIcon />}
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+            </Paper>
+          )}
+
           {/* Rating Panel */}
           <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid rgba(255,255,255,0.06)' }}>
             <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>Community Rating</Typography>

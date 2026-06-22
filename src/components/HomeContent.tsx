@@ -56,11 +56,18 @@ export default function HomeContent({ initialStories, initialPagination }: HomeC
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const isInitialMount = useRef(true);
+  const [bookmarkIds, setBookmarkIds] = useState<Set<string>>(new Set());
 
   useEffect(() => { api.post('/api/stats/visit').catch(() => {}); }, []);
 
   useEffect(() => {
     api.get('/api/writers').then(({ data }) => setWriters(data.writers || [])).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    api.get('/api/bookmarks/ids').then(({ data }) => {
+      setBookmarkIds(new Set(data.bookmarkIds || []));
+    }).catch(() => {});
   }, []);
 
   const yearsList = ['All', ...Array.from({ length: YEARS_RANGE }, (_, i) => String(new Date().getFullYear() - i))];
@@ -91,6 +98,19 @@ export default function HomeContent({ initialStories, initialPagination }: HomeC
 
   const channelsList = ['All', ...CHANNELS];
   const genresList = ['All', ...GENRES];
+
+  const toggleBookmark = async (storyId: string) => {
+    const isCurrentlyBookmarked = bookmarkIds.has(storyId);
+    try {
+      if (isCurrentlyBookmarked) {
+        await api.delete('/api/bookmarks', { data: { storyId } });
+        setBookmarkIds((prev) => { const next = new Set(prev); next.delete(storyId); return next; });
+      } else {
+        await api.post('/api/bookmarks', { storyId });
+        setBookmarkIds((prev) => new Set(prev).add(storyId));
+      }
+    } catch { /* ignore */ }
+  };
 
   return (
     <div>
@@ -218,7 +238,7 @@ export default function HomeContent({ initialStories, initialPagination }: HomeC
             <>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 3 }}>
                 {stories.map((st) => (
-                  <AppStoryCard key={st._id} {...st} />
+                  <AppStoryCard key={st._id} {...st} isBookmarked={bookmarkIds.has(st._id)} onBookmarkToggle={toggleBookmark} />
                 ))}
               </Box>
               <AppPagination page={currentPage} totalPages={pagination.totalPages} total={pagination.total} onChange={setCurrentPage} />

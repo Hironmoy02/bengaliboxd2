@@ -50,4 +50,4 @@ export const YEARS_RANGE = 21;
 export const YOUTUBE_THUMBNAIL = (id: string, quality: 'hq' | 'maxres' = 'hq') =>
   `https://img.youtube.com/vi/${id}/${quality === 'maxres' ? 'maxresdefault' : 'hqdefault'}.jpg`;
 
-export const ADMIN_TAB_LABELS = ['Analytics', 'Approvals', 'Users', 'Add Story', 'Edit Story', 'Settings'] as const;
+export const ADMIN_TAB_LABELS = ['Analytics', 'Approvals', 'Users', 'Add Story', 'Edit Story', 'Settings', 'Feedback'] as const;

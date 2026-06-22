@@ -1,0 +1,159 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useAppSelector } from '@/lib/hooks';
+import api from '@/lib/axios';
+import { CHANNELS, GENRES, CHANNEL_KEYWORDS, NARRATOR_KEYWORDS, YEARS_RANGE, YOUTUBE_THUMBNAIL, DEFAULT_CHANNEL, DEFAULT_GENRE } from '@/lib/constants';
+import {
+  Box, Typography, Button, Paper, Stack, TextField, IconButton, InputAdornment,
+  Autocomplete,
+} from '@mui/material';
+import YouTubeIcon from '@mui/icons-material/YouTube';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import SendIcon from '@mui/icons-material/Send';
+import { AppAlert, AppLoadingState } from '@/components/ui';
+
+function getErrorMessage(err: unknown): string { return err instanceof Error ? err.message : 'An error occurred'; }
+
+export default function AddStoryPage() {
+  const { user, loading } = useAppSelector((s) => s.auth);
+  const router = useRouter();
+
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [title, setTitle] = useState('');
+  const [channel, setChannel] = useState(DEFAULT_CHANNEL);
+  const [narrator, setNarrator] = useState('');
+  const [genre, setGenre] = useState(DEFAULT_GENRE);
+  const [writer, setWriter] = useState('');
+  const [description, setDescription] = useState('');
+  const [thumbnailUrl, setThumbnailUrl] = useState('');
+  const [yearPublished, setYearPublished] = useState('');
+  const [writers, setWriters] = useState<{ _id: string; name: string }[]>([]);
+
+  const [isFetchingYoutube, setIsFetchingYoutube] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    if (!loading && !user) router.push('/login');
+  }, [user, loading, router]);
+
+  useEffect(() => {
+    api.get('/api/writers').then(({ data }) => setWriters(data.writers || [])).catch(() => {});
+  }, []);
+
+  const handleFetchYoutube = async () => {
+    if (!youtubeUrl) { setError('Enter a YouTube URL first'); return; }
+    setError(''); setSuccess(''); setIsFetchingYoutube(true);
+    try {
+      const { data } = await api.get('/api/youtube-fetch', { params: { url: youtubeUrl } });
+      setTitle(data.title);
+      const fc = data.channel.toLowerCase();
+      const matchedChannel = Object.entries(CHANNEL_KEYWORDS).find(([, keywords]) =>
+        keywords.some((kw) => fc.includes(kw))
+      );
+      setChannel(matchedChannel ? matchedChannel[0] : 'Other Bengali Channels');
+      setDescription(data.description || '');
+      setThumbnailUrl(data.thumbnailUrl || '');
+      if (data.yearPublished) setYearPublished(String(data.yearPublished));
+      const t = data.title.toLowerCase();
+      const matchedNarrator = Object.entries(NARRATOR_KEYWORDS).find(([kw]) => t.includes(kw));
+      setNarrator(matchedNarrator ? matchedNarrator[1] : '');
+      setSuccess('Successfully fetched YouTube story details!');
+    } catch (err) { setError(getErrorMessage(err) || 'Failed to query YouTube API'); }
+    finally { setIsFetchingYoutube(false); }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title || !channel || !youtubeUrl || !narrator) { setError('Fill out all required fields'); return; }
+    setError(''); setSuccess(''); setIsSubmitting(true);
+    try {
+      if (writer.trim()) {
+        const trimmed = writer.trim();
+        if (!writers.some((w) => w.name.toLowerCase() === trimmed.toLowerCase())) {
+          try {
+            const { data } = await api.post('/api/writers', { name: trimmed });
+            if (data.writer) setWriters((prev) => [...prev, data.writer].sort((a, b) => a.name.localeCompare(b.name)));
+          } catch { /* already exists */ }
+        }
+      }
+      const { data } = await api.post('/api/stories', { title, channel, youtubeUrl, narrator, genre, writer, description, thumbnailUrl, yearPublished });
+      setSuccess(data.message || 'Story submitted!');
+      setYoutubeUrl(''); setTitle(''); setNarrator(''); setWriter(''); setYearPublished(''); setDescription(''); setThumbnailUrl('');
+    } catch (err) { setError(getErrorMessage(err) || 'Error saving story.'); }
+    finally { setIsSubmitting(false); }
+  };
+
+  if (loading || !user) return <AppLoadingState message="Loading..." fullScreen />;
+
+  return (
+    <Box sx={{ maxWidth: 700, mx: 'auto', px: 2, py: 5, minHeight: '80vh' }}>
+      <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>Suggest a Story</Typography>
+      <Typography color="text.secondary" sx={{ mb: 3 }}>
+        Submit a Bengali audio story from YouTube. It will appear in the catalog after admin approval.
+      </Typography>
+
+      {error && <AppAlert severity="error" message={error} onClose={() => setError('')} />}
+      {success && <AppAlert severity="success" message={success} onClose={() => setSuccess('')} />}
+
+      <Paper sx={{ p: 3, mb: 3, border: '1px solid rgba(255,255,255,0.06)' }}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1 }}>
+          <YouTubeIcon sx={{ color: 'error.main' }} />
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>YouTube Video Link</Typography>
+        </Stack>
+        <Stack direction="row" spacing={1}>
+          <TextField fullWidth size="small" placeholder="https://www.youtube.com/watch?v=..." value={youtubeUrl} onChange={(e) => setYoutubeUrl(e.target.value)} />
+          <Button variant="outlined" onClick={handleFetchYoutube} disabled={isFetchingYoutube} startIcon={isFetchingYoutube ? <RefreshIcon className="spin-animation" /> : <UploadFileIcon />}>
+            {isFetchingYoutube ? 'Fetching...' : 'Fetch'}
+          </Button>
+        </Stack>
+      </Paper>
+
+      <form onSubmit={handleSubmit}>
+        <Stack spacing={2.5}>
+          <TextField fullWidth label="Story Title *" placeholder="e.g. Sunday Suspense | The Hound of the Baskervilles" value={title} onChange={(e) => setTitle(e.target.value)} required />
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField select slotProps={{ select: { native: true } }} label="Channel *" value={channel} onChange={(e) => setChannel(e.target.value)} required sx={{ flex: 1 }}>
+              {CHANNELS.map((ch) => <option key={ch} value={ch}>{ch}</option>)}
+            </TextField>
+            <TextField select slotProps={{ select: { native: true } }} label="Genre *" value={genre} onChange={(e) => setGenre(e.target.value)} required sx={{ flex: 1 }}>
+              {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
+            </TextField>
+          </Stack>
+          <TextField fullWidth label="Narrator(s) *" placeholder="e.g. Somak, Mir, Deep" value={narrator} onChange={(e) => setNarrator(e.target.value)} required />
+          <Autocomplete
+            freeSolo
+            options={writers.map((w) => w.name)}
+            value={writer}
+            onInputChange={(_, newValue) => setWriter(newValue || '')}
+            onChange={async (_, newValue) => {
+              if (newValue && !writers.some((w) => w.name.toLowerCase() === newValue.toLowerCase())) {
+                try {
+                  const { data } = await api.post('/api/writers', { name: newValue });
+                  if (data.writer) setWriters((prev) => [...prev, data.writer].sort((a, b) => a.name.localeCompare(b.name)));
+                } catch { /* already exists */ }
+              }
+            }}
+            renderInput={(params) => <TextField {...params} label="Writer / Author" placeholder="Type to search or add new writer..." fullWidth />}
+            fullWidth
+          />
+          <TextField select slotProps={{ select: { native: true } }} label="Year Published on YouTube" value={yearPublished} onChange={(e) => setYearPublished(e.target.value)} fullWidth>
+            <option value="">Select Year (optional)</option>
+            {Array.from({ length: YEARS_RANGE }, (_, i) => new Date().getFullYear() - i).map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </TextField>
+          <TextField fullWidth multiline rows={4} label="Description" placeholder="Optional story synopsis..." value={description} onChange={(e) => setDescription(e.target.value)} />
+          <Button type="submit" variant="contained" fullWidth size="large" startIcon={<SendIcon />} disabled={isSubmitting}>
+            {isSubmitting ? 'Submitting...' : 'Submit Story Suggestion'}
+          </Button>
+        </Stack>
+      </form>
+    </Box>
+  );
+}

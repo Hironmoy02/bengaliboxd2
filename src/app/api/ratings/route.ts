@@ -24,12 +24,15 @@ export async function POST(request: NextRequest) {
     }
 
     const ratingVal = Number(ratingValue);
-    if (isNaN(ratingVal) || ratingVal < 1 || ratingVal > 5) {
+    if (isNaN(ratingVal) || ratingVal < 0.5 || ratingVal > 5) {
       return NextResponse.json(
-        { error: 'Rating must be a whole number between 1 and 5' },
+        { error: 'Rating must be between 0.5 and 5 (e.g. 3, 3.5, 4, 4.5)' },
         { status: 400 }
       );
     }
+
+    // Snap to nearest 0.5
+    const snappedRating = Math.round(ratingVal * 2) / 2;
 
     if (!mongoose.Types.ObjectId.isValid(storyId)) {
       return NextResponse.json({ error: 'Invalid Story ID format' }, { status: 400 });
@@ -45,7 +48,7 @@ export async function POST(request: NextRequest) {
     const rating = await Rating.findOneAndUpdate(
       { userId: user.id as mongoose.Types.ObjectId, storyId: new mongoose.Types.ObjectId(storyId) },
       {
-        ratingValue: ratingVal,
+        ratingValue: snappedRating,
         reviewText: reviewText ? reviewText.trim() : '',
       },
       { new: true, upsert: true }

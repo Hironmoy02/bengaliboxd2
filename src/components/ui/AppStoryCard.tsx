@@ -1,9 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Box, Typography, Link as MuiLink, Stack } from '@mui/material';
+import { Box, Typography, Stack, IconButton, Tooltip } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
 import ChatBubbleOutlinedIcon from '@mui/icons-material/ChatBubbleOutlined';
+import BookmarkIcon from '@mui/icons-material/Bookmark';
+import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import Link from 'next/link';
 import { YOUTUBE_THUMBNAIL } from '@/lib/constants';
 
@@ -18,6 +20,8 @@ interface StoryCardProps {
   thumbnailUrl?: string;
   averageRating: number;
   ratingsCount: number;
+  isBookmarked?: boolean;
+  onBookmarkToggle?: (storyId: string) => void;
 }
 
 export default function StoryCard({
@@ -30,24 +34,53 @@ export default function StoryCard({
   thumbnailUrl,
   averageRating,
   ratingsCount,
+  isBookmarked = false,
+  onBookmarkToggle,
 }: StoryCardProps) {
   return (
-    <Link href={`/story/${_id}`} style={{ textDecoration: 'none' }}>
-      <Box
-        sx={{
-          borderRadius: 2,
-          overflow: 'hidden',
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          transition: 'all 0.2s ease',
-          cursor: 'pointer',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
-            borderColor: 'rgba(255,94,43,0.3)',
-          },
-        }}
-      >
+    <Box
+      sx={{
+        borderRadius: 2,
+        overflow: 'hidden',
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        transition: 'all 0.2s ease',
+        position: 'relative',
+        '&:hover': {
+          transform: 'translateY(-4px)',
+          boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+          borderColor: 'rgba(255,94,43,0.3)',
+          '& .bookmark-btn': { opacity: 1 },
+        },
+      }}
+    >
+      {onBookmarkToggle && (
+        <Tooltip title={isBookmarked ? 'Remove bookmark' : 'Bookmark for later'}>
+          <IconButton
+            className="bookmark-btn"
+            size="small"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onBookmarkToggle(_id);
+            }}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              zIndex: 2,
+              bgcolor: 'rgba(0,0,0,0.6)',
+              color: isBookmarked ? 'primary.main' : '#fff',
+              opacity: isBookmarked ? 1 : 0,
+              transition: 'opacity 0.2s ease',
+              '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' },
+            }}
+          >
+            {isBookmarked ? <BookmarkIcon fontSize="small" /> : <BookmarkBorderIcon fontSize="small" />}
+          </IconButton>
+        </Tooltip>
+      )}
+      <Link href={`/story/${_id}`} style={{ textDecoration: 'none' }}>
         <Box sx={{ position: 'relative', aspectRatio: '16/9', overflow: 'hidden' }}>
           <img
             src={thumbnailUrl || YOUTUBE_THUMBNAIL(youtubeId)}
@@ -84,7 +117,7 @@ export default function StoryCard({
             </Stack>
           </Stack>
         </Box>
-      </Box>
-    </Link>
+      </Link>
+    </Box>
   );
 }
