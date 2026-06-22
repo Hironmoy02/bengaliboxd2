@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import api from '@/lib/axios';
@@ -8,9 +8,9 @@ import { Box, Typography, Button, Paper } from '@mui/material';
 import LockResetIcon from '@mui/icons-material/LockReset';
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
 import WarningIcon from '@mui/icons-material/Warning';
-import { AppTextField, AppAlert } from '@/components/ui';
+import { AppTextField, AppAlert, AppLoadingState } from '@/components/ui';
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
@@ -125,5 +125,13 @@ export default function ResetPasswordPage() {
         )}
       </Paper>
     </Box>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<AppLoadingState message="Loading reset form..." />}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }
