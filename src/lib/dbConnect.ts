@@ -2,6 +2,17 @@ import './polyfill';
 import mongoose from 'mongoose';
 import dns from 'dns';
 
+// Register all Mongoose schemas/models to prevent MissingSchemaError during population
+import '../models/User';
+import '../models/Story';
+import '../models/Rating';
+import '../models/Bookmark';
+import '../models/DailyVisitor';
+import '../models/Feedback';
+import '../models/PasswordReset';
+import '../models/Settings';
+import '../models/Writer';
+
 try {
   dns.setServers(['8.8.8.8', '1.1.1.1']);
 } catch (e) {

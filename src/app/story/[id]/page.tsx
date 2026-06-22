@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 import { fetchStoryByIdServer, fetchReviewsServer } from '@/lib/serverData';
 import StoryContent from '@/components/StoryContent';
 
+export const dynamic = 'force-dynamic';
+
 export default async function StoryDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
