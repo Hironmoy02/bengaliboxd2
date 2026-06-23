@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import dbConnect from '@/lib/dbConnect';
 import Rating from '@/models/Rating';
 import Story from '@/models/Story';
+import Listen from '@/models/Listen';
 import { getUserFromSession } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
@@ -79,6 +80,13 @@ export async function POST(request: NextRequest) {
       averageRating,
       ratingsCount,
     });
+
+    // Auto-create listen record when a rating is submitted
+    await Listen.findOneAndUpdate(
+      { userId: user.id as mongoose.Types.ObjectId, storyId: new mongoose.Types.ObjectId(storyId) },
+      { listenedAt: new Date() },
+      { upsert: true, new: true }
+    ).catch(() => {});
 
     return NextResponse.json({
       message: 'Rating submitted successfully',

@@ -12,6 +12,8 @@ import SendIcon from '@mui/icons-material/Send';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
+import HeadphonesIcon from '@mui/icons-material/Headphones';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { AppPagination, AppAlert, AppStarRating, AppRatingDisplay, AppLoadingState, AppEmptyState } from '@/components/ui';
 
 const YoutubeIcon = ({ size = 16 }: { size?: number }) => (
@@ -64,11 +66,15 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isListened, setIsListened] = useState(false);
 
   useEffect(() => {
     if (user) {
       api.get('/api/bookmarks/check', { params: { storyId: story._id } })
         .then(({ data }) => setIsBookmarked(data.bookmarked))
+        .catch(() => {});
+      api.get('/api/listens/check', { params: { storyId: story._id } })
+        .then(({ data }) => setIsListened(data.listened))
         .catch(() => {});
     }
   }, [user, story._id]);
@@ -82,6 +88,19 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
       } else {
         await api.post('/api/bookmarks', { storyId: story._id });
         setIsBookmarked(true);
+      }
+    } catch { /* ignore */ }
+  };
+
+  const handleToggleListened = async () => {
+    if (!user) return;
+    try {
+      if (isListened) {
+        await api.delete('/api/listens', { data: { storyId: story._id } });
+        setIsListened(false);
+      } else {
+        await api.post('/api/listens', { storyId: story._id });
+        setIsListened(true);
       }
     } catch { /* ignore */ }
   };
@@ -211,6 +230,23 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
                 <Tooltip title={isBookmarked ? 'Remove bookmark' : 'Bookmark this story'}>
                   <IconButton onClick={handleToggleBookmark} sx={{ color: isBookmarked ? 'primary.main' : 'text.secondary' }}>
                     {isBookmarked ? <BookmarkIcon /> : <BookmarkBorderIcon />}
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+            </Paper>
+          )}
+
+          {/* Listened Button */}
+          {user && (
+            <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {isListened ? <CheckCircleIcon sx={{ color: 'success.main', fontSize: 20 }} /> : <HeadphonesIcon sx={{ fontSize: 20, color: 'text.secondary' }} />}
+                  {isListened ? 'Listened' : 'Mark as Listened'}
+                </Typography>
+                <Tooltip title={isListened ? 'Remove from listened' : 'Mark as listened'}>
+                  <IconButton onClick={handleToggleListened} sx={{ color: isListened ? 'success.main' : 'text.secondary' }}>
+                    <HeadphonesIcon />
                   </IconButton>
                 </Tooltip>
               </Stack>
