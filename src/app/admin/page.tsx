@@ -26,7 +26,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import {
   AppAlert, AppConfirmModal, AppLoadingState, AppEmptyState,
 } from '@/components/ui';
-import { CHANNELS, GENRES, CHANNEL_KEYWORDS, NARRATOR_KEYWORDS, DEFAULT_CHANNEL, DEFAULT_GENRE, ADMIN_TAB_LABELS, YEARS_RANGE, YOUTUBE_THUMBNAIL } from '@/lib/constants';
+import { CHANNELS, GENRES, CHANNEL_KEYWORDS, NARRATOR_KEYWORDS, DEFAULT_CHANNEL, DEFAULT_GENRE, ADMIN_TAB_LABELS, YEARS_RANGE, YOUTUBE_THUMBNAIL, matchYouTubeChannel } from '@/lib/constants';
 
 interface Story { _id: string; title: string; channel: string; narrator: string; genre: string; writer?: string; youtubeId: string; youtubeUrl: string; approved: boolean; }
 interface UserProfile { _id: string; username: string; email: string; role: string; createdAt: string; }
@@ -87,6 +87,10 @@ export default function AdminPage() {
   const [feedbackTotalPages, setFeedbackTotalPages] = useState(1);
   const [feedbackStatusFilter, setFeedbackStatusFilter] = useState('');
 
+  const [bulkCsvText, setBulkCsvText] = useState('');
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const [bulkResults, setBulkResults] = useState<{ total: number; success: number; failed: number; results: { row: number; title: string; status: 'success' | 'failed'; error?: string }[] } | null>(null);
+
   const channelsList = [...CHANNELS];
   const genresList = [...GENRES];
 
@@ -129,8 +133,8 @@ export default function AdminPage() {
     if (activeTab === 0) fetchStats();
     if (activeTab === 1) fetchPendingStories();
     if (activeTab === 2) fetchUsers();
-    if (activeTab === 5) fetchSettings();
-    if (activeTab === 6) fetchFeedbacks();
+    if (activeTab === 6) fetchSettings();
+    if (activeTab === 7) fetchFeedbacks();
   }, [activeTab, user, feedbackPage, feedbackStatusFilter]);
 
   useEffect(() => { if (user && user.role !== 'admin') setActiveTab(3); }, [user]);
@@ -145,11 +149,8 @@ export default function AdminPage() {
     try {
       const { data } = await api.get('/api/youtube-fetch', { params: { url: youtubeUrl } });
       setTitle(data.title);
-      const fc = data.channel.toLowerCase();
-      const matchedChannel = Object.entries(CHANNEL_KEYWORDS).find(([, keywords]) =>
-        keywords.some((kw) => fc.includes(kw))
-      );
-      setChannel(matchedChannel ? matchedChannel[0] : 'Other Bengali Channels');
+      const matchedChannel = matchYouTubeChannel(data.channel || '');
+      setChannel(matchedChannel || 'Other Bengali Channels');
       setDescription(data.description || '');
       setThumbnailUrl(data.thumbnailUrl || '');
       if (data.yearPublished) setYearPublished(String(data.yearPublished));
@@ -244,6 +245,40 @@ export default function AdminPage() {
       fetchFeedbacks();
     } catch (err) { setError(getErrorMessage(err) || 'Failed to update feedback'); }
     finally { setActionInProgress(null); }
+  };
+
+  const handleBulkUpload = async () => {
+    if (!bulkCsvText.trim()) return;
+    setBulkUploading(true);
+    setBulkResults(null);
+    setError('');
+    setSuccess('');
+    try {
+      const { data } = await api.post('/api/stories/bulk', { csv: bulkCsvText });
+      setBulkResults(data);
+      if (data.failed === 0) {
+        setSuccess(data.message);
+        setBulkCsvText('');
+      } else {
+        setError(data.message);
+      }
+    } catch (err) {
+      setError(getErrorMessage(err) || 'Bulk upload failed');
+    } finally {
+      setBulkUploading(false);
+    }
+  };
+
+  const handleBulkFileRead = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setBulkCsvText(ev.target?.result as string);
+      setBulkResults(null);
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   const handleSearchStories = async () => {
@@ -621,8 +656,83 @@ export default function AdminPage() {
         </Stack>
       )}
 
-      {/* Tab 5: Settings */}
+      {/* Tab 5: Bulk Upload */}
       {isAdmin && activeTab === 5 && (
+        <Stack spacing={3}>
+          <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2 }}>
+              <UploadFileIcon sx={{ color: 'primary.main' }} />
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>Bulk Story Upload</Typography>
+            </Stack>
+            <Divider sx={{ mb: 2 }} />
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Upload a CSV with columns: <strong>Title, Writer, Narrator, Year, YouTube URL</strong> (and optional <strong>Channel</strong>). If Channel is omitted, it's auto-detected from YouTube.
+            </Typography>
+            <Stack spacing={2}>
+              <Button variant="outlined" component="label" startIcon={<UploadFileIcon />}>
+                Choose CSV File
+                <input type="file" accept=".csv,text/csv" hidden onChange={handleBulkFileRead} />
+              </Button>
+              <TextField
+                multiline
+                rows={8}
+                fullWidth
+                placeholder={`Title,Writer,Narrator,Year,YouTube URL,Channel\nFeluda - Somoy,Supriya,Deep,2019,https://www.youtube.com/watch?v=...,Sunday Suspense\nKankur,Leela Ganguly,Somak,2018,https://www.youtube.com/watch?v=...`}
+                value={bulkCsvText}
+                onChange={(e) => { setBulkCsvText(e.target.value); setBulkResults(null); }}
+                sx={{ '& textarea': { fontFamily: 'monospace', fontSize: '0.85rem' } }}
+              />
+              <Button variant="contained" size="large" onClick={handleBulkUpload} disabled={bulkUploading || !bulkCsvText.trim()}>
+                {bulkUploading ? 'Uploading...' : 'Upload Stories'}
+              </Button>
+            </Stack>
+          </Paper>
+
+          {bulkResults && (
+            <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Upload Results</Typography>
+              <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+                <Chip label={`Total: ${bulkResults.total}`} color="default" />
+                <Chip label={`Added: ${bulkResults.success}`} color="success" />
+                <Chip label={`Failed: ${bulkResults.failed}`} color={bulkResults.failed > 0 ? 'error' : 'default'} />
+              </Stack>
+              {bulkResults.results.length > 0 && (
+                <TableContainer sx={{ maxHeight: 400 }}>
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 700 }}>Row</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Details</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {bulkResults.results.map((r, i) => (
+                        <TableRow key={i}>
+                          <TableCell>{r.row}</TableCell>
+                          <TableCell>{r.title}</TableCell>
+                          <TableCell>
+                            {r.status === 'success'
+                              ? <CheckCircleOutlinedIcon sx={{ color: 'success.main', fontSize: 18 }} />
+                              : <DeleteOutlinedIcon sx={{ color: 'error.main', fontSize: 18 }} />}
+                          </TableCell>
+                          <TableCell sx={{ color: r.status === 'failed' ? 'error.main' : 'text.secondary', fontSize: '0.8rem' }}>
+                            {r.status === 'failed' ? r.error : 'Added successfully'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </Paper>
+          )}
+        </Stack>
+      )}
+
+      {/* Tab 6: Settings */}
+      {isAdmin && activeTab === 6 && (
         loadingSettings ? <AppLoadingState message="Loading settings..." /> : (
           <Paper sx={{ p: 3, maxWidth: 600, border: '1px solid', borderColor: 'divider' }}>
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 3 }}>
@@ -643,8 +753,8 @@ export default function AdminPage() {
         )
       )}
 
-      {/* Tab 6: Feedback */}
-      {isAdmin && activeTab === 6 && (
+      {/* Tab 7: Feedback */}
+      {isAdmin && activeTab === 7 && (
         <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>User Feedback</Typography>

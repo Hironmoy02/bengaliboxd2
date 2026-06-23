@@ -7,7 +7,7 @@ import Writer from '@/models/Writer';
 import Settings from '@/models/Settings';
 import { getUserFromSession } from '@/lib/auth';
 import { getYouTubeId } from '@/lib/youtube';
-import { DEFAULT_GENRE, DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT, YOUTUBE_THUMBNAIL } from '@/lib/constants';
+import { DEFAULT_GENRE, DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT, YOUTUBE_THUMBNAIL, CHANNELS } from '@/lib/constants';
 
 export async function GET(request: NextRequest) {
   try {
@@ -124,6 +124,14 @@ export async function POST(request: NextRequest) {
     const youtubeId = getYouTubeId(youtubeUrl);
     if (!youtubeId) {
       return NextResponse.json({ error: 'Invalid YouTube video URL' }, { status: 400 });
+    }
+
+    const allowedChannels = CHANNELS.filter((ch) => ch !== 'Other Bengali Channels');
+    if (!allowedChannels.includes(channel)) {
+      return NextResponse.json(
+        { error: `Stories can only be added from: ${allowedChannels.join(', ')}.` },
+        { status: 400 }
+      );
     }
 
     const existingApprovedStory = await Story.findOne({ youtubeId, approved: true });
