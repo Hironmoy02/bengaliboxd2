@@ -6,6 +6,7 @@ import Writer from '@/models/Writer';
 import { getUserFromSession } from '@/lib/auth';
 import { getYouTubeId } from '@/lib/youtube';
 import { matchYouTubeChannel, CHANNELS, YOUTUBE_THUMBNAIL } from '@/lib/constants';
+import { toSearchable } from '@/lib/transliterate';
 
 function parseCSV(csvText: string): string[][] {
   const rows: string[][] = [];
@@ -184,6 +185,7 @@ export async function POST(request: NextRequest) {
           narrator: row.narrator,
           genre: 'Horror',
           writer: row.writer,
+          titleSearch: toSearchable(row.title),
           yearPublished,
           addedBy: user.id as mongoose.Types.ObjectId,
           approved: true,

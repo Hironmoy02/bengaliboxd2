@@ -79,6 +79,8 @@ export default function AdminPage() {
   const [editForm, setEditForm] = useState({ title: '', channel: '', narrator: '', genre: '', writer: '', description: '', thumbnailUrl: '', yearPublished: '', youtubeUrl: '' });
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [allStories, setAllStories] = useState<Story[]>([]);
+  const [loadingAllStories, setLoadingAllStories] = useState(false);
 
   interface FeedbackItem { _id: string; userId: { username: string; email: string }; category: string; message: string; status: string; createdAt: string; }
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
@@ -133,6 +135,7 @@ export default function AdminPage() {
     if (activeTab === 0) fetchStats();
     if (activeTab === 1) fetchPendingStories();
     if (activeTab === 2) fetchUsers();
+    if (activeTab === 4) fetchAllStories();
     if (activeTab === 6) fetchSettings();
     if (activeTab === 7) fetchFeedbacks();
   }, [activeTab, user, feedbackPage, feedbackStatusFilter]);
@@ -142,6 +145,26 @@ export default function AdminPage() {
   useEffect(() => {
     api.get('/api/writers').then(({ data }) => setWriters(data.writers || [])).catch(() => { });
   }, []);
+
+  const fetchAllStories = async () => {
+    if (!user || user.role !== 'admin') return;
+    setLoadingAllStories(true);
+    try {
+      const { data } = await api.get('/api/stories', { params: { status: 'all', limit: 500 } });
+      setAllStories(data.stories || []);
+    } catch { console.error('Failed to load stories'); }
+    finally { setLoadingAllStories(false); }
+  };
+
+  const handleSearchStories = async () => {
+    if (!editSearch.trim()) return;
+    setLoadingEdit(true);
+    try {
+      const { data } = await api.get('/api/stories', { params: { search: editSearch, status: 'all', limit: 50 } });
+      setEditResults(data.stories || []);
+    } catch { console.error('Failed to search stories'); }
+    finally { setLoadingEdit(false); }
+  };
 
   const handleFetchYoutube = async () => {
     if (!youtubeUrl) { setError('Enter a YouTube URL first'); return; }
@@ -281,16 +304,6 @@ export default function AdminPage() {
     e.target.value = '';
   };
 
-  const handleSearchStories = async () => {
-    if (!editSearch.trim()) return;
-    setLoadingEdit(true);
-    try {
-      const { data } = await api.get('/api/stories', { params: { search: editSearch, status: 'all', limit: 50 } });
-      setEditResults(data.stories || []);
-    } catch { console.error('Failed to search stories'); }
-    finally { setLoadingEdit(false); }
-  };
-
   const handleSelectStoryForEdit = (story: Story) => {
     setEditingStory(story);
     setEditForm({
@@ -405,9 +418,9 @@ export default function AdminPage() {
                   <Typography variant="body2" color="text.secondary">
                     Narrator: {story.narrator} &bull; Genre: {story.genre}{story.writer && <>&bull; Writer: {story.writer}</>}
                   </Typography>
-                  <Button size="small" href={story.youtubeUrl} target="_blank" startIcon={<OpenInNewIcon sx={{ fontSize: 12 }} />} sx={{ mt: 0.5, textTransform: 'none' }}>
+                  {story.youtubeUrl && <Button size="small" href={story.youtubeUrl} target="_blank" startIcon={<OpenInNewIcon sx={{ fontSize: 12 }} />} sx={{ mt: 0.5, textTransform: 'none' }}>
                     Play on YouTube
-                  </Button>
+                  </Button>}
                 </Box>
                 <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
                   <Button variant="contained" size="small" startIcon={<CheckIcon />} onClick={() => handleApproveStory(story._id)} disabled={actionInProgress !== null} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
@@ -649,6 +662,19 @@ export default function AdminPage() {
                 </TextField>
                 <Button variant="contained" fullWidth size="large" onClick={handleUpdateStory} disabled={savingEdit}>
                   {savingEdit ? 'Saving...' : 'Save Changes'}
+                </Button>
+                <Button variant="outlined" fullWidth color="error" onClick={() => {
+                  if (!editingStory) return;
+                  setConfirmModal({
+                    open: true, title: 'Delete Story', message: `Permanently delete "${editingStory.title}"?`, severity: 'error', action: async () => {
+                      setError(''); setSuccess(''); setActionInProgress(editingStory._id);
+                      try { await api.delete(`/api/stories/${editingStory._id}/approve`); setSuccess('Story deleted.'); setEditingStory(null); fetchAllStories(); }
+                      catch (err) { setError(getErrorMessage(err) || 'Failed to delete'); }
+                      finally { setActionInProgress(null); setConfirmModal((p) => ({ ...p, open: false })); }
+                    }
+                  });
+                }} disabled={actionInProgress === editingStory._id}>
+                  Delete Story
                 </Button>
               </Stack>
             </Paper>

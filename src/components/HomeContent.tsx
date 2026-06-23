@@ -6,10 +6,9 @@ import api from '@/lib/axios';
 import { useAppSelector } from '@/lib/hooks';
 import {
   Box, Typography, Button, TextField, InputAdornment, Tabs, Tab, Paper, Stack, Chip,
-  CircularProgress, Autocomplete, MenuItem,
+  Autocomplete,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import SlidersHorizontalIcon from '@mui/icons-material/FilterList';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import HeadphonesIcon from '@mui/icons-material/Headphones';
 import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';

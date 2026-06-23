@@ -46,6 +46,11 @@ const StorySchema = new Schema(
       trim: true,
       default: '',
     },
+    titleSearch: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     yearPublished: {
       type: Number,
       min: 1900,
