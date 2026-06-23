@@ -8,6 +8,7 @@ import Settings from '@/models/Settings';
 import { getUserFromSession } from '@/lib/auth';
 import { getYouTubeId } from '@/lib/youtube';
 import { DEFAULT_GENRE, DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT, YOUTUBE_THUMBNAIL, CHANNELS } from '@/lib/constants';
+import { toSearchable } from '@/lib/transliterate';
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,8 +39,11 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const searchableQuery = toSearchable(search);
+      const escapedSearchable = searchableQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.$or = [
         { title: { $regex: escapedSearch, $options: 'i' } },
+        { titleSearch: { $regex: escapedSearchable, $options: 'i' } },
         { narrator: { $regex: escapedSearch, $options: 'i' } },
         { channel: { $regex: escapedSearch, $options: 'i' } },
         { writer: { $regex: escapedSearch, $options: 'i' } },
@@ -182,6 +186,7 @@ export async function POST(request: NextRequest) {
       narrator: narrator.trim(),
       genre: genre || DEFAULT_GENRE,
       writer: writer ? writer.trim() : '',
+      titleSearch: toSearchable(title.trim()),
       yearPublished: finalYearPublished,
       addedBy: user.id as mongoose.Types.ObjectId,
       approved,

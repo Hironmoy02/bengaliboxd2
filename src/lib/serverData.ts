@@ -2,6 +2,7 @@ import dbConnect from '@/lib/dbConnect';
 import Story from '@/models/Story';
 import Rating from '@/models/Rating';
 import { DEFAULT_PAGE_LIMIT } from '@/lib/constants';
+import { toSearchable } from '@/lib/transliterate';
 
 interface StoryFilter {
   approved?: boolean;
@@ -39,8 +40,11 @@ export async function fetchStoriesServer(params: {
 
   if (search) {
     const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const searchableQuery = toSearchable(search);
+    const escapedSearchable = searchableQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     filter.$or = [
       { title: { $regex: escaped, $options: 'i' } },
+      { titleSearch: { $regex: escapedSearchable, $options: 'i' } },
       { narrator: { $regex: escaped, $options: 'i' } },
       { channel: { $regex: escaped, $options: 'i' } },
       { writer: { $regex: escaped, $options: 'i' } },

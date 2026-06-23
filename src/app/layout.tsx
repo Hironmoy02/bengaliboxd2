@@ -33,10 +33,10 @@ export default function RootLayout({
             <footer className="footer">
               <div className="container">
                 <p className="footer-text">
-                  &copy; {new Date().getFullYear()} Bengaliboxd. Made for Bengali Audio Story lovers.
+                  &copy; {new Date().getFullYear()} Bengaliboxd. A personalized home for Bengali audio story lovers.
                 </p>
                 <p className="footer-text" style={{ fontSize: '0.8rem', marginTop: '8px' }}>
-                  Bengaliboxd is an independent rating system. All audio stories are embedded directly from official YouTube channels.
+                  Discover, rate, and review your favorite Bengali audio stories. All stories are streamed directly from official YouTube channels.
                 </p>
               </div>
             </footer>
