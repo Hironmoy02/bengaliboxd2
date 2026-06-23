@@ -12,9 +12,11 @@ import {
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import HeadphonesIcon from '@mui/icons-material/Headphones';
+import HeadsetMicIcon from '@mui/icons-material/HeadsetMic';
 import LibraryAddIcon from '@mui/icons-material/LibraryAdd';
 import FeedbackIcon from '@mui/icons-material/Feedback';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
+import StarIcon from '@mui/icons-material/Star';
 import { AppAlert, AppLoadingState, AppEmptyState, AppStarRating, AppPagination } from '@/components/ui';
 
 function getErrorMessage(err: unknown): string { return err instanceof Error ? err.message : 'An error occurred'; }
@@ -59,6 +61,12 @@ export default function ProfilePage() {
   const [bookmarkPage, setBookmarkPage] = useState(1);
   const [bookmarkTotalPages, setBookmarkTotalPages] = useState(1);
 
+  interface ListenStory { _id: string; title: string; channel: string; narrator: string; writer?: string; youtubeId: string; averageRating: number; ratingsCount: number; listenedAt: string; }
+  const [listens, setListens] = useState<ListenStory[]>([]);
+  const [loadingListens, setLoadingListens] = useState(false);
+  const [listenPage, setListenPage] = useState(1);
+  const [listenTotalPages, setListenTotalPages] = useState(1);
+
   useEffect(() => {
     if (!loading && !user) router.push('/login');
   }, [user, loading, router]);
@@ -77,8 +85,9 @@ export default function ProfilePage() {
   }, [user]);
 
   useEffect(() => {
-    if (activeTab === 3) fetchBookmarks(bookmarkPage, bookmarkSort);
-  }, [activeTab, bookmarkPage, bookmarkSort]);
+    if (activeTab === 2) fetchListens(listenPage);
+    if (activeTab === 4) fetchBookmarks(bookmarkPage, bookmarkSort);
+  }, [activeTab, bookmarkPage, bookmarkSort, listenPage]);
 
   const handleUpdateProfile = async () => {
     setError(''); setSuccess(''); setSaving(true);
@@ -126,6 +135,23 @@ export default function ProfilePage() {
     try {
       await api.delete('/api/bookmarks', { data: { storyId } });
       setBookmarks((prev) => prev.filter((b) => b._id !== storyId));
+    } catch { /* ignore */ }
+  };
+
+  const fetchListens = async (page: number) => {
+    setLoadingListens(true);
+    try {
+      const { data } = await api.get('/api/listens', { params: { page, limit: 10 } });
+      setListens(data.listens || []);
+      setListenTotalPages(data.pagination?.totalPages || 1);
+    } catch { console.error('Failed to load listening history'); }
+    finally { setLoadingListens(false); }
+  };
+
+  const handleRemoveListen = async (storyId: string) => {
+    try {
+      await api.delete('/api/listens', { data: { storyId } });
+      setListens((prev) => prev.filter((l) => l._id !== storyId));
     } catch { /* ignore */ }
   };
 
@@ -201,8 +227,9 @@ export default function ProfilePage() {
         }}
       >
         <Tab icon={<PersonIcon />} iconPosition="start" label={isMobile ? undefined : "Account"} />
-        <Tab icon={<LibraryAddIcon />} iconPosition="start" label={isMobile ? `Stories (${stories.length})` : `My Stories (${stories.length})`} />
-        <Tab icon={<HeadphonesIcon />} iconPosition="start" label={isMobile ? `Heard (${ratings.length})` : `Listened (${ratings.length})`} />
+        <Tab icon={<LibraryAddIcon />} iconPosition="start" label={isMobile ? undefined : `My Stories (${stories.length})`} />
+        <Tab icon={<HeadsetMicIcon />} iconPosition="start" label={isMobile ? undefined : `Recently Listened (${listens.length})`} />
+        <Tab icon={<StarIcon />} iconPosition="start" label={isMobile ? undefined : `Rated (${ratings.length})`} />
         <Tab icon={<BookmarkIcon />} iconPosition="start" label={isMobile ? undefined : "Bookmarks"} />
         <Tab icon={<FeedbackIcon />} iconPosition="start" label={isMobile ? undefined : "Feedback"} />
       </Tabs>
@@ -285,10 +312,59 @@ export default function ProfilePage() {
         )
       )}
 
-      {/* Tab 2: Listened */}
+      {/* Tab 2: Recently Listened */}
       {activeTab === 2 && (
         <Box>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Stories I&apos;ve Listened To</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Recently Listened</Typography>
+
+          {loadingListens ? <AppLoadingState message="Loading listening history..." /> : listens.length === 0 ? (
+            <AppEmptyState
+              title="No listening history yet"
+              message="Mark stories as listened to track your journey."
+              actionLabel="Browse Stories"
+              actionHref="/"
+            />
+          ) : (
+            <>
+              <Stack spacing={1.5}>
+                {listens.map((l) => (
+                  <Paper key={l._id} sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', gap: { xs: 1.5, sm: 2 }, alignItems: 'center', border: '1px solid', borderColor: 'divider' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`https://img.youtube.com/vi/${l.youtubeId}/hqdefault.jpg`} alt="" style={{ width: isMobile ? 80 : 100, aspectRatio: '16/9', objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Link href={`/story/${l._id}`} style={{ color: 'var(--text-primary)', fontWeight: 600, textDecoration: 'none', fontSize: isMobile ? '0.85rem' : '0.95rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {l.title}
+                      </Link>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.3, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                        {l.channel}{l.narrator ? ` \u2022 ${l.narrator}` : ''}
+                        {l.writer ? ` \u2022 Written by ${l.writer}` : ''}
+                      </Typography>
+                      <Stack direction="row" spacing={1} sx={{ mt: 0.5, alignItems: 'center' }}>
+                        <AppStarRating value={l.averageRating} readonly size={isMobile ? 10 : 12} />
+                        <Typography variant="caption" color="text.secondary">({l.ratingsCount})</Typography>
+                        <Typography variant="caption" color="text.secondary">&bull; Listened {new Date(l.listenedAt).toLocaleDateString()}</Typography>
+                      </Stack>
+                    </Box>
+                    <Tooltip title="Remove from listened">
+                      <IconButton onClick={() => handleRemoveListen(l._id)} sx={{ color: 'text.secondary', p: { xs: 0.5, sm: 1 } }}>
+                        <HeadphonesIcon fontSize={isMobile ? 'small' : 'medium'} />
+                      </IconButton>
+                    </Tooltip>
+                  </Paper>
+                ))}
+              </Stack>
+              {listenTotalPages > 1 && (
+                <AppPagination page={listenPage} totalPages={listenTotalPages} onChange={setListenPage} showTotal={false} />
+              )}
+            </>
+          )}
+        </Box>
+      )}
+
+      {/* Tab 3: Rated */}
+      {activeTab === 3 && (
+        <Box>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Stories I&apos;ve Rated</Typography>
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 3, alignItems: { sm: 'center' } }}>
             <TextField
@@ -376,8 +452,8 @@ export default function ProfilePage() {
         </Box>
       )}
 
-      {/* Tab 3: Bookmarks */}
-      {activeTab === 3 && (
+      {/* Tab 4: Bookmarks */}
+      {activeTab === 4 && (
         <Box>
           <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, gap: 1, mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>Bookmarked Stories</Typography>
@@ -432,8 +508,8 @@ export default function ProfilePage() {
         </Box>
       )}
 
-      {/* Tab 4: Feedback */}
-      {activeTab === 4 && (
+      {/* Tab 5: Feedback */}
+      {activeTab === 5 && (
         <Paper sx={{ p: { xs: 2, sm: 3 }, maxWidth: 600, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Share Your Feedback</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>

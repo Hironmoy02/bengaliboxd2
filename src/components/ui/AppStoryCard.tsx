@@ -3,6 +3,7 @@
 import React from 'react';
 import { Box, Typography, Stack, IconButton, Tooltip } from '@mui/material';
 import StarIcon from '@mui/icons-material/Star';
+import HeadphonesIcon from '@mui/icons-material/Headphones';
 import ChatBubbleOutlinedIcon from '@mui/icons-material/ChatBubbleOutlined';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
@@ -21,6 +22,7 @@ interface StoryCardProps {
   averageRating: number;
   ratingsCount: number;
   isBookmarked?: boolean;
+  isListened?: boolean;
   onBookmarkToggle?: (storyId: string) => void;
 }
 
@@ -35,6 +37,7 @@ export default function StoryCard({
   averageRating,
   ratingsCount,
   isBookmarked = false,
+  isListened = false,
   onBookmarkToggle,
 }: StoryCardProps) {
   return (
@@ -89,6 +92,11 @@ export default function StoryCard({
             loading="lazy"
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
+          {isListened && (
+            <Box sx={{ position: 'absolute', bottom: 6, left: 6, bgcolor: 'rgba(16,185,129,0.9)', borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <HeadphonesIcon sx={{ fontSize: 14, color: '#fff' }} />
+            </Box>
+          )}
         </Box>
         <Box sx={{ p: 2 }}>
           <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
