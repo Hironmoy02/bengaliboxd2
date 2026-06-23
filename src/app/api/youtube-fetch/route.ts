@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromSession } from '@/lib/auth';
 import { getYouTubeId } from '@/lib/youtube';
+import { matchYouTubeChannel } from '@/lib/constants';
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,6 +35,14 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await res.json();
+
+    const matchedChannel = matchYouTubeChannel(data.author_name || '');
+    if (!matchedChannel) {
+      return NextResponse.json(
+        { error: `This video is from "${data.author_name}" which is not an allowed channel. Stories can only be added from Sunday Suspense, Goppo Mirer Thek, Midnight Horror Station, or Kahon.` },
+        { status: 400 }
+      );
+    }
 
     let yearPublished: number | undefined;
     try {

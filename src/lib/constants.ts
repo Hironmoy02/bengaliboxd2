@@ -13,6 +13,16 @@ export const CHANNEL_KEYWORDS: Record<string, string[]> = {
   'Kahon': ['kahon'],
 };
 
+export function matchYouTubeChannel(youtubeChannelName: string): string | null {
+  const lower = youtubeChannelName.toLowerCase();
+  for (const [channel, keywords] of Object.entries(CHANNEL_KEYWORDS)) {
+    if (keywords.some((kw) => lower.includes(kw))) {
+      return channel;
+    }
+  }
+  return null;
+}
+
 export const GENRES = [
   'Horror',
   'Mystery',
@@ -50,4 +60,4 @@ export const YEARS_RANGE = 21;
 export const YOUTUBE_THUMBNAIL = (id: string, quality: 'hq' | 'maxres' = 'hq') =>
   `https://img.youtube.com/vi/${id}/${quality === 'maxres' ? 'maxresdefault' : 'hqdefault'}.jpg`;
 
-export const ADMIN_TAB_LABELS = ['Analytics', 'Approvals', 'Users', 'Add Story', 'Edit Story', 'Settings', 'Feedback'] as const;
+export const ADMIN_TAB_LABELS = ['Analytics', 'Approvals', 'Users', 'Add Story', 'Edit Story', 'Bulk Upload', 'Settings', 'Feedback'] as const;

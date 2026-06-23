@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppSelector } from '@/lib/hooks';
 import api from '@/lib/axios';
-import { CHANNELS, GENRES, CHANNEL_KEYWORDS, NARRATOR_KEYWORDS, YEARS_RANGE, YOUTUBE_THUMBNAIL, DEFAULT_CHANNEL, DEFAULT_GENRE } from '@/lib/constants';
+import { CHANNELS, GENRES, CHANNEL_KEYWORDS, NARRATOR_KEYWORDS, YEARS_RANGE, YOUTUBE_THUMBNAIL, DEFAULT_CHANNEL, DEFAULT_GENRE, matchYouTubeChannel } from '@/lib/constants';
 import {
   Box, Typography, Button, Paper, Stack, TextField, IconButton, InputAdornment,
   Autocomplete,
@@ -52,11 +52,8 @@ export default function AddStoryPage() {
     try {
       const { data } = await api.get('/api/youtube-fetch', { params: { url: youtubeUrl } });
       setTitle(data.title);
-      const fc = data.channel.toLowerCase();
-      const matchedChannel = Object.entries(CHANNEL_KEYWORDS).find(([, keywords]) =>
-        keywords.some((kw) => fc.includes(kw))
-      );
-      setChannel(matchedChannel ? matchedChannel[0] : 'Other Bengali Channels');
+      const matchedChannel = matchYouTubeChannel(data.channel || '');
+      setChannel(matchedChannel || 'Other Bengali Channels');
       setDescription(data.description || '');
       setThumbnailUrl(data.thumbnailUrl || '');
       if (data.yearPublished) setYearPublished(String(data.yearPublished));
@@ -95,7 +92,7 @@ export default function AddStoryPage() {
     <Box sx={{ maxWidth: 700, mx: 'auto', px: 2, py: 5, minHeight: '80vh' }}>
       <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>Suggest a Story</Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Submit a Bengali audio story from YouTube. It will appear in the catalog after admin approval.
+        Submit a Bengali audio story from YouTube. Only stories from Sunday Suspense, Goppo Mirer Thek, Midnight Horror Station, and Kahon are accepted. It will appear in the catalog after admin approval.
       </Typography>
 
       {error && <AppAlert severity="error" message={error} onClose={() => setError('')} />}
