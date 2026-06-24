@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAppSelector } from '@/lib/hooks';
 import api from '@/lib/axios';
 import {
-  Box, Typography, Button, Paper, Stack, Chip, TextField, Avatar, LinearProgress, IconButton, Tooltip,
+  Box, Typography, Button, Paper, Stack, Chip, TextField, Avatar, LinearProgress, IconButton, Tooltip, Divider,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SendIcon from '@mui/icons-material/Send';
@@ -14,6 +14,9 @@ import BookmarkIcon from '@mui/icons-material/Bookmark';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import HeadphonesIcon from '@mui/icons-material/Headphones';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import StarIcon from '@mui/icons-material/Star';
 import { AppPagination, AppAlert, AppStarRating, AppRatingDisplay, AppLoadingState, AppEmptyState } from '@/components/ui';
 import { formatDuration } from '@/lib/constants';
 
@@ -52,7 +55,7 @@ interface StoryContentProps {
 
 export default function StoryContent({ initialStory, initialReviews, initialPagination }: StoryContentProps) {
   const { user } = useAppSelector((s) => s.auth);
-  const [story] = useState<Story>(initialStory);
+  const [story, setStory] = useState<Story>(initialStory);
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [pagination, setPagination] = useState<Pagination>(initialPagination);
   const [reviewPage, setReviewPage] = useState(1);
@@ -72,6 +75,7 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
   const [success, setSuccess] = useState('');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isListened, setIsListened] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -80,6 +84,9 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
         .catch(() => {});
       api.get('/api/listens/check', { params: { storyId: story._id } })
         .then(({ data }) => setIsListened(data.listened))
+        .catch(() => {});
+      api.get('/api/likes/check', { params: { storyId: story._id } })
+        .then(({ data }) => setIsLiked(data.liked))
         .catch(() => {});
     }
   }, [user, story._id]);
@@ -110,6 +117,19 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
     } catch { /* ignore */ }
   };
 
+  const handleToggleLike = async () => {
+    if (!user) return;
+    try {
+      if (isLiked) {
+        await api.delete('/api/likes', { data: { storyId: story._id } });
+        setIsLiked(false);
+      } else {
+        await api.post('/api/likes', { storyId: story._id });
+        setIsLiked(true);
+      }
+    } catch { /* ignore */ }
+  };
+
   const fetchReviews = async (page: number) => {
     setLoadingReviews(true);
     try {
@@ -128,16 +148,32 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
     setSuccess('');
     setIsSubmitting(true);
     try {
-      await api.post('/api/ratings', { storyId: story._id, ratingValue: userRating, reviewText, narrationRating: narrationRating || undefined, atmosphereRating: atmosphereRating || undefined });
+      const { data } = await api.post('/api/ratings', { storyId: story._id, ratingValue: userRating, reviewText, narrationRating: narrationRating || undefined, atmosphereRating: atmosphereRating || undefined });
       setSuccess('Your rating and review has been logged!');
+      
+      // Update story state with new stats
+      setStory((prev) => ({
+        ...prev,
+        averageRating: data.stats.averageRating,
+        ratingsCount: data.stats.ratingsCount,
+      }));
+
+      // Auto-clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccess('');
+      }, 3000);
+
       fetchReviews(reviewPage);
     } catch (err) { setError(err instanceof Error ? err.message : 'Failed to submit rating.'); }
     finally { setIsSubmitting(false); }
   };
 
   const { ratingDistribution, totalReviewsCount } = useMemo(() => {
-    const dist = [0, 0, 0, 0, 0];
-    reviews.forEach((rev) => { const idx = rev.ratingValue - 1; if (idx >= 0 && idx < 5) dist[idx]++; });
+    const dist = Array(10).fill(0);
+    reviews.forEach((rev) => {
+      const idx = Math.round(rev.ratingValue * 2) - 1;
+      if (idx >= 0 && idx < 10) dist[idx]++;
+    });
     return { ratingDistribution: dist, totalReviewsCount: pagination.total || reviews.length };
   }, [reviews, pagination.total]);
 
@@ -244,35 +280,49 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
 
         {/* Sidebar */}
         <Stack spacing={3} sx={{ width: { lg: 340 }, flexShrink: 0 }}>
-          {/* Bookmark Button */}
+          {/* Actions Panel */}
           {user && (
             <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  {isBookmarked ? 'Bookmarked for later' : 'Save for later'}
-                </Typography>
-                <Tooltip title={isBookmarked ? 'Remove bookmark' : 'Bookmark this story'}>
-                  <IconButton onClick={handleToggleBookmark} sx={{ color: isBookmarked ? 'primary.main' : 'text.secondary' }}>
-                    {isBookmarked ? <BookmarkIcon /> : <BookmarkBorderIcon />}
-                  </IconButton>
-                </Tooltip>
-              </Stack>
-            </Paper>
-          )}
+              <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-around', alignItems: 'center' }}>
+                {/* Listened Button */}
+                <Stack direction="column" sx={{ alignItems: 'center', flex: 1 }}>
+                  <Tooltip title={isListened ? 'Remove from listened' : 'Mark as listened'}>
+                    <IconButton onClick={handleToggleListened} sx={{ color: isListened ? '#22c55e' : 'text.secondary', p: 1.5 }}>
+                      {isListened ? <CheckCircleIcon sx={{ fontSize: 28 }} /> : <HeadphonesIcon sx={{ fontSize: 28 }} />}
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="caption" color={isListened ? 'success.main' : 'text.secondary'} sx={{ fontWeight: 600 }}>
+                    {isListened ? 'Listened' : 'Listen'}
+                  </Typography>
+                </Stack>
 
-          {/* Listened Button */}
-          {user && (
-            <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  {isListened ? <CheckCircleIcon sx={{ color: 'success.main', fontSize: 20 }} /> : <HeadphonesIcon sx={{ fontSize: 20, color: 'text.secondary' }} />}
-                  {isListened ? 'Listened' : 'Mark as Listened'}
-                </Typography>
-                <Tooltip title={isListened ? 'Remove from listened' : 'Mark as listened'}>
-                  <IconButton onClick={handleToggleListened} sx={{ color: isListened ? 'success.main' : 'text.secondary' }}>
-                    <HeadphonesIcon />
-                  </IconButton>
-                </Tooltip>
+                <Divider orientation="vertical" flexItem />
+
+                {/* Like Button */}
+                <Stack direction="column" sx={{ alignItems: 'center', flex: 1 }}>
+                  <Tooltip title={isLiked ? 'Unlike this story' : 'Like this story'}>
+                    <IconButton onClick={handleToggleLike} sx={{ color: isLiked ? '#ef4444' : 'text.secondary', p: 1.5 }}>
+                      {isLiked ? <FavoriteIcon sx={{ fontSize: 28 }} /> : <FavoriteBorderIcon sx={{ fontSize: 28 }} />}
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="caption" color={isLiked ? '#ef4444' : 'text.secondary'} sx={{ fontWeight: 600 }}>
+                    {isLiked ? 'Liked' : 'Like'}
+                  </Typography>
+                </Stack>
+
+                <Divider orientation="vertical" flexItem />
+
+                {/* Bookmark Button */}
+                <Stack direction="column" sx={{ alignItems: 'center', flex: 1 }}>
+                  <Tooltip title={isBookmarked ? 'Remove bookmark' : 'Bookmark this story'}>
+                    <IconButton onClick={handleToggleBookmark} sx={{ color: isBookmarked ? '#3b82f6' : 'text.secondary', p: 1.5 }}>
+                      {isBookmarked ? <BookmarkIcon sx={{ fontSize: 28 }} /> : <BookmarkBorderIcon sx={{ fontSize: 28 }} />}
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="caption" color={isBookmarked ? '#3b82f6' : 'text.secondary'} sx={{ fontWeight: 600 }}>
+                    {isBookmarked ? 'Bookmarked' : 'Bookmark'}
+                  </Typography>
+                </Stack>
               </Stack>
             </Paper>
           )}
@@ -289,19 +339,48 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
                 <Typography variant="caption" color="text.secondary">Based on {story.ratingsCount} reviews</Typography>
               </Box>
             </Stack>
-            <Stack spacing={1}>
-              {ratingDistribution.slice().reverse().map((count, idx) => {
-                const stars = 5 - idx;
-                const pct = totalReviewsCount > 0 ? (count / totalReviewsCount) * 100 : 0;
-                return (
-                  <Stack key={stars} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                    <Typography variant="caption" sx={{ width: 12, textAlign: 'right', color: 'text.secondary' }}>{stars}</Typography>
-                    <LinearProgress variant="determinate" value={pct} sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { bgcolor: '#f59e0b', borderRadius: 3 } }} />
-                    <Typography variant="caption" color="text.secondary" sx={{ width: 20 }}>{count}</Typography>
+            
+            {/* 10-bar Rating Distribution Vertical Histogram */}
+            <Box sx={{ mt: 2, mb: 1 }}>
+              <Stack direction="row" spacing={0.75} sx={{ height: 80, alignItems: 'flex-end', justifyContent: 'space-between', mb: 1, px: 0.5 }}>
+                {ratingDistribution.map((count, idx) => {
+                  const ratingVal = (idx + 1) / 2;
+                  const maxCount = Math.max(...ratingDistribution, 1);
+                  const heightPct = (count / maxCount) * 100;
+                  return (
+                    <Tooltip key={ratingVal} title={`${ratingVal} Star${ratingVal !== 1 ? 's' : ''}`} arrow>
+                      <Box
+                        sx={{
+                          flex: 1,
+                          height: `${Math.max(heightPct, 4)}%`, // at least 4% height so it is slightly visible even if 0 reviews
+                          bgcolor: count > 0 ? '#22c55e' : 'action.hover', // green bar if there is rating, else light grey
+                          borderRadius: '2px 2px 0 0',
+                          transition: 'height 0.3s ease, background-color 0.3s ease',
+                          '&:hover': {
+                            bgcolor: '#16a34a',
+                          }
+                        }}
+                      />
+                    </Tooltip>
+                  );
+                })}
+              </Stack>
+              <Divider sx={{ mb: 1 }} />
+              <Stack direction="row" sx={{ justifyContent: 'space-between', px: 0.5 }}>
+                <Stack direction="row" spacing={0.25} sx={{ alignItems: 'center' }}>
+                  <StarIcon sx={{ fontSize: 12, color: 'text.secondary' }} />
+                  <Typography variant="caption" color="text.secondary">0.5</Typography>
+                </Stack>
+                <Stack direction="row" spacing={0.25} sx={{ alignItems: 'center' }}>
+                  <Typography variant="caption" color="text.secondary">5.0</Typography>
+                  <Stack direction="row" spacing={0.05}>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <StarIcon key={i} sx={{ fontSize: 10, color: 'text.secondary' }} />
+                    ))}
                   </Stack>
-                );
-              })}
-            </Stack>
+                </Stack>
+              </Stack>
+            </Box>
           </Paper>
 
           {/* Rating Form */}

@@ -132,22 +132,6 @@ export default function AdminPage() {
     finally { setLoadingSettings(false); }
   };
 
-  useEffect(() => {
-    if (!user || user.role !== 'admin') return;
-    if (activeTab === 0) fetchStats();
-    if (activeTab === 1) fetchPendingStories();
-    if (activeTab === 2) fetchUsers();
-    if (activeTab === 4) fetchAllStories();
-    if (activeTab === 6) fetchSettings();
-    if (activeTab === 7) fetchFeedbacks();
-  }, [activeTab, user, feedbackPage, feedbackStatusFilter]);
-
-  useEffect(() => { if (user && user.role !== 'admin') setActiveTab(3); }, [user]);
-
-  useEffect(() => {
-    api.get('/api/writers').then(({ data }) => setWriters(data.writers || [])).catch(() => { });
-  }, []);
-
   const fetchAllStories = async () => {
     if (!user || user.role !== 'admin') return;
     setLoadingAllStories(true);
@@ -157,6 +141,38 @@ export default function AdminPage() {
     } catch { console.error('Failed to load stories'); }
     finally { setLoadingAllStories(false); }
   };
+
+  const fetchFeedbacks = async () => {
+    if (!user || user.role !== 'admin') return;
+    setLoadingFeedback(true);
+    try {
+      const params: Record<string, string | number> = { page: feedbackPage };
+      if (feedbackStatusFilter) params.status = feedbackStatusFilter;
+      const { data } = await api.get('/api/feedback', { params });
+      setFeedbacks(data.feedbacks || []);
+      setFeedbackTotalPages(data.pagination?.totalPages || 1);
+    } catch { console.error('Failed to load feedback'); }
+    finally { setLoadingFeedback(false); }
+  };
+
+  useEffect(() => {
+    if (!user || user.role !== 'admin') return;
+    Promise.resolve().then(() => {
+      if (activeTab === 0) fetchStats();
+      if (activeTab === 1) fetchPendingStories();
+      if (activeTab === 2) fetchUsers();
+      if (activeTab === 4) fetchAllStories();
+      if (activeTab === 6) fetchSettings();
+      if (activeTab === 7) fetchFeedbacks();
+    });
+  }, [activeTab, user, feedbackPage, feedbackStatusFilter]);
+
+  useEffect(() => { if (user && user.role !== 'admin') { Promise.resolve().then(() => setActiveTab(3)); } }, [user]);
+
+  useEffect(() => {
+    api.get('/api/writers').then(({ data }) => setWriters(data.writers || [])).catch(() => { });
+  }, []);
+
 
   const handleSearchStories = async () => {
     if (!editSearch.trim()) return;
@@ -250,18 +266,6 @@ export default function AdminPage() {
     finally { setSavingSettings(false); }
   };
 
-  const fetchFeedbacks = async () => {
-    if (!user || user.role !== 'admin') return;
-    setLoadingFeedback(true);
-    try {
-      const params: Record<string, string | number> = { page: feedbackPage };
-      if (feedbackStatusFilter) params.status = feedbackStatusFilter;
-      const { data } = await api.get('/api/feedback', { params });
-      setFeedbacks(data.feedbacks || []);
-      setFeedbackTotalPages(data.pagination?.totalPages || 1);
-    } catch { console.error('Failed to load feedback'); }
-    finally { setLoadingFeedback(false); }
-  };
 
   const handleUpdateFeedbackStatus = async (feedbackId: string, newStatus: string) => {
     setActionInProgress(feedbackId);
@@ -746,7 +750,7 @@ export default function AdminPage() {
             </Stack>
             <Divider sx={{ mb: 2 }} />
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Upload a CSV with columns: <strong>Title, Writer, Narrator, Year, YouTube URL</strong> (and optional <strong>Channel</strong>). If Channel is omitted, it's auto-detected from YouTube.
+              Upload a CSV with columns: <strong>Title, Writer, Narrator, Year, YouTube URL</strong> (and optional <strong>Channel</strong>). If Channel is omitted, it&apos;s auto-detected from YouTube.
             </Typography>
             <Stack spacing={2}>
               <Button variant="outlined" component="label" startIcon={<UploadFileIcon />}>

@@ -16,6 +16,7 @@ import HeadsetMicIcon from '@mui/icons-material/HeadsetMic';
 import LibraryAddIcon from '@mui/icons-material/LibraryAdd';
 import FeedbackIcon from '@mui/icons-material/Feedback';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
+import FavoriteIcon from '@mui/icons-material/Favorite';
 import StarIcon from '@mui/icons-material/Star';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -66,44 +67,31 @@ export default function ProfilePage() {
   const [bookmarkPage, setBookmarkPage] = useState(1);
   const [bookmarkTotalPages, setBookmarkTotalPages] = useState(1);
 
-  interface ListenStory { _id: string; title: string; channel: string; narrator: string; writer?: string; youtubeId: string; averageRating: number; ratingsCount: number; listenedAt: string; }
+  interface ListenStory { _id: string; title: string; channel: string; narrator: string; writer?: string; youtubeId: string; averageRating: number; ratingsCount: number; listenedAt: string; userRating: number; }
   const [listens, setListens] = useState<ListenStory[]>([]);
   const [loadingListens, setLoadingListens] = useState(false);
   const [listenPage, setListenPage] = useState(1);
   const [listenTotalPages, setListenTotalPages] = useState(1);
+  const [listenSort, setListenSort] = useState('newest');
+  const [listenFilterRating, setListenFilterRating] = useState('All');
 
   interface UserStats { totalListened: number; totalHours: number; totalRatings: number; topGenre: string | null; topAuthor: string | null; topNarrator: string | null; }
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
 
-  useEffect(() => {
-    if (!loading && !user) router.push('/login');
-  }, [user, loading, router]);
+  interface LikedStory { _id: string; title: string; channel: string; narrator: string; youtubeId: string; averageRating: number; ratingsCount: number; likedAt: string; }
+  const [likedStories, setLikedStories] = useState<LikedStory[]>([]);
+  const [loadingLiked, setLoadingLiked] = useState(false);
+  const [likedPage, setLikedPage] = useState(1);
+  const [likedTotalPages, setLikedTotalPages] = useState(1);
+  const [likedSort, setLikedSort] = useState('newest');
 
   useEffect(() => {
-    if (!user) return;
-    setLoadingData(true);
-    api.get('/api/profile').then(({ data }) => {
-      setProfile(data.user);
-      setUsername(data.user.username);
-      setStories(data.stories || []);
-      setRatings(data.ratings || []);
-    }).catch((err) => setError(getErrorMessage(err)))
-      .finally(() => setLoadingData(false));
-    api.get('/api/writers').then(({ data }) => setWritersList(data.writers || [])).catch(() => {});
-  }, [user]);
-
-  useEffect(() => {
-    if (activeTab === 2) fetchListens(listenPage);
-    if (activeTab === 4) fetchBookmarks(bookmarkPage, bookmarkSort);
-  }, [activeTab, listenPage, bookmarkPage, bookmarkSort]);
-
-  useEffect(() => {
-    if (activeTab === 5 && !userStats && !loadingStats) {
-      setLoadingStats(true);
+    if (activeTab === 6 && !userStats && !loadingStats) {
+      Promise.resolve().then(() => setLoadingStats(true));
       api.get('/api/user/stats').then(({ data }) => setUserStats(data.stats)).catch(() => {}).finally(() => setLoadingStats(false));
     }
-  }, [activeTab, userStats, loadingStats]);
+  }, [activeTab, userStats, loadingStats, user]);
 
   const handleUpdateProfile = async () => {
     setError(''); setSuccess(''); setSaving(true);
@@ -138,7 +126,7 @@ export default function ProfilePage() {
   };
 
   const fetchBookmarks = async (page: number, sort: string) => {
-    setLoadingBookmarks(true);
+    Promise.resolve().then(() => setLoadingBookmarks(true));
     try {
       const { data } = await api.get('/api/bookmarks', { params: { page, limit: 10, sortBy: sort } });
       setBookmarks(data.bookmarks || []);
@@ -154,10 +142,10 @@ export default function ProfilePage() {
     } catch { /* ignore */ }
   };
 
-  const fetchListens = async (page: number) => {
-    setLoadingListens(true);
+  const fetchListens = async (page: number, sort: string, rating: string) => {
+    Promise.resolve().then(() => setLoadingListens(true));
     try {
-      const { data } = await api.get('/api/listens', { params: { page, limit: 10 } });
+      const { data } = await api.get('/api/listens', { params: { page, limit: 10, sortBy: sort, rating } });
       setListens(data.listens || []);
       setListenTotalPages(data.pagination?.totalPages || 1);
     } catch { console.error('Failed to load listening history'); }
@@ -170,6 +158,49 @@ export default function ProfilePage() {
       setListens((prev) => prev.filter((l) => l._id !== storyId));
     } catch { /* ignore */ }
   };
+
+  const fetchLikedStories = async (page: number, sort: string) => {
+    Promise.resolve().then(() => setLoadingLiked(true));
+    try {
+      const { data } = await api.get('/api/likes', { params: { page, limit: 10, sortBy: sort } });
+      setLikedStories(data.likes || []);
+      setLikedTotalPages(data.pagination?.totalPages || 1);
+    } catch { console.error('Failed to load liked stories'); }
+    finally { setLoadingLiked(false); }
+  };
+
+  const handleRemoveLike = async (storyId: string) => {
+    try {
+      await api.delete('/api/likes', { data: { storyId } });
+      setLikedStories((prev) => prev.filter((b) => b._id !== storyId));
+    } catch { /* ignore */ }
+  };
+
+  useEffect(() => {
+    if (!loading && !user) router.push('/login');
+  }, [user, loading, router]);
+
+  useEffect(() => {
+    if (!user) return;
+    api.get('/api/profile').then(({ data }) => {
+      setProfile(data.user);
+      setUsername(data.user.username);
+      setStories(data.stories || []);
+      setRatings(data.ratings || []);
+      setListens(data.listens || []);
+      setLikedStories(data.likes || []);
+    }).catch((err) => setError(getErrorMessage(err)))
+      .finally(() => setLoadingData(false));
+    api.get('/api/writers').then(({ data }) => setWritersList(data.writers || [])).catch(() => {});
+  }, [user]);
+
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      if (activeTab === 2) fetchListens(listenPage, listenSort, listenFilterRating);
+      if (activeTab === 4) fetchLikedStories(likedPage, likedSort);
+      if (activeTab === 5) fetchBookmarks(bookmarkPage, bookmarkSort);
+    });
+  }, [activeTab, listenPage, listenSort, listenFilterRating, likedPage, likedSort, bookmarkPage, bookmarkSort]);
 
   const uniqueRatings = useMemo(() => {
     const set = new Set<number>();
@@ -259,8 +290,9 @@ export default function ProfilePage() {
       >
         <Tab icon={<PersonIcon />} iconPosition="start" label={isMobile ? undefined : "Account"} />
         <Tab icon={<LibraryAddIcon />} iconPosition="start" label={isMobile ? undefined : `My Stories (${stories.length})`} />
-        <Tab icon={<HeadsetMicIcon />} iconPosition="start" label={isMobile ? undefined : `Recently Listened (${listens.length})`} />
+        <Tab icon={<HeadsetMicIcon />} iconPosition="start" label={isMobile ? undefined : `Listened (${listens.length})`} />
         <Tab icon={<StarIcon />} iconPosition="start" label={isMobile ? undefined : `Rated (${ratings.length})`} />
+        <Tab icon={<FavoriteIcon />} iconPosition="start" label={isMobile ? undefined : `Liked (${likedStories.length})`} />
         <Tab icon={<BookmarkIcon />} iconPosition="start" label={isMobile ? undefined : "Bookmarks"} />
         <Tab icon={<BarChartIcon />} iconPosition="start" label={isMobile ? undefined : "Stats"} />
         <Tab icon={<FeedbackIcon />} iconPosition="start" label={isMobile ? undefined : "Feedback"} />
@@ -344,10 +376,48 @@ export default function ProfilePage() {
         )
       )}
 
-      {/* Tab 2: Listening History */}
+      {/* Tab 2: Listened */}
       {activeTab === 2 && (
         <Box>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Listening History</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Listened</Typography>
+
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 3, alignItems: { sm: 'center' } }}>
+            <TextField
+              select
+              size="small"
+              value={listenFilterRating}
+              onChange={(e) => { setListenFilterRating(e.target.value); setListenPage(1); }}
+              fullWidth={isMobile}
+              slotProps={{ select: { native: true } }}
+            >
+              <option value="All">All Ratings</option>
+              <option value="unrated">Unrated</option>
+              <option value="5">5 Stars</option>
+              <option value="4.5">4.5 Stars</option>
+              <option value="4">4 Stars</option>
+              <option value="3.5">3.5 Stars</option>
+              <option value="3">3 Stars</option>
+              <option value="2.5">2.5 Stars</option>
+              <option value="2">2 Stars</option>
+              <option value="1.5">1.5 Stars</option>
+              <option value="1">1 Star</option>
+              <option value="0.5">0.5 Stars</option>
+            </TextField>
+
+            <TextField
+              select
+              size="small"
+              value={listenSort}
+              onChange={(e) => { setListenSort(e.target.value); setListenPage(1); }}
+              fullWidth={isMobile}
+              slotProps={{ select: { native: true } }}
+            >
+              <option value="newest">Listened Date (Newest)</option>
+              <option value="oldest">Listened Date (Oldest)</option>
+              <option value="rating-desc">Your Rating (Highest)</option>
+              <option value="rating-asc">Your Rating (Lowest)</option>
+            </TextField>
+          </Stack>
 
           {loadingListens ? <AppLoadingState message="Loading listening history..." /> : listens.length === 0 ? (
             <AppEmptyState
@@ -358,42 +428,40 @@ export default function ProfilePage() {
             />
           ) : (
             <>
-              <Stack spacing={4}>
-                {listensByMonth.map((group) => (
-                  <Box key={group.key}>
-                    <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', mb: 1.5 }}>
-                      <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'primary.main', flexShrink: 0 }} />
-                      <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.secondary' }}>{group.label}</Typography>
-                      <Chip label={`${group.items.length} ${group.items.length === 1 ? 'story' : 'stories'}`} size="small" variant="outlined" sx={{ ml: 0.5 }} />
-                    </Stack>
-                    <Stack spacing={1.5} sx={{ ml: 1.5, borderLeft: '2px solid', borderColor: 'divider', pl: 2.5 }}>
-                      {group.items.map((l) => (
-                        <Paper key={l._id} sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', gap: { xs: 1.5, sm: 2 }, alignItems: 'center', border: '1px solid', borderColor: 'divider', position: 'relative', '&::before': { content: '""', position: 'absolute', left: -33, top: '50%', transform: 'translateY(-50%)', width: 8, height: 8, borderRadius: '50%', bgcolor: 'text.secondary' } }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={`https://img.youtube.com/vi/${l.youtubeId}/hqdefault.jpg`} alt="" style={{ width: isMobile ? 80 : 100, aspectRatio: '16/9', objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Link href={`/story/${l._id}`} style={{ color: 'var(--text-primary)', fontWeight: 600, textDecoration: 'none', fontSize: isMobile ? '0.85rem' : '0.95rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                              {l.title}
-                            </Link>
-                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.3, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                              {l.channel}{l.narrator ? ` \u2022 ${l.narrator}` : ''}
-                              {l.writer ? ` \u2022 Written by ${l.writer}` : ''}
-                            </Typography>
-                            <Stack direction="row" spacing={1} sx={{ mt: 0.5, alignItems: 'center' }}>
-                              <AppStarRating value={l.averageRating} readonly size={isMobile ? 10 : 12} />
-                              <Typography variant="caption" color="text.secondary">({l.ratingsCount})</Typography>
-                              <Typography variant="caption" color="text.secondary">&bull; {new Date(l.listenedAt).toLocaleDateString()}</Typography>
-                            </Stack>
-                          </Box>
-                          <Tooltip title="Remove from listened">
-                            <IconButton onClick={() => handleRemoveListen(l._id)} sx={{ color: 'text.secondary', p: { xs: 0.5, sm: 1 } }}>
-                              <HeadphonesIcon fontSize={isMobile ? 'small' : 'medium'} />
-                            </IconButton>
-                          </Tooltip>
-                        </Paper>
-                      ))}
-                    </Stack>
-                  </Box>
+              <Stack spacing={1.5}>
+                {listens.map((l) => (
+                  <Paper key={l._id} sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', gap: { xs: 1.5, sm: 2 }, alignItems: 'center', border: '1px solid', borderColor: 'divider' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`https://img.youtube.com/vi/${l.youtubeId}/hqdefault.jpg`} alt="" style={{ width: isMobile ? 80 : 100, aspectRatio: '16/9', objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Link href={`/story/${l._id}`} style={{ color: 'var(--text-primary)', fontWeight: 600, textDecoration: 'none', fontSize: isMobile ? '0.85rem' : '0.95rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {l.title}
+                      </Link>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.3, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                        {l.channel}{l.narrator ? ` \u2022 ${l.narrator}` : ''}
+                        {l.writer ? ` \u2022 Written by ${l.writer}` : ''}
+                      </Typography>
+                      <Stack direction="row" spacing={1} sx={{ mt: 0.5, alignItems: 'center', flexWrap: 'wrap' }}>
+                        {l.userRating > 0 ? (
+                          <>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#f59e0b' }}>Your Rating:</Typography>
+                            <AppStarRating value={l.userRating} readonly size={isMobile ? 10 : 12} />
+                          </>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">Not rated yet</Typography>
+                        )}
+                        <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>&bull; Avg Rating:</Typography>
+                        <AppStarRating value={l.averageRating} readonly size={isMobile ? 10 : 12} />
+                        <Typography variant="caption" color="text.secondary">({l.ratingsCount})</Typography>
+                        <Typography variant="caption" color="text.secondary">&bull; Listened {new Date(l.listenedAt).toLocaleDateString()}</Typography>
+                      </Stack>
+                    </Box>
+                    <Tooltip title="Remove from listened">
+                      <IconButton onClick={() => handleRemoveListen(l._id)} sx={{ color: 'text.secondary', p: { xs: 0.5, sm: 1 } }}>
+                        <HeadphonesIcon fontSize={isMobile ? 'small' : 'medium'} />
+                      </IconButton>
+                    </Tooltip>
+                  </Paper>
                 ))}
               </Stack>
               {listenTotalPages > 1 && (
@@ -495,8 +563,64 @@ export default function ProfilePage() {
         </Box>
       )}
 
-      {/* Tab 4: Bookmarks */}
+      {/* Tab 4: Liked */}
       {activeTab === 4 && (
+        <Box>
+          <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, gap: 1, mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>Liked Stories</Typography>
+            <TextField
+              select
+              size="small"
+              value={likedSort}
+              onChange={(e) => { setLikedSort(e.target.value); setLikedPage(1); }}
+              fullWidth={isMobile}
+              slotProps={{ select: { native: true } }}
+            >
+              <option value="newest">Newest First</option>
+              <option value="title">Title (A-Z)</option>
+              <option value="rating">Highest Rated</option>
+            </TextField>
+          </Stack>
+          {loadingLiked ? <AppLoadingState message="Loading liked stories..." /> : likedStories.length === 0 ? (
+            <AppEmptyState title="No liked stories yet" message="Stories you like will appear here." actionLabel="Browse Stories" actionHref="/" />
+          ) : (
+            <>
+              <Stack spacing={1.5}>
+                {likedStories.map((b) => (
+                  <Paper key={b._id} sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', gap: { xs: 1.5, sm: 2 }, alignItems: 'center', border: '1px solid', borderColor: 'divider' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`https://img.youtube.com/vi/${b.youtubeId}/hqdefault.jpg`} alt="" style={{ width: isMobile ? 80 : 120, aspectRatio: '16/9', objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Link href={`/story/${b._id}`} style={{ color: '#e2e8f0', fontWeight: 600, textDecoration: 'none', fontSize: isMobile ? '0.85rem' : '0.95rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {b.title}
+                      </Link>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.3, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                        {b.channel} &bull; {b.narrator}
+                      </Typography>
+                      <Stack direction="row" spacing={1} sx={{ mt: 0.5, alignItems: 'center' }}>
+                        <AppStarRating value={b.averageRating} readonly size={isMobile ? 10 : 12} />
+                        <Typography variant="caption" color="text.secondary">({b.ratingsCount})</Typography>
+                        <Typography variant="caption" color="text.secondary">&bull; Liked {new Date(b.likedAt).toLocaleDateString()}</Typography>
+                      </Stack>
+                    </Box>
+                    <Tooltip title="Unlike story">
+                      <IconButton onClick={() => handleRemoveLike(b._id)} sx={{ color: '#ef4444', p: { xs: 0.5, sm: 1 } }}>
+                        <FavoriteIcon fontSize={isMobile ? 'small' : 'medium'} />
+                      </IconButton>
+                    </Tooltip>
+                  </Paper>
+                ))}
+              </Stack>
+              {likedTotalPages > 1 && (
+                <AppPagination page={likedPage} totalPages={likedTotalPages} onChange={(p) => setLikedPage(p)} showTotal={false} />
+              )}
+            </>
+          )}
+        </Box>
+      )}
+
+      {/* Tab 5: Bookmarks */}
+      {activeTab === 5 && (
         <Box>
           <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, gap: 1, mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>Bookmarked Stories</Typography>
@@ -551,8 +675,8 @@ export default function ProfilePage() {
         </Box>
       )}
 
-      {/* Tab 5: Stats */}
-      {activeTab === 5 && (
+      {/* Tab 6: Stats */}
+      {activeTab === 6 && (
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Your Listening Stats</Typography>
           {loadingStats ? <AppLoadingState message="Loading stats..." /> : !userStats ? (
@@ -615,8 +739,8 @@ export default function ProfilePage() {
         </Box>
       )}
 
-      {/* Tab 6: Feedback */}
-      {activeTab === 6 && (
+      {/* Tab 7: Feedback */}
+      {activeTab === 7 && (
         <Paper sx={{ p: { xs: 2, sm: 3 }, maxWidth: 600, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Share Your Feedback</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>

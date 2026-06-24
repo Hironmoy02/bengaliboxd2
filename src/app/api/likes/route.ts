@@ -1,7 +1,7 @@
 import '@/lib/polyfill';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import Bookmark from '@/models/Bookmark';
+import Like from '@/models/Like';
 import Story from '@/models/Story';
 import { getUserFromSession } from '@/lib/auth';
 
@@ -20,12 +20,10 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
     const skip = (page - 1) * limit;
 
-    let sort: Record<string, 1 | -1> = { createdAt: -1 };
-    if (sortBy === 'title') sort = { createdAt: -1 };
-    if (sortBy === 'rating') sort = { createdAt: -1 };
-
-    const [bookmarks, total] = await Promise.all([
-      Bookmark.find({ userId })
+    const sort: Record<string, 1 | -1> = { createdAt: -1 };
+    
+    const [likes, total] = await Promise.all([
+      Like.find({ userId })
         .sort(sort)
         .skip(skip)
         .limit(limit)
@@ -34,14 +32,14 @@ export async function GET(request: NextRequest) {
           select: 'title channel narrator genre writer youtubeId thumbnailUrl averageRating ratingsCount yearPublished youtubeUrl approved createdAt',
         })
         .lean(),
-      Bookmark.countDocuments({ userId }),
+      Like.countDocuments({ userId }),
     ]);
 
-    const stories = bookmarks
-      .filter((b) => b.storyId)
-      .map((b) => ({
-        ...(b.storyId as unknown as Record<string, unknown>),
-        bookmarkedAt: b.createdAt,
+    const stories = likes
+      .filter((l) => l.storyId)
+      .map((l) => ({
+        ...(l.storyId as unknown as Record<string, unknown>),
+        likedAt: l.createdAt,
       })) as Array<Record<string, unknown>>;
 
     if (sortBy === 'title') {
@@ -51,12 +49,12 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      bookmarks: stories,
+      likes: stories,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
   } catch (error: unknown) {
-    console.error('Fetch bookmarks error:', error);
-    return NextResponse.json({ error: 'Failed to retrieve bookmarks' }, { status: 500 });
+    console.error('Fetch likes error:', error);
+    return NextResponse.json({ error: 'Failed to retrieve liked stories' }, { status: 500 });
   }
 }
 
@@ -80,16 +78,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });
     }
 
-    const existing = await Bookmark.findOne({ userId, storyId });
+    const existing = await Like.findOne({ userId, storyId });
     if (existing) {
-      return NextResponse.json({ error: 'Story already bookmarked' }, { status: 409 });
+      return NextResponse.json({ error: 'Story already liked' }, { status: 409 });
     }
 
-    const bookmark = await Bookmark.create({ userId, storyId });
-    return NextResponse.json({ message: 'Story bookmarked', bookmark }, { status: 201 });
+    const like = await Like.create({ userId, storyId });
+    return NextResponse.json({ message: 'Story liked', like }, { status: 201 });
   } catch (error: unknown) {
-    console.error('Create bookmark error:', error);
-    return NextResponse.json({ error: 'Failed to bookmark story' }, { status: 500 });
+    console.error('Create like error:', error);
+    return NextResponse.json({ error: 'Failed to like story' }, { status: 500 });
   }
 }
 
@@ -108,14 +106,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Story ID is required' }, { status: 400 });
     }
 
-    const bookmark = await Bookmark.findOneAndDelete({ userId, storyId });
-    if (!bookmark) {
-      return NextResponse.json({ error: 'Bookmark not found' }, { status: 404 });
+    const like = await Like.findOneAndDelete({ userId, storyId });
+    if (!like) {
+      return NextResponse.json({ error: 'Like not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ message: 'Bookmark removed' });
+    return NextResponse.json({ message: 'Like removed' });
   } catch (error: unknown) {
-    console.error('Delete bookmark error:', error);
-    return NextResponse.json({ error: 'Failed to remove bookmark' }, { status: 500 });
+    console.error('Delete like error:', error);
+    return NextResponse.json({ error: 'Failed to remove like' }, { status: 500 });
   }
 }

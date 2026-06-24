@@ -7,6 +7,7 @@ import '../models/User';
 import '../models/Story';
 import '../models/Rating';
 import '../models/Bookmark';
+import '../models/Like';
 import '../models/DailyVisitor';
 import '../models/Feedback';
 import '../models/PasswordReset';
