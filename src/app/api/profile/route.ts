@@ -4,6 +4,8 @@ import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
 import Story from '@/models/Story';
 import Rating from '@/models/Rating';
+import Like from '@/models/Like';
+import Listen from '@/models/Listen';
 import { getUserFromSession } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
@@ -21,12 +23,28 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const [stories, ratings] = await Promise.all([
+    const [stories, ratings, likes, listens] = await Promise.all([
       Story.find({ addedBy: userId }).sort({ createdAt: -1 }).lean(),
       Rating.find({ userId: userId }).populate('storyId', 'title youtubeId narrator writer channel yearPublished averageRating').sort({ updatedAt: -1 }).lean(),
+      Like.find({ userId: userId }).populate('storyId', 'title channel narrator genre writer youtubeId thumbnailUrl averageRating ratingsCount yearPublished youtubeUrl approved createdAt').sort({ createdAt: -1 }).lean(),
+      Listen.find({ userId }).populate('storyId', 'title channel narrator genre writer youtubeId thumbnailUrl averageRating ratingsCount yearPublished youtubeUrl approved createdAt').sort({ listenedAt: -1 }).lean(),
     ]);
 
-    return NextResponse.json({ user: userDoc, stories, ratings });
+    const likedStories = likes
+      .filter((l) => l.storyId)
+      .map((l) => ({
+        ...(l.storyId as unknown as Record<string, unknown>),
+        likedAt: l.createdAt,
+      }));
+
+    const listenedStories = listens
+      .filter((l) => l.storyId)
+      .map((l) => ({
+        ...(l.storyId as unknown as Record<string, unknown>),
+        listenedAt: l.listenedAt ?? l.createdAt,
+      }));
+
+    return NextResponse.json({ user: userDoc, stories, ratings, likes: likedStories, listens: listenedStories });
   } catch (error: unknown) {
     console.error('Profile fetch error:', error);
     return NextResponse.json({ error: 'Failed to load profile' }, { status: 500 });
