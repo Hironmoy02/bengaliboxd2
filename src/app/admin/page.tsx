@@ -26,9 +26,9 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import {
   AppAlert, AppConfirmModal, AppLoadingState, AppEmptyState,
 } from '@/components/ui';
-import { CHANNELS, GENRES, CHANNEL_KEYWORDS, NARRATOR_KEYWORDS, DEFAULT_CHANNEL, DEFAULT_GENRE, ADMIN_TAB_LABELS, YEARS_RANGE, YOUTUBE_THUMBNAIL, matchYouTubeChannel } from '@/lib/constants';
+import { CHANNELS, GENRES, CHANNEL_KEYWORDS, NARRATOR_KEYWORDS, DEFAULT_CHANNEL, DEFAULT_GENRE, ADMIN_TAB_LABELS, YEARS_RANGE, YOUTUBE_THUMBNAIL, matchYouTubeChannel, SUGGESTED_TAGS, formatDuration } from '@/lib/constants';
 
-interface Story { _id: string; title: string; channel: string; narrator: string; genre: string; writer?: string; youtubeId: string; youtubeUrl: string; approved: boolean; }
+interface Story { _id: string; title: string; channel: string; narrator: string; genre: string; writer?: string; youtubeId: string; youtubeUrl: string; approved: boolean; duration?: number; tags?: string[]; }
 interface UserProfile { _id: string; username: string; email: string; role: string; createdAt: string; }
 interface TrafficStat { date: string; visitors: number; }
 interface AdminStats { totalUsers: number; adminUsers: number; approvedStories: number; pendingStories: number; totalReviews: number; }
@@ -52,6 +52,8 @@ export default function AdminPage() {
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [writers, setWriters] = useState<{ _id: string; name: string }[]>([]);
   const [yearPublished, setYearPublished] = useState('');
+  const [duration, setDuration] = useState<number>(0);
+  const [tags, setTags] = useState<string[]>([]);
 
   const [isFetchingYoutube, setIsFetchingYoutube] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,7 +78,7 @@ export default function AdminPage() {
   const [editSearch, setEditSearch] = useState('');
   const [editResults, setEditResults] = useState<Story[]>([]);
   const [editingStory, setEditingStory] = useState<Story | null>(null);
-  const [editForm, setEditForm] = useState({ title: '', channel: '', narrator: '', genre: '', writer: '', description: '', thumbnailUrl: '', yearPublished: '', youtubeUrl: '' });
+  const [editForm, setEditForm] = useState({ title: '', channel: '', narrator: '', genre: '', writer: '', description: '', thumbnailUrl: '', yearPublished: '', youtubeUrl: '', duration: 0, tags: [] as string[] });
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [allStories, setAllStories] = useState<Story[]>([]);
@@ -177,6 +179,7 @@ export default function AdminPage() {
       setDescription(data.description || '');
       setThumbnailUrl(data.thumbnailUrl || '');
       if (data.yearPublished) setYearPublished(String(data.yearPublished));
+      if (data.duration) setDuration(data.duration);
       const t = data.title.toLowerCase();
       const matchedNarrator = Object.entries(NARRATOR_KEYWORDS).find(([kw]) => t.includes(kw));
       setNarrator(matchedNarrator ? matchedNarrator[1] : '');
@@ -199,9 +202,9 @@ export default function AdminPage() {
           } catch { /* writer already exists or error */ }
         }
       }
-      const { data } = await api.post('/api/stories', { title, channel, youtubeUrl, narrator, genre, writer, description, thumbnailUrl, yearPublished });
+      const { data } = await api.post('/api/stories', { title, channel, youtubeUrl, narrator, genre, writer, description, thumbnailUrl, yearPublished, duration: duration || undefined, tags });
       setSuccess(data.message || 'Story added!');
-      setYoutubeUrl(''); setTitle(''); setNarrator(''); setWriter(''); setYearPublished(''); setDescription(''); setThumbnailUrl('');
+      setYoutubeUrl(''); setTitle(''); setNarrator(''); setWriter(''); setYearPublished(''); setDescription(''); setThumbnailUrl(''); setDuration(0); setTags([]);
       if (user?.role === 'admin') fetchStats();
     } catch (err) { setError(getErrorMessage(err) || 'Error saving story.'); }
     finally { setIsSubmitting(false); }
@@ -316,6 +319,8 @@ export default function AdminPage() {
       thumbnailUrl: '',
       yearPublished: '',
       youtubeUrl: story.youtubeUrl || '',
+      duration: story.duration || 0,
+      tags: story.tags || [],
     });
   };
 
@@ -331,6 +336,8 @@ export default function AdminPage() {
       if (editForm.writer !== undefined) payload.writer = editForm.writer;
       if (editForm.yearPublished) payload.yearPublished = editForm.yearPublished;
       if (editForm.youtubeUrl) payload.youtubeUrl = editForm.youtubeUrl;
+      if (editForm.duration) payload.duration = String(editForm.duration);
+      payload.tags = JSON.stringify(editForm.tags);
       const { data } = await api.put(`/api/stories/${editingStory._id}`, payload);
       setSuccess(data.message || 'Story updated!');
       setEditingStory(null);
@@ -506,6 +513,11 @@ export default function AdminPage() {
                   {isFetchingYoutube ? 'Fetching...' : 'Fetch'}
                 </Button>
               </Stack>
+              {duration > 0 && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  Duration auto-detected: <strong>{formatDuration(duration)}</strong>
+                </Typography>
+              )}
             </Box>
             <form onSubmit={handleSubmit}>
               <Stack spacing={2.5}>
@@ -552,6 +564,27 @@ export default function AdminPage() {
                     </option>
                   ))}
                 </TextField>
+                {duration > 0 && (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    Duration auto-detected: <strong>{formatDuration(duration)}</strong>
+                  </Typography>
+                )}
+                <Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Tags (optional)</Typography>
+                  <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+                    {SUGGESTED_TAGS.map((tag) => (
+                      <Chip
+                        key={tag}
+                        label={tag}
+                        size="small"
+                        variant={tags.includes(tag) ? 'filled' : 'outlined'}
+                        color={tags.includes(tag) ? 'primary' : 'default'}
+                        onClick={() => setTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : prev.length < 10 ? [...prev, tag] : prev)}
+                        sx={{ borderColor: 'divider' }}
+                      />
+                    ))}
+                  </Stack>
+                </Box>
                 <TextField fullWidth multiline rows={4} label="Description" placeholder="Optional story synopsis..." value={description} onChange={(e) => setDescription(e.target.value)} />
                 <TextField fullWidth label="Thumbnail URL" placeholder="Autofilled if YouTube link fetched" value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} />
                 <Button type="submit" variant="contained" fullWidth size="large" disabled={isSubmitting}>
@@ -660,6 +693,27 @@ export default function AdminPage() {
                     <option key={y} value={y}>{y}</option>
                   ))}
                 </TextField>
+                {editForm.duration > 0 && (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    Duration: <strong>{formatDuration(editForm.duration)}</strong>
+                  </Typography>
+                )}
+                <Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Tags</Typography>
+                  <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+                    {SUGGESTED_TAGS.map((tag) => (
+                      <Chip
+                        key={tag}
+                        label={tag}
+                        size="small"
+                        variant={editForm.tags.includes(tag) ? 'filled' : 'outlined'}
+                        color={editForm.tags.includes(tag) ? 'primary' : 'default'}
+                        onClick={() => setEditForm((p) => ({ ...p, tags: p.tags.includes(tag) ? p.tags.filter((t) => t !== tag) : p.tags.length < 10 ? [...p.tags, tag] : p.tags }))}
+                        sx={{ borderColor: 'divider' }}
+                      />
+                    ))}
+                  </Stack>
+                </Box>
                 <Button variant="contained" fullWidth size="large" onClick={handleUpdateStory} disabled={savingEdit}>
                   {savingEdit ? 'Saving...' : 'Save Changes'}
                 </Button>

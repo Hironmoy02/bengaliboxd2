@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAppSelector } from '@/lib/hooks';
 import api from '@/lib/axios';
 import {
-  Box, Typography, Button, Paper, Stack, Chip, TextField, Divider, Avatar, LinearProgress, IconButton, Tooltip,
+  Box, Typography, Button, Paper, Stack, Chip, TextField, Avatar, LinearProgress, IconButton, Tooltip,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SendIcon from '@mui/icons-material/Send';
@@ -15,6 +15,7 @@ import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import HeadphonesIcon from '@mui/icons-material/Headphones';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { AppPagination, AppAlert, AppStarRating, AppRatingDisplay, AppLoadingState, AppEmptyState } from '@/components/ui';
+import { formatDuration } from '@/lib/constants';
 
 const YoutubeIcon = ({ size = 16 }: { size?: number }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} fill="#ef4444" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
@@ -35,10 +36,12 @@ interface Story {
   averageRating: number;
   ratingsCount: number;
   description?: string;
+  duration?: number;
+  tags?: string[];
 }
 
 interface ReviewUser { _id: string; username: string; }
-interface Review { _id: string; userId: ReviewUser; ratingValue: number; reviewText: string; updatedAt: string; }
+interface Review { _id: string; userId: ReviewUser; ratingValue: number; narrationRating?: number; atmosphereRating?: number; reviewText: string; updatedAt: string; }
 interface Pagination { page: number; limit: number; total: number; totalPages: number; }
 
 interface StoryContentProps {
@@ -61,6 +64,8 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
   }, [user, reviews]);
 
   const [userRating, setUserRating] = useState<number>(() => existingReview?.ratingValue ?? 0);
+  const [narrationRating, setNarrationRating] = useState<number>(() => existingReview?.narrationRating ?? 0);
+  const [atmosphereRating, setAtmosphereRating] = useState<number>(() => existingReview?.atmosphereRating ?? 0);
   const [reviewText, setReviewText] = useState(() => existingReview?.reviewText ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -123,7 +128,7 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
     setSuccess('');
     setIsSubmitting(true);
     try {
-      await api.post('/api/ratings', { storyId: story._id, ratingValue: userRating, reviewText });
+      await api.post('/api/ratings', { storyId: story._id, ratingValue: userRating, reviewText, narrationRating: narrationRating || undefined, atmosphereRating: atmosphereRating || undefined });
       setSuccess('Your rating and review has been logged!');
       fetchReviews(reviewPage);
     } catch (err) { setError(err instanceof Error ? err.message : 'Failed to submit rating.'); }
@@ -166,12 +171,21 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
           <Stack direction="row" spacing={3} sx={{ flexWrap: 'wrap', color: 'text.secondary', fontSize: '0.95rem', pb: 2, mb: 3, borderBottom: '1px solid', borderColor: 'divider' }}>
             <Typography>Narrator: <strong style={{ color: '#e2e8f0' }}>{story.narrator}</strong></Typography>
             {story.writer && <Typography>Writer: <strong style={{ color: '#e2e8f0' }}>{story.writer}</strong></Typography>}
+            {story.duration && <Typography>Duration: <strong style={{ color: '#e2e8f0' }}>{formatDuration(story.duration)}</strong></Typography>}
             <Typography>
               Source: <a href={story.youtubeUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#ff5e2b', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 500, textDecoration: 'none' }}>
                 <YoutubeIcon size={14} /> YouTube Link
               </a>
             </Typography>
           </Stack>
+
+          {story.tags && story.tags.length > 0 && (
+            <Stack direction="row" spacing={0.5} sx={{ mb: 3, flexWrap: 'wrap', gap: 0.5 }}>
+              {story.tags.map((tag) => (
+                <Chip key={tag} label={tag} size="small" variant="outlined" sx={{ borderColor: 'divider' }} />
+              ))}
+            </Stack>
+          )}
 
           <Box sx={{ mb: 4 }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Synopsis</Typography>
@@ -202,6 +216,16 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
                           </Avatar>
                           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{rev.userId.username}</Typography>
                           <AppStarRating value={rev.ratingValue} readonly size={14} />
+                          {rev.narrationRating && (
+                            <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+                              Narr: {rev.narrationRating}
+                            </Typography>
+                          )}
+                          {rev.atmosphereRating && (
+                            <Typography variant="caption" color="text.secondary">
+                              Atmo: {rev.atmosphereRating}
+                            </Typography>
+                          )}
                         </Stack>
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           <CalendarTodayIcon sx={{ fontSize: 12 }} />
@@ -292,6 +316,16 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>How would you rate this story?</Typography>
                     <AppStarRating value={userRating} onChange={setUserRating} size={32} showLabel />
                   </Box>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
+                    <Box sx={{ textAlign: 'center', flex: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Narration</Typography>
+                      <AppStarRating value={narrationRating} onChange={setNarrationRating} size={22} showLabel />
+                    </Box>
+                    <Box sx={{ textAlign: 'center', flex: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Atmosphere</Typography>
+                      <AppStarRating value={atmosphereRating} onChange={setAtmosphereRating} size={22} showLabel />
+                    </Box>
+                  </Stack>
                   <TextField
                     fullWidth
                     multiline

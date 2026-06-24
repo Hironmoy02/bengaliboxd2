@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
     }
 
     let yearPublished: number | undefined;
+    let duration: number | undefined;
     try {
       const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
         headers: { 'User-Agent': 'Mozilla/5.0' },
@@ -58,6 +59,8 @@ export async function GET(request: NextRequest) {
           const uploadMatch = html.match(/"uploadDate"\s*:\s*"(\d{4})/);
           if (uploadMatch) yearPublished = parseInt(uploadMatch[1], 10);
         }
+        const lengthMatch = html.match(/"lengthSeconds"\s*:\s*"(\d+)"/);
+        if (lengthMatch) duration = parseInt(lengthMatch[1], 10);
       }
     } catch { /* ignore page fetch errors */ }
 
@@ -68,6 +71,7 @@ export async function GET(request: NextRequest) {
       thumbnailUrl: data.thumbnail_url || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
       description: `Uploaded by ${data.author_name || 'YouTube channel'}.`,
       yearPublished,
+      duration,
     });
   } catch (error: unknown) {
     console.error('YouTube fetch error:', error);

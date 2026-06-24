@@ -10,7 +10,6 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import HeadphonesIcon from '@mui/icons-material/Headphones';
 import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
 import {
   AppPagination, AppSortSelect, AppStoryCard, AppEmptyState, AppRatingDisplay, AppLoadingState,
@@ -29,6 +28,8 @@ interface Story {
   averageRating: number;
   ratingsCount: number;
   description?: string;
+  duration?: number;
+  tags?: string[];
 }
 
 interface Pagination {
@@ -59,7 +60,6 @@ export default function HomeContent({ initialStories, initialPagination }: HomeC
   const isInitialMount = useRef(true);
   const [bookmarkIds, setBookmarkIds] = useState<Set<string>>(new Set());
   const [listenIds, setListenIds] = useState<Set<string>>(new Set());
-  const [recentListens, setRecentListens] = useState<Story[]>([]);
   const { user } = useAppSelector((s) => s.auth);
 
   useEffect(() => { api.post('/api/stats/visit').catch(() => {}); }, []);
@@ -78,9 +78,6 @@ export default function HomeContent({ initialStories, initialPagination }: HomeC
     if (user) {
       api.get('/api/listens/ids').then(({ data }) => {
         setListenIds(new Set(data.listenIds || []));
-      }).catch(() => {});
-      api.get('/api/listens', { params: { limit: 8 } }).then(({ data }) => {
-        setRecentListens((data.listens || []).filter((s: Story) => s._id));
       }).catch(() => {});
     }
   }, [user]);
@@ -177,33 +174,11 @@ export default function HomeContent({ initialStories, initialPagination }: HomeC
       <Box sx={{ py: 8 }}>
         <div className="container">
 
-          {/* Recently Listened Section */}
-          {user && recentListens.length > 0 && (
-            <Box sx={{ mb: 6 }}>
-              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                  <HeadphonesIcon sx={{ color: 'success.main', fontSize: 22 }} />
-                  <Typography variant="h5" sx={{ fontWeight: 700 }}>Recently Listened</Typography>
-                </Stack>
-                <Button component={Link} href="/profile" variant="text" size="small" sx={{ textTransform: 'none', fontWeight: 600 }}>
-                  View All
-                </Button>
-              </Stack>
-              <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 1, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
-                {recentListens.map((st) => (
-                  <Box key={st._id} sx={{ minWidth: { xs: 200, sm: 240 }, maxWidth: { xs: 200, sm: 240 }, flexShrink: 0 }}>
-                    <AppStoryCard {...st} isBookmarked={bookmarkIds.has(st._id)} isListened={listenIds.has(st._id)} onBookmarkToggle={toggleBookmark} />
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-          )}
-
           {/* Search + Sort */}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3, alignItems: { sm: 'center' } }}>
             <TextField
               fullWidth
-              placeholder="Search by story title, narrator, or channel..."
+              placeholder="Search by title, author, narrator, genre, tags..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               slotProps={{

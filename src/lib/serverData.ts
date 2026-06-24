@@ -48,6 +48,8 @@ export async function fetchStoriesServer(params: {
       { narrator: { $regex: escaped, $options: 'i' } },
       { channel: { $regex: escaped, $options: 'i' } },
       { writer: { $regex: escaped, $options: 'i' } },
+      { genre: { $regex: escaped, $options: 'i' } },
+      { tags: { $regex: escaped, $options: 'i' } },
     ];
   }
 

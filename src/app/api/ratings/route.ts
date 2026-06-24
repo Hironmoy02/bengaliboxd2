@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     await dbConnect();
-    const { storyId, ratingValue, reviewText } = await request.json();
+    const { storyId, ratingValue, reviewText, narrationRating, atmosphereRating } = await request.json();
 
     if (!storyId || !ratingValue) {
       return NextResponse.json(
@@ -35,6 +35,14 @@ export async function POST(request: NextRequest) {
     // Snap to nearest 0.5
     const snappedRating = Math.round(ratingVal * 2) / 2;
 
+    const snapHalf = (v: unknown) => {
+      const n = Number(v);
+      if (!n || n < 0.5 || n > 5) return undefined;
+      return Math.round(n * 2) / 2;
+    };
+    const snappedNarration = snapHalf(narrationRating);
+    const snappedAtmosphere = snapHalf(atmosphereRating);
+
     if (!mongoose.Types.ObjectId.isValid(storyId)) {
       return NextResponse.json({ error: 'Invalid Story ID format' }, { status: 400 });
     }
@@ -46,12 +54,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Upsert the rating
+    const updateData: Record<string, unknown> = {
+      ratingValue: snappedRating,
+      reviewText: reviewText ? reviewText.trim() : '',
+    };
+    if (snappedNarration !== undefined) updateData.narrationRating = snappedNarration;
+    if (snappedAtmosphere !== undefined) updateData.atmosphereRating = snappedAtmosphere;
+
     const rating = await Rating.findOneAndUpdate(
       { userId: user.id as mongoose.Types.ObjectId, storyId: new mongoose.Types.ObjectId(storyId) },
-      {
-        ratingValue: snappedRating,
-        reviewText: reviewText ? reviewText.trim() : '',
-      },
+      updateData,
       { new: true, upsert: true }
     );
 

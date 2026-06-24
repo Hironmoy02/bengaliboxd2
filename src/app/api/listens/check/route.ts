@@ -21,7 +21,10 @@ export async function GET(request: NextRequest) {
 
     const listen = await Listen.findOne({ userId: user.id as string, storyId }).lean();
 
-    return NextResponse.json({ listened: !!listen, listenedAt: listen?.listenedAt ?? listen?.createdAt ?? null });
+    return NextResponse.json({
+      listened: !!listen,
+      listenedAt: listen?.listenedAt ?? listen?.createdAt ?? null,
+    });
   } catch (error: unknown) {
     console.error('Check listen error:', error);
     return NextResponse.json({ listened: false });

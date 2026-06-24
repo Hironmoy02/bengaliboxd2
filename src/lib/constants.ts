@@ -60,4 +60,20 @@ export const YEARS_RANGE = 21;
 export const YOUTUBE_THUMBNAIL = (id: string, quality: 'hq' | 'maxres' = 'hq') =>
   `https://img.youtube.com/vi/${id}/${quality === 'maxres' ? 'maxresdefault' : 'hqdefault'}.jpg`;
 
+export const SUGGESTED_TAGS = [
+  'Village', 'Urban', 'Detective', 'Ghost', 'Psychological', 'Supernatural',
+  'Social', 'Emotional', 'Suspense', 'Twist End', 'Period', 'Thriller',
+  'Children', 'Romance', 'Satire', 'Folklore', 'Noir', 'Dark',
+  'Train', 'Night', 'Rain', 'Lonely', 'Revenge', 'Mystery',
+] as const;
+
+export function formatDuration(totalSeconds: number): string {
+  if (!totalSeconds || totalSeconds <= 0) return '';
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 export const ADMIN_TAB_LABELS = ['Analytics', 'Approvals', 'Users', 'Add Story', 'Edit Story', 'Bulk Upload', 'Settings', 'Feedback'] as const;

@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppSelector } from '@/lib/hooks';
 import api from '@/lib/axios';
-import { CHANNELS, GENRES, CHANNEL_KEYWORDS, NARRATOR_KEYWORDS, YEARS_RANGE, YOUTUBE_THUMBNAIL, DEFAULT_CHANNEL, DEFAULT_GENRE, matchYouTubeChannel } from '@/lib/constants';
+import { CHANNELS, GENRES, CHANNEL_KEYWORDS, NARRATOR_KEYWORDS, YEARS_RANGE, YOUTUBE_THUMBNAIL, DEFAULT_CHANNEL, DEFAULT_GENRE, matchYouTubeChannel, SUGGESTED_TAGS, formatDuration } from '@/lib/constants';
 import {
   Box, Typography, Button, Paper, Stack, TextField, IconButton, InputAdornment,
-  Autocomplete,
+  Autocomplete, Chip,
 } from '@mui/material';
 import YouTubeIcon from '@mui/icons-material/YouTube';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
@@ -31,6 +31,8 @@ export default function AddStoryPage() {
   const [description, setDescription] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [yearPublished, setYearPublished] = useState('');
+  const [duration, setDuration] = useState<number>(0);
+  const [tags, setTags] = useState<string[]>([]);
   const [writers, setWriters] = useState<{ _id: string; name: string }[]>([]);
 
   const [isFetchingYoutube, setIsFetchingYoutube] = useState(false);
@@ -57,6 +59,7 @@ export default function AddStoryPage() {
       setDescription(data.description || '');
       setThumbnailUrl(data.thumbnailUrl || '');
       if (data.yearPublished) setYearPublished(String(data.yearPublished));
+      if (data.duration) setDuration(data.duration);
       const t = data.title.toLowerCase();
       const matchedNarrator = Object.entries(NARRATOR_KEYWORDS).find(([kw]) => t.includes(kw));
       setNarrator(matchedNarrator ? matchedNarrator[1] : '');
@@ -79,9 +82,9 @@ export default function AddStoryPage() {
           } catch { /* already exists */ }
         }
       }
-      const { data } = await api.post('/api/stories', { title, channel, youtubeUrl, narrator, genre, writer, description, thumbnailUrl, yearPublished });
+      const { data } = await api.post('/api/stories', { title, channel, youtubeUrl, narrator, genre, writer, description, thumbnailUrl, yearPublished, duration: duration || undefined, tags });
       setSuccess(data.message || 'Story submitted!');
-      setYoutubeUrl(''); setTitle(''); setNarrator(''); setWriter(''); setYearPublished(''); setDescription(''); setThumbnailUrl('');
+      setYoutubeUrl(''); setTitle(''); setNarrator(''); setWriter(''); setYearPublished(''); setDescription(''); setThumbnailUrl(''); setDuration(0); setTags([]);
     } catch (err) { setError(getErrorMessage(err) || 'Error saving story.'); }
     finally { setIsSubmitting(false); }
   };
@@ -109,6 +112,11 @@ export default function AddStoryPage() {
             {isFetchingYoutube ? 'Fetching...' : 'Fetch'}
           </Button>
         </Stack>
+        {duration > 0 && (
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            Duration auto-detected: <strong>{formatDuration(duration)}</strong>
+          </Typography>
+        )}
       </Paper>
 
       <form onSubmit={handleSubmit}>
@@ -145,6 +153,22 @@ export default function AddStoryPage() {
               <option key={y} value={y}>{y}</option>
             ))}
           </TextField>
+          <Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Tags (optional)</Typography>
+            <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+              {SUGGESTED_TAGS.map((tag) => (
+                <Chip
+                  key={tag}
+                  label={tag}
+                  size="small"
+                  variant={tags.includes(tag) ? 'filled' : 'outlined'}
+                  color={tags.includes(tag) ? 'primary' : 'default'}
+                  onClick={() => setTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : prev.length < 10 ? [...prev, tag] : prev)}
+                  sx={{ borderColor: 'divider' }}
+                />
+              ))}
+            </Stack>
+          </Box>
           <TextField fullWidth multiline rows={4} label="Description" placeholder="Optional story synopsis..." value={description} onChange={(e) => setDescription(e.target.value)} />
           <Button type="submit" variant="contained" fullWidth size="large" startIcon={<SendIcon />} disabled={isSubmitting}>
             {isSubmitting ? 'Submitting...' : 'Submit Story Suggestion'}

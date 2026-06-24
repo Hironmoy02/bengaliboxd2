@@ -56,6 +56,12 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (body.yearPublished !== undefined) {
       updates.yearPublished = body.yearPublished ? parseInt(String(body.yearPublished), 10) : undefined;
     }
+    if (body.duration !== undefined) {
+      updates.duration = body.duration ? parseInt(String(body.duration), 10) : undefined;
+    }
+    if (body.tags !== undefined) {
+      updates.tags = Array.isArray(body.tags) ? body.tags.filter((t: string) => typeof t === 'string' && t.trim()).map((t: string) => t.trim()).slice(0, 10) : [];
+    }
     if (body.youtubeUrl !== undefined) {
       const youtubeId = getYouTubeId(String(body.youtubeUrl));
       if (!youtubeId) {
