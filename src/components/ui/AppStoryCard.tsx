@@ -8,7 +8,7 @@ import ChatBubbleOutlinedIcon from '@mui/icons-material/ChatBubbleOutlined';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import Link from 'next/link';
-import { YOUTUBE_THUMBNAIL } from '@/lib/constants';
+import { YOUTUBE_THUMBNAIL, formatDuration } from '@/lib/constants';
 
 interface StoryCardProps {
   _id: string;
@@ -23,6 +23,7 @@ interface StoryCardProps {
   ratingsCount: number;
   isBookmarked?: boolean;
   isListened?: boolean;
+  duration?: number;
   onBookmarkToggle?: (storyId: string) => void;
 }
 
@@ -38,6 +39,7 @@ export default function StoryCard({
   ratingsCount,
   isBookmarked = false,
   isListened = false,
+  duration,
   onBookmarkToggle,
 }: StoryCardProps) {
   return (
@@ -95,6 +97,11 @@ export default function StoryCard({
           {isListened && (
             <Box sx={{ position: 'absolute', bottom: 6, left: 6, bgcolor: 'rgba(16,185,129,0.9)', borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <HeadphonesIcon sx={{ fontSize: 14, color: '#fff' }} />
+            </Box>
+          )}
+          {duration && duration > 0 && (
+            <Box sx={{ position: 'absolute', bottom: 6, right: 6, bgcolor: 'rgba(0,0,0,0.75)', borderRadius: 1, px: 0.75, py: 0.25, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Typography variant="caption" sx={{ color: '#fff', fontSize: '0.7rem', fontWeight: 600 }}>{formatDuration(duration)}</Typography>
             </Box>
           )}
         </Box>

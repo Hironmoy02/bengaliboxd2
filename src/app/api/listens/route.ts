@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         .limit(limit)
         .populate({
           path: 'storyId',
-          select: 'title channel narrator genre writer youtubeId thumbnailUrl averageRating ratingsCount yearPublished youtubeUrl approved createdAt',
+          select: 'title channel narrator genre writer youtubeId thumbnailUrl averageRating ratingsCount yearPublished youtubeUrl approved createdAt duration',
         })
         .lean(),
       Listen.countDocuments({ userId }),

@@ -47,6 +47,8 @@ export async function GET(request: NextRequest) {
         { narrator: { $regex: escapedSearch, $options: 'i' } },
         { channel: { $regex: escapedSearch, $options: 'i' } },
         { writer: { $regex: escapedSearch, $options: 'i' } },
+        { genre: { $regex: escapedSearch, $options: 'i' } },
+        { tags: { $regex: escapedSearch, $options: 'i' } },
       ];
     }
 
@@ -116,7 +118,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { title, channel, youtubeUrl, narrator, genre, writer, description, thumbnailUrl, yearPublished } = await request.json();
+    const { title, channel, youtubeUrl, narrator, genre, writer, description, thumbnailUrl, yearPublished, duration, tags } = await request.json();
 
     if (!title || !channel || !youtubeUrl || !narrator) {
       return NextResponse.json(
@@ -188,6 +190,8 @@ export async function POST(request: NextRequest) {
       writer: writer ? writer.trim() : '',
       titleSearch: toSearchable(title.trim()),
       yearPublished: finalYearPublished,
+      duration: duration ? parseInt(String(duration), 10) : undefined,
+      tags: Array.isArray(tags) ? tags.filter((t: string) => typeof t === 'string' && t.trim()).map((t: string) => t.trim()).slice(0, 10) : [],
       addedBy: user.id as mongoose.Types.ObjectId,
       approved,
       averageRating: 0,

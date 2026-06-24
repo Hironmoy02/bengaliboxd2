@@ -18,6 +18,16 @@ const RatingSchema = new Schema(
       min: [1, 'Rating must be at least 1 star'],
       max: [5, 'Rating cannot exceed 5 stars'],
     },
+    narrationRating: {
+      type: Number,
+      min: [1, 'Narration rating must be at least 1 star'],
+      max: [5, 'Narration rating cannot exceed 5 stars'],
+    },
+    atmosphereRating: {
+      type: Number,
+      min: [1, 'Atmosphere rating must be at least 1 star'],
+      max: [5, 'Atmosphere rating cannot exceed 5 stars'],
+    },
     reviewText: {
       type: String,
       trim: true,

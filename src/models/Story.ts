@@ -56,6 +56,14 @@ const StorySchema = new Schema(
       min: 1900,
       max: 2100,
     },
+    duration: {
+      type: Number,
+      min: 1,
+    },
+    tags: {
+      type: [String],
+      default: [],
+    },
     averageRating: {
       type: Number,
       default: 0,
