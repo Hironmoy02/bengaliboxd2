@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import HomeContent from '@/components/HomeContent';
 
 jest.mock('next/link', () => {
-  return React.forwardRef(function MockLink({ children, href, ...props }: Record<string, unknown>, ref: React.Ref<HTMLAnchorElement>) {
+  return React.forwardRef(function MockLink({ children, href, ...props }: { children?: React.ReactNode; href?: any; [key: string]: any }, ref: React.Ref<HTMLAnchorElement>) {
     return <a ref={ref} href={href as string} {...props}>{children}</a>;
   });
 });
@@ -14,6 +14,10 @@ jest.mock('@/lib/axios', () => ({
     post: jest.fn().mockResolvedValue({}),
     get: jest.fn().mockResolvedValue({ data: {} }),
   },
+}));
+
+jest.mock('@/lib/hooks', () => ({
+  useAppSelector: (selector: any) => selector({ auth: { user: null } }),
 }));
 
 const mockStories = [
@@ -65,7 +69,7 @@ describe('HomeContent', () => {
 
   it('renders search input', () => {
     render(<HomeContent initialStories={mockStories} initialPagination={mockPagination} />);
-    expect(screen.getByPlaceholderText(/Search by story title/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Search by title/)).toBeInTheDocument();
   });
 
   it('renders channel tabs', () => {
