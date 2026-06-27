@@ -30,6 +30,16 @@ const UserSchema = new Schema(
       enum: ['user', 'admin'],
       default: 'user',
     },
+    bio: {
+      type: String,
+      default: '',
+    },
+    favoriteStories: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Story',
+      },
+    ],
   },
   { timestamps: true }
 );
