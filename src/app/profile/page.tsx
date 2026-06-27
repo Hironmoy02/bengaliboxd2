@@ -87,7 +87,7 @@ export default function ProfilePage() {
       return;
     }
     searchTimeoutRef.current = setTimeout(() => {
-      api.get('/api/stories', { params: { search: query, limit: 25 } })
+      api.get('/api/stories', { params: { search: query, limit: 100 } })
         .then(({ data }) => {
           const list = data.stories || [];
           setSearchResults(list);
@@ -295,7 +295,7 @@ export default function ProfilePage() {
     api.get('/api/writers').then(({ data }) => setWritersList(data.writers || [])).catch(() => {});
 
     // Fetch initial list of stories from database
-    api.get('/api/stories', { params: { limit: 25 } })
+    api.get('/api/stories', { params: { limit: 100 } })
       .then(({ data }) => {
         const list = data.stories || [];
         setDefaultStories(list);
@@ -824,8 +824,12 @@ export default function ProfilePage() {
                             cacheStories([newValue]);
                           }
                         }}
-                        onInputChange={(_, newInputValue) => {
-                          handleSearchStories(newInputValue);
+                        onInputChange={(_, newInputValue, reason) => {
+                          if (reason === 'input') {
+                            handleSearchStories(newInputValue);
+                          } else if (reason === 'clear') {
+                            setSearchResults([]);
+                          }
                         }}
                         renderInput={(params) => <TextField {...params} placeholder="Search all stories..." />}
                       />
