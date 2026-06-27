@@ -13,6 +13,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
 import {
   AppPagination, AppSortSelect, AppStoryCard, AppEmptyState, AppRatingDisplay, AppLoadingState,
+  AppSelect,
 } from '@/components/ui';
 import { CHANNELS, GENRES, YEARS_RANGE, DEFAULT_PAGE_LIMIT, type SortValue } from '@/lib/constants';
 
@@ -42,9 +43,10 @@ interface Pagination {
 interface HomeContentProps {
   initialStories: Story[];
   initialPagination: Pagination;
+  initialSpotlightStory?: Story | null;
 }
 
-export default function HomeContent({ initialStories, initialPagination }: HomeContentProps) {
+export default function HomeContent({ initialStories, initialPagination, initialSpotlightStory }: HomeContentProps) {
   const [stories, setStories] = useState<Story[]>(initialStories);
   const [pagination, setPagination] = useState<Pagination>(initialPagination);
   const [loading, setLoading] = useState(false);
@@ -61,6 +63,37 @@ export default function HomeContent({ initialStories, initialPagination }: HomeC
   const [bookmarkIds, setBookmarkIds] = useState<Set<string>>(new Set());
   const [listenIds, setListenIds] = useState<Set<string>>(new Set());
   const { user } = useAppSelector((s) => s.auth);
+  const [spotlightStory, setSpotlightStory] = useState<Story | null>(initialSpotlightStory || null);
+  const [openWriter, setOpenWriter] = useState(false);
+  const [openYear, setOpenYear] = useState(false);
+  const [openSort, setOpenSort] = useState(false);
+
+  useEffect(() => {
+    if (!openWriter) return;
+    const handleScroll = () => setOpenWriter(false);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [openWriter]);
+
+  useEffect(() => {
+    if (!openYear) return;
+    const handleScroll = () => setOpenYear(false);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [openYear]);
+
+  useEffect(() => {
+    if (!openSort) return;
+    const handleScroll = () => setOpenSort(false);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [openSort]);
+
+  useEffect(() => {
+    if (!initialSpotlightStory && initialStories.length > 0) {
+      setSpotlightStory(initialStories[0]);
+    }
+  }, [initialSpotlightStory, initialStories]);
 
   useEffect(() => { api.post('/api/stats/visit').catch(() => {}); }, []);
 
@@ -106,7 +139,7 @@ export default function HomeContent({ initialStories, initialPagination }: HomeC
     fetchStories(currentPage);
   }, [fetchStories, currentPage]);
 
-  const featuredStory = stories.length > 0 ? stories[0] : null;
+  const featuredStory = spotlightStory;
 
   const channelsList = ['All', ...CHANNELS];
   const genresList = ['All', ...GENRES];
@@ -190,10 +223,17 @@ export default function HomeContent({ initialStories, initialPagination }: HomeC
                   ),
                 },
               }}
-              sx={{ maxWidth: 400 }}
+              sx={{ maxWidth: { xs: '100%', sm: 400 } }}
             />
-            <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-              <AppSortSelect value={sortBy} onChange={setSortBy} />
+            <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 1, width: { xs: '100%', sm: 'auto' } }}>
+              <AppSortSelect
+                value={sortBy}
+                onChange={setSortBy}
+                open={openSort}
+                onOpen={() => setOpenSort(true)}
+                onClose={() => setOpenSort(false)}
+                sx={{ width: { xs: '100%', sm: 'auto' } }}
+              />
             </Stack>
           </Stack>
 
@@ -205,30 +245,69 @@ export default function HomeContent({ initialStories, initialPagination }: HomeC
               />
             ))}
           </Stack>
-          <Stack direction="row" spacing={1.5} sx={{ mb: 3, flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 3, flexWrap: 'wrap', gap: 1, alignItems: { sm: 'center' } }}>
             <Autocomplete
               size="small"
+              open={openWriter}
+              onOpen={() => setOpenWriter(true)}
+              onClose={() => setOpenWriter(false)}
               options={['All Writers', ...writers.map((w) => w.name)]}
               value={writer === 'All' ? 'All Writers' : writer}
               onChange={(_, newValue) => {
                 setWriter(newValue === 'All Writers' ? 'All' : newValue || 'All');
                 setCurrentPage(1);
               }}
-              sx={{ minWidth: 200 }}
+              filterOptions={(options, state) => {
+                const inputValue = state.inputValue.trim().toLowerCase();
+                if (!inputValue) return options;
+                return options.filter((option) => {
+                  if (option === 'All Writers') return false;
+                  const lowerOption = option.toLowerCase();
+                  if (inputValue.length === 1) {
+                    return lowerOption.startsWith(inputValue);
+                  } else {
+                    const words = lowerOption.split(/\s+/);
+                    return words.some(word => word.startsWith(inputValue));
+                  }
+                });
+              }}
+              slotProps={{
+                paper: {
+                  sx: {
+                    maxHeight: 250,
+                    '& .MuiAutocomplete-listbox': {
+                      maxHeight: 250,
+                    }
+                  }
+                }
+              }}
+              sx={{ width: { xs: '100%', sm: 200 } }}
               renderInput={(params) => <TextField {...params} placeholder="Filter by writer..." />}
             />
-            <TextField
-              select
+            <Autocomplete
               size="small"
-              slotProps={{ select: { native: true } }}
-              value={year}
-              onChange={(e) => { setYear(e.target.value); setCurrentPage(1); }}
-              sx={{ minWidth: 130 }}
-            >
-              {yearsList.map((y) => (
-                <option key={y} value={y}>{y === 'All' ? 'All Years' : y}</option>
-              ))}
-            </TextField>
+              open={openYear}
+              onOpen={() => setOpenYear(true)}
+              onClose={() => setOpenYear(false)}
+              options={['All Years', ...yearsList.filter(y => y !== 'All')]}
+              value={year === 'All' ? 'All Years' : year}
+              onChange={(_, newValue) => {
+                setYear(newValue === 'All Years' ? 'All' : newValue || 'All');
+                setCurrentPage(1);
+              }}
+              slotProps={{
+                paper: {
+                  sx: {
+                    maxHeight: 250,
+                    '& .MuiAutocomplete-listbox': {
+                      maxHeight: 250,
+                    }
+                  }
+                }
+              }}
+              sx={{ width: { xs: '100%', sm: 160 } }}
+              renderInput={(params) => <TextField {...params} placeholder="Filter by year..." />}
+            />
           </Stack>
           <Tabs
             value={channelsList.indexOf(channel)}
