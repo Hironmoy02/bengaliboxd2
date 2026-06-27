@@ -107,8 +107,18 @@ export default function ProfilePage() {
       const payload: any = {};
       if (username && username !== profile?.username) payload.username = username.trim();
       if (currentPassword) {
-        if (!newPassword) { setError('Enter new password'); setSaving(false); return; }
-        if (newPassword !== confirmPassword) { setError('Passwords do not match'); setSaving(false); return; }
+        if (!newPassword) {
+          setError('Enter new password');
+          setSaving(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        if (newPassword !== confirmPassword) {
+          setError('Passwords do not match');
+          setSaving(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
         payload.currentPassword = currentPassword;
         payload.newPassword = newPassword;
       }
@@ -128,7 +138,11 @@ export default function ProfilePage() {
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
       setSuccess(data.message);
       setIsEditing(false);
-    } catch (err) { setError(getErrorMessage(err)); }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      setError(getErrorMessage(err));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     finally { setSaving(false); }
   };
 
@@ -696,7 +710,7 @@ export default function ProfilePage() {
                 Select up to 5 stories from your listened history to showcase on your profile.
               </Typography>
 
-              <Stack spacing={2} sx={{ mb: 2 }}>
+              <Stack spacing={2.5} sx={{ mb: 2 }}>
                 {[
                   { label: 'Slot 1', value: fav1, setter: setFav1 },
                   { label: 'Slot 2', value: fav2, setter: setFav2 },
@@ -706,10 +720,31 @@ export default function ProfilePage() {
                 ].map((slot, index) => {
                   const currentStory = listens.find((l) => l._id === slot.value);
                   return (
-                    <Stack key={slot.label} direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-                      <Typography variant="caption" sx={{ minWidth: 45, fontWeight: 700, color: 'text.secondary' }}>
-                        {slot.label}
-                      </Typography>
+                    <Stack
+                      key={slot.label}
+                      direction={{ xs: 'column', sm: 'row' }}
+                      spacing={{ xs: 1, sm: 2 }}
+                      sx={{
+                        alignItems: { xs: 'stretch', sm: 'center' },
+                        borderBottom: { xs: '1px dashed rgba(255,255,255,0.06)', sm: 'none' },
+                        pb: { xs: 1.5, sm: 0 }
+                      }}
+                    >
+                      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="caption" sx={{ minWidth: 45, fontWeight: 700, color: 'text.secondary' }}>
+                          {slot.label}
+                        </Typography>
+                        {slot.value && (
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={() => slot.setter('')}
+                            sx={{ display: { xs: 'inline-flex', sm: 'none' }, minWidth: 0, p: 0, fontSize: '0.75rem' }}
+                          >
+                            Clear
+                          </Button>
+                        )}
+                      </Stack>
                       <Autocomplete
                         size="small"
                         sx={{ flex: 1 }}
@@ -720,7 +755,12 @@ export default function ProfilePage() {
                         renderInput={(params) => <TextField {...params} placeholder="Choose a listened story..." />}
                       />
                       {slot.value && (
-                        <Button size="small" color="error" onClick={() => slot.setter('')}>
+                        <Button
+                          size="small"
+                          color="error"
+                          onClick={() => slot.setter('')}
+                          sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
+                        >
                           Clear
                         </Button>
                       )}
@@ -768,6 +808,7 @@ export default function ProfilePage() {
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="Leave blank to keep current"
                   size={isMobile ? 'small' : 'medium'}
+                  autoComplete="new-password"
                 />
                 <TextField
                   fullWidth
@@ -777,6 +818,7 @@ export default function ProfilePage() {
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Min. 6 characters"
                   size={isMobile ? 'small' : 'medium'}
+                  autoComplete="new-password"
                 />
                 <TextField
                   fullWidth
@@ -785,6 +827,7 @@ export default function ProfilePage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   size={isMobile ? 'small' : 'medium'}
+                  autoComplete="new-password"
                 />
               </Stack>
             </Box>
@@ -792,11 +835,11 @@ export default function ProfilePage() {
 
           <Divider sx={{ my: 4 }} />
 
-          <Stack direction="row" spacing={2} sx={{ justifyContent: 'flex-end' }}>
-            <Button variant="outlined" onClick={() => setIsEditing(false)}>
+          <Stack direction={{ xs: 'column-reverse', sm: 'row' }} spacing={2} sx={{ justifyContent: 'flex-end' }}>
+            <Button variant="outlined" fullWidth={isMobile} onClick={() => setIsEditing(false)}>
               Cancel
             </Button>
-            <Button variant="contained" onClick={handleUpdateProfile} disabled={saving}>
+            <Button variant="contained" fullWidth={isMobile} onClick={handleUpdateProfile} disabled={saving}>
               {saving ? 'Saving Changes...' : 'Save Profile'}
             </Button>
           </Stack>
