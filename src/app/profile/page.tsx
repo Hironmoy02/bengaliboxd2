@@ -53,6 +53,58 @@ export default function ProfilePage() {
   const [fav4, setFav4] = useState('');
   const [fav5, setFav5] = useState('');
 
+  const [allStoriesMap, setAllStoriesMap] = useState<Map<string, any>>(new Map());
+  const [defaultStories, setDefaultStories] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const cacheStories = (storiesList: any[]) => {
+    setAllStoriesMap((prev) => {
+      const next = new Map(prev);
+      storiesList.forEach((s) => {
+        if (s && s._id) next.set(s._id, s);
+      });
+      return next;
+    });
+  };
+
+  const getOptionsForSlot = (slotValue: string) => {
+    const selectedStory = allStoriesMap.get(slotValue);
+    const baseOptions = searchResults.length > 0 ? searchResults : defaultStories;
+    if (selectedStory) {
+      const filtered = baseOptions.filter(o => o._id !== selectedStory._id);
+      return [selectedStory, ...filtered];
+    }
+    return baseOptions;
+  };
+
+  const handleSearchStories = (query: string) => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      api.get('/api/stories', { params: { search: query, limit: 25 } })
+        .then(({ data }) => {
+          const list = data.stories || [];
+          setSearchResults(list);
+          cacheStories(list);
+        })
+        .catch(() => {});
+    }, 300);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const [username, setUsername] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -228,6 +280,12 @@ export default function ProfilePage() {
       setRatings(data.ratings || []);
       setListens(data.listens || []);
       setLikedStories(data.likes || []);
+
+      // Cache all stories resolved from profile info
+      cacheStories(favs);
+      cacheStories(data.listens || []);
+      const ratingStories = (data.ratings || []).map((r: any) => r.storyId).filter(Boolean);
+      cacheStories(ratingStories);
     }).catch((err) => setError(getErrorMessage(err)))
       .finally(() => setLoadingData(false));
 
@@ -235,6 +293,15 @@ export default function ProfilePage() {
     api.get('/api/user/stats').then(({ data }) => setUserStats(data.stats)).catch(() => {}).finally(() => setLoadingStats(false));
 
     api.get('/api/writers').then(({ data }) => setWritersList(data.writers || [])).catch(() => {});
+
+    // Fetch initial list of stories from database
+    api.get('/api/stories', { params: { limit: 25 } })
+      .then(({ data }) => {
+        const list = data.stories || [];
+        setDefaultStories(list);
+        cacheStories(list);
+      })
+      .catch(() => {});
   }, [user]);
 
   useEffect(() => {
@@ -707,7 +774,7 @@ export default function ProfilePage() {
                 Favorite Stories
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                Select up to 5 stories from your listened history to showcase on your profile.
+                Select up to 5 stories from the catalog to showcase on your profile.
               </Typography>
 
               <Stack spacing={2.5} sx={{ mb: 2 }}>
@@ -718,7 +785,6 @@ export default function ProfilePage() {
                   { label: 'Slot 4', value: fav4, setter: setFav4 },
                   { label: 'Slot 5', value: fav5, setter: setFav5 },
                 ].map((slot, index) => {
-                  const currentStory = listens.find((l) => l._id === slot.value);
                   return (
                     <Stack
                       key={slot.label}
@@ -748,11 +814,20 @@ export default function ProfilePage() {
                       <Autocomplete
                         size="small"
                         sx={{ flex: 1 }}
-                        options={listens}
-                        getOptionLabel={(option) => option.title}
-                        value={currentStory || null}
-                        onChange={(_, newValue) => slot.setter(newValue?._id || '')}
-                        renderInput={(params) => <TextField {...params} placeholder="Choose a listened story..." />}
+                        options={getOptionsForSlot(slot.value)}
+                        getOptionLabel={(option) => option.title || ''}
+                        isOptionEqualToValue={(option, val) => option._id === val._id}
+                        value={allStoriesMap.get(slot.value) || null}
+                        onChange={(_, newValue) => {
+                          slot.setter(newValue?._id || '');
+                          if (newValue) {
+                            cacheStories([newValue]);
+                          }
+                        }}
+                        onInputChange={(_, newInputValue) => {
+                          handleSearchStories(newInputValue);
+                        }}
+                        renderInput={(params) => <TextField {...params} placeholder="Search all stories..." />}
                       />
                       {slot.value && (
                         <Button
