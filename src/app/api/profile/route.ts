@@ -18,7 +18,13 @@ export async function GET() {
 
     await dbConnect();
     const userId = user.id as string;
-    const userDoc = await User.findById(userId).select('username email role createdAt').lean();
+    const userDoc = await User.findById(userId)
+      .select('username email role createdAt bio favoriteStories')
+      .populate({
+        path: 'favoriteStories',
+        select: 'title channel narrator genre writer youtubeId thumbnailUrl averageRating ratingsCount yearPublished youtubeUrl approved'
+      })
+      .lean();
     if (!userDoc) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
@@ -44,7 +50,12 @@ export async function GET() {
         listenedAt: l.listenedAt ?? l.createdAt,
       }));
 
-    return NextResponse.json({ user: userDoc, stories, ratings, likes: likedStories, listens: listenedStories });
+    const userDocCopy = {
+      ...userDoc,
+      favoriteStories: (userDoc.favoriteStories || []).filter(Boolean),
+    };
+
+    return NextResponse.json({ user: userDocCopy, stories, ratings, likes: likedStories, listens: listenedStories });
   } catch (error: unknown) {
     console.error('Profile fetch error:', error);
     return NextResponse.json({ error: 'Failed to load profile' }, { status: 500 });
@@ -89,16 +100,30 @@ export async function PUT(request: NextRequest) {
       body.password = await bcrypt.hash(body.newPassword, salt);
     }
 
-    const updates: Record<string, string> = {};
+    const updates: any = {};
     if (body.username) updates.username = body.username.trim();
     if (body.password) updates.password = body.password;
+    if (body.bio !== undefined) updates.bio = body.bio.trim();
+    if (body.favoriteStories !== undefined) updates.favoriteStories = body.favoriteStories;
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }
 
-    const updated = await User.findByIdAndUpdate(userId, { $set: updates }, { new: true, runValidators: true }).select('username email role createdAt');
-    return NextResponse.json({ message: 'Profile updated successfully', user: updated });
+    const updated = await User.findByIdAndUpdate(userId, { $set: updates }, { new: true, runValidators: true })
+      .select('username email role createdAt bio favoriteStories')
+      .populate({
+        path: 'favoriteStories',
+        select: 'title channel narrator genre writer youtubeId thumbnailUrl averageRating ratingsCount yearPublished youtubeUrl approved'
+      })
+      .lean();
+
+    const updatedCopy = {
+      ...updated,
+      favoriteStories: (updated?.favoriteStories || []).filter(Boolean),
+    };
+
+    return NextResponse.json({ message: 'Profile updated successfully', user: updatedCopy });
   } catch (error: unknown) {
     console.error('Profile update error:', error);
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to update profile' }, { status: 500 });

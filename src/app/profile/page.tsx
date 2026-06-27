@@ -8,7 +8,7 @@ import api from '@/lib/axios';
 import { YOUTUBE_THUMBNAIL } from '@/lib/constants';
 import {
   Box, Typography, Button, Paper, Stack, TextField, Tab, Tabs, Avatar, Chip, Divider,
-  IconButton, Tooltip, useMediaQuery, useTheme, MenuItem, Card, CardContent,
+  IconButton, Tooltip, useMediaQuery, useTheme, MenuItem, Card, CardContent, Autocomplete,
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import HeadphonesIcon from '@mui/icons-material/Headphones';
@@ -27,7 +27,7 @@ import { AppAlert, AppLoadingState, AppEmptyState, AppStarRating, AppPagination 
 
 function getErrorMessage(err: unknown): string { return err instanceof Error ? err.message : 'An error occurred'; }
 
-interface UserProfile { _id: string; username: string; email: string; role: string; createdAt: string; }
+interface UserProfile { _id: string; username: string; email: string; role: string; createdAt: string; bio?: string; favoriteStories?: Story[]; }
 interface Story { _id: string; title: string; channel: string; youtubeId: string; approved: boolean; createdAt: string; averageRating: number; ratingsCount: number; }
 interface Rating { _id: string; storyId: { _id: string; title: string; youtubeId: string; narrator?: string; writer?: string; channel?: string; yearPublished?: number } | null; ratingValue: number; reviewText: string; updatedAt: string; }
 
@@ -44,6 +44,14 @@ export default function ProfilePage() {
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [bio, setBio] = useState('');
+  const [fav1, setFav1] = useState('');
+  const [fav2, setFav2] = useState('');
+  const [fav3, setFav3] = useState('');
+  const [fav4, setFav4] = useState('');
+  const [fav5, setFav5] = useState('');
 
   const [username, setUsername] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
@@ -96,20 +104,30 @@ export default function ProfilePage() {
   const handleUpdateProfile = async () => {
     setError(''); setSuccess(''); setSaving(true);
     try {
-      const payload: Record<string, string> = {};
-      if (username && username !== profile?.username) payload.username = username;
+      const payload: any = {};
+      if (username && username !== profile?.username) payload.username = username.trim();
       if (currentPassword) {
         if (!newPassword) { setError('Enter new password'); setSaving(false); return; }
         if (newPassword !== confirmPassword) { setError('Passwords do not match'); setSaving(false); return; }
         payload.currentPassword = currentPassword;
         payload.newPassword = newPassword;
       }
-      if (Object.keys(payload).length === 0) { setSuccess('No changes to save'); setSaving(false); return; }
+      payload.bio = bio.trim();
+      payload.favoriteStories = [fav1, fav2, fav3, fav4, fav5].filter(Boolean);
+
       const { data } = await api.put('/api/profile', payload);
       setProfile(data.user);
       setUsername(data.user.username);
+      setBio(data.user.bio || '');
+      const favs = data.user.favoriteStories || [];
+      setFav1(favs[0]?._id || '');
+      setFav2(favs[1]?._id || '');
+      setFav3(favs[2]?._id || '');
+      setFav4(favs[3]?._id || '');
+      setFav5(favs[4]?._id || '');
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
       setSuccess(data.message);
+      setIsEditing(false);
     } catch (err) { setError(getErrorMessage(err)); }
     finally { setSaving(false); }
   };
@@ -185,12 +203,23 @@ export default function ProfilePage() {
     api.get('/api/profile').then(({ data }) => {
       setProfile(data.user);
       setUsername(data.user.username);
+      setBio(data.user.bio || '');
+      const favs = data.user.favoriteStories || [];
+      setFav1(favs[0]?._id || '');
+      setFav2(favs[1]?._id || '');
+      setFav3(favs[2]?._id || '');
+      setFav4(favs[3]?._id || '');
+      setFav5(favs[4]?._id || '');
       setStories(data.stories || []);
       setRatings(data.ratings || []);
       setListens(data.listens || []);
       setLikedStories(data.likes || []);
     }).catch((err) => setError(getErrorMessage(err)))
       .finally(() => setLoadingData(false));
+
+    Promise.resolve().then(() => setLoadingStats(true));
+    api.get('/api/user/stats').then(({ data }) => setUserStats(data.stats)).catch(() => {}).finally(() => setLoadingStats(false));
+
     api.get('/api/writers').then(({ data }) => setWritersList(data.writers || [])).catch(() => {});
   }, [user]);
 
@@ -256,62 +285,519 @@ export default function ProfilePage() {
       {success && <AppAlert severity="success" message={success} onClose={() => setSuccess('')} />}
 
       {/* Profile Header */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: { xs: 3, sm: 4 }, alignItems: { sm: 'center' } }}>
-        <Avatar sx={{ width: { xs: 56, sm: 64 }, height: { xs: 56, sm: 64 }, bgcolor: 'primary.main', fontSize: { xs: 20, sm: 24 } }}>
-          {profile?.username?.[0]?.toUpperCase() || 'U'}
-        </Avatar>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>{profile?.username}</Typography>
-          <Typography variant="body2" color="text.secondary">{profile?.email} &bull; Joined {new Date(profile?.createdAt || '').toLocaleDateString()}</Typography>
-        </Box>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        spacing={4}
+        sx={{
+          mb: { xs: 4, sm: 6 },
+          alignItems: { xs: 'flex-start', md: 'center' },
+          justifyContent: 'space-between',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          pb: 4
+        }}
+      >
+        <Stack direction="row" spacing={3} sx={{ alignItems: 'center' }}>
+          <Avatar
+            sx={{
+              width: { xs: 70, sm: 90 },
+              height: { xs: 70, sm: 90 },
+              bgcolor: 'primary.main',
+              fontSize: { xs: 28, sm: 36 },
+              fontWeight: 800
+            }}
+          >
+            {profile?.username?.[0]?.toUpperCase() || 'U'}
+          </Avatar>
+          <Box>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ alignItems: { sm: 'center' }, mb: 0.5 }}>
+              <Typography variant="h4" sx={{ fontWeight: 800, fontSize: { xs: '1.75rem', sm: '2.25rem' } }}>
+                {profile?.username}
+              </Typography>
+              {!isEditing && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setIsEditing(true)}
+                  sx={{
+                    borderRadius: 2,
+                    fontSize: '0.75rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: 1,
+                    py: 0.5,
+                    px: 1.5,
+                    alignSelf: 'flex-start'
+                  }}
+                >
+                  Edit Profile
+                </Button>
+              )}
+            </Stack>
+            <Typography variant="body2" color="text.secondary">
+              {profile?.email} &bull; Joined {new Date(profile?.createdAt || '').toLocaleDateString(undefined, { year: 'numeric', month: 'long' })}
+            </Typography>
+          </Box>
+        </Stack>
+
+        {/* Stats Summary Column */}
+        <Stack
+          direction="row"
+          spacing={3}
+          sx={{
+            flexWrap: 'wrap',
+            gap: 1.5,
+            width: { xs: '100%', md: 'auto' },
+            justifyContent: { xs: 'space-between', md: 'flex-end' },
+            borderTop: { xs: '1px dashed rgba(255,255,255,0.08)', md: 'none' },
+            pt: { xs: 2.5, md: 0 }
+          }}
+        >
+          {[
+            { label: 'Added', count: stories.length },
+            { label: 'Listened', count: listens.length },
+            { label: 'Rated', count: ratings.length },
+            { label: 'Liked', count: likedStories.length },
+            { label: 'Bookmarks', count: bookmarks.length },
+          ].map((stat) => (
+            <Box key={stat.label} sx={{ textAlign: 'center', minWidth: 60 }}>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary' }}>
+                {stat.count}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, letterSpacing: 1.5 }}>
+                {stat.label}
+              </Typography>
+            </Box>
+          ))}
+        </Stack>
       </Stack>
 
       {/* Tabs — scrollable on mobile, compact labels */}
-      <Tabs
-        value={activeTab}
-        onChange={(_, v) => setActiveTab(v)}
-        variant="scrollable"
-        scrollButtons="auto"
-        allowScrollButtonsMobile
-        sx={{
-          mb: { xs: 3, sm: 4 },
-          borderBottom: '1px solid', borderColor: 'divider',
-          minHeight: 44,
-          '& .MuiTab-root': {
-            textTransform: 'none',
-            fontWeight: 600,
-            fontSize: { xs: '0.75rem', sm: '0.9rem' },
+      {!isEditing && (
+        <Tabs
+          value={activeTab}
+          onChange={(_, v) => setActiveTab(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+          sx={{
+            mb: { xs: 3, sm: 4 },
+            borderBottom: '1px solid', borderColor: 'divider',
             minHeight: 44,
-            minWidth: 0,
-            px: { xs: 1, sm: 2 },
-          },
-          '& .MuiTab-iconWrapper': { mr: { xs: 0.3, sm: 0.5 } },
-        }}
-      >
-        <Tab icon={<PersonIcon />} iconPosition="start" label={isMobile ? undefined : "Account"} />
-        <Tab icon={<LibraryAddIcon />} iconPosition="start" label={isMobile ? undefined : `My Stories (${stories.length})`} />
-        <Tab icon={<HeadsetMicIcon />} iconPosition="start" label={isMobile ? undefined : `Listened (${listens.length})`} />
-        <Tab icon={<StarIcon />} iconPosition="start" label={isMobile ? undefined : `Rated (${ratings.length})`} />
-        <Tab icon={<FavoriteIcon />} iconPosition="start" label={isMobile ? undefined : `Liked (${likedStories.length})`} />
-        <Tab icon={<BookmarkIcon />} iconPosition="start" label={isMobile ? undefined : "Bookmarks"} />
-        <Tab icon={<BarChartIcon />} iconPosition="start" label={isMobile ? undefined : "Stats"} />
-        <Tab icon={<FeedbackIcon />} iconPosition="start" label={isMobile ? undefined : "Feedback"} />
-      </Tabs>
+            '& .MuiTab-root': {
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: { xs: '0.75rem', sm: '0.9rem' },
+              minHeight: 44,
+              minWidth: 0,
+              px: { xs: 1, sm: 2 },
+            },
+            '& .MuiTab-iconWrapper': { mr: { xs: 0.3, sm: 0.5 } },
+          }}
+        >
+          <Tab icon={<PersonIcon />} iconPosition="start" label={isMobile ? undefined : "Profile"} />
+          <Tab icon={<LibraryAddIcon />} iconPosition="start" label={isMobile ? undefined : `My Stories (${stories.length})`} />
+          <Tab icon={<HeadsetMicIcon />} iconPosition="start" label={isMobile ? undefined : `Listened (${listens.length})`} />
+          <Tab icon={<StarIcon />} iconPosition="start" label={isMobile ? undefined : `Rated (${ratings.length})`} />
+          <Tab icon={<FavoriteIcon />} iconPosition="start" label={isMobile ? undefined : `Liked (${likedStories.length})`} />
+          <Tab icon={<BookmarkIcon />} iconPosition="start" label={isMobile ? undefined : "Bookmarks"} />
+          <Tab icon={<BarChartIcon />} iconPosition="start" label={isMobile ? undefined : "Stats"} />
+          <Tab icon={<FeedbackIcon />} iconPosition="start" label={isMobile ? undefined : "Feedback"} />
+        </Tabs>
+      )}
 
-      {/* Tab 0: Account */}
-      {activeTab === 0 && (
-        <Paper sx={{ p: { xs: 2, sm: 3 }, maxWidth: 500, border: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Account Settings</Typography>
-          <Stack spacing={2}>
-            <TextField fullWidth label="Username" value={username} onChange={(e) => setUsername(e.target.value)} size={isMobile ? 'small' : 'medium'} />
-            <TextField fullWidth label="Email" value={profile?.email || ''} disabled size={isMobile ? 'small' : 'medium'} />
-            <Divider />
-            <Typography variant="subtitle2" color="text.secondary">Change Password</Typography>
-            <TextField fullWidth type="password" label="Current Password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Leave blank to keep current" size={isMobile ? 'small' : 'medium'} />
-            <TextField fullWidth type="password" label="New Password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min. 6 characters" size={isMobile ? 'small' : 'medium'} />
-            <TextField fullWidth type="password" label="Confirm New Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} size={isMobile ? 'small' : 'medium'} />
-            <Button variant="contained" fullWidth onClick={handleUpdateProfile} disabled={saving} size={isMobile ? 'small' : 'medium'}>
-              {saving ? 'Saving...' : 'Save Changes'}
+      {/* Tab 0: Profile View */}
+      {activeTab === 0 && !isEditing && (
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={4} sx={{ alignItems: 'flex-start' }}>
+          {/* Main Column */}
+          <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
+            {/* Favorite Stories */}
+            <Box sx={{ mb: 5 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  textTransform: 'uppercase',
+                  fontWeight: 700,
+                  letterSpacing: 1.5,
+                  color: 'text.secondary',
+                  display: 'block',
+                  mb: 1
+                }}
+              >
+                Favorite Stories
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              {profile?.favoriteStories && profile.favoriteStories.length > 0 ? (
+                <Stack direction="row" spacing={1.5} sx={{ overflowX: 'auto', pb: 1, width: '100%' }}>
+                  {profile.favoriteStories.slice(0, 5).map((story) => (
+                    <Box
+                      key={story._id}
+                      component={Link}
+                      href={`/story/${story._id}`}
+                      sx={{
+                        width: { xs: 110, sm: 140 },
+                        flexShrink: 0,
+                        textDecoration: 'none',
+                        '&:hover .img-hover': { transform: 'scale(1.05)', boxShadow: '0 8px 24px rgba(255,94,43,0.3)' },
+                        '&:hover .title-hover': { color: 'primary.main' }
+                      }}
+                    >
+                      <Paper
+                        className="img-hover"
+                        sx={{
+                          aspectRatio: '16/9',
+                          borderRadius: 2,
+                          overflow: 'hidden',
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                          mb: 1
+                        }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={YOUTUBE_THUMBNAIL(story.youtubeId)}
+                          alt={story.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      </Paper>
+                      <Typography
+                        className="title-hover"
+                        variant="body2"
+                        sx={{
+                          fontWeight: 600,
+                          color: 'text.primary',
+                          fontSize: '0.8rem',
+                          lineHeight: 1.3,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          transition: 'color 0.2s ease'
+                        }}
+                      >
+                        {story.title}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              ) : (
+                <Paper
+                  sx={{
+                    p: 4,
+                    textAlign: 'center',
+                    border: '1px dashed',
+                    borderColor: 'divider',
+                    borderRadius: 3,
+                    bgcolor: 'transparent'
+                  }}
+                >
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    No favorite stories selected yet.
+                  </Typography>
+                  <Button variant="outlined" size="small" onClick={() => setIsEditing(true)}>
+                    Select Favorites
+                  </Button>
+                </Paper>
+              )}
+            </Box>
+
+            {/* Recent Activity */}
+            <Box sx={{ mb: 4 }}>
+              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    textTransform: 'uppercase',
+                    fontWeight: 700,
+                    letterSpacing: 1.5,
+                    color: 'text.secondary'
+                  }}
+                >
+                  Recent Activity
+                </Typography>
+                {ratings.length > 3 && (
+                  <Button
+                    size="small"
+                    onClick={() => setActiveTab(3)}
+                    sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'primary.main', textTransform: 'uppercase' }}
+                  >
+                    All
+                  </Button>
+                )}
+              </Stack>
+              <Divider sx={{ mb: 2 }} />
+
+              {ratings.length > 0 ? (
+                <Stack spacing={2}>
+                  {ratings.slice(0, 3).map((r) => {
+                    if (!r.storyId) return null;
+                    return (
+                      <Paper
+                        key={r._id}
+                        sx={{
+                          p: 2,
+                          display: 'flex',
+                          gap: 2,
+                          alignItems: 'flex-start',
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          background: 'action.hover',
+                          borderRadius: 2
+                        }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={YOUTUBE_THUMBNAIL(r.storyId.youtubeId)}
+                          alt=""
+                          style={{ width: 80, aspectRatio: '16/9', objectFit: 'cover', borderRadius: 6, flexShrink: 0 }}
+                        />
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Link
+                            href={`/story/${r.storyId._id}`}
+                            style={{
+                              color: '#e2e8f0',
+                              fontWeight: 600,
+                              textDecoration: 'none',
+                              fontSize: '0.9rem',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 1,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden'
+                            }}
+                          >
+                            {r.storyId.title}
+                          </Link>
+                          <Stack direction="row" spacing={1} sx={{ mt: 0.5, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <AppStarRating value={r.ratingValue} readonly size={12} />
+                            <Typography variant="caption" color="text.secondary">
+                              &bull; {new Date(r.updatedAt).toLocaleDateString()}
+                            </Typography>
+                          </Stack>
+                          {r.reviewText && (
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{
+                                mt: 1,
+                                fontStyle: 'italic',
+                                fontSize: '0.825rem',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden'
+                              }}
+                            >
+                              &ldquo;{r.reviewText}&rdquo;
+                            </Typography>
+                          )}
+                        </Box>
+                      </Paper>
+                    );
+                  })}
+                </Stack>
+              ) : (
+                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                  No recent activity yet. Share your ratings/reviews on stories to display them here!
+                </Typography>
+              )}
+            </Box>
+          </Box>
+
+          {/* Sidebar (Bio + Stats Summary) */}
+          <Stack spacing={3} sx={{ width: { xs: '100%', md: 260 }, flexShrink: 0 }}>
+            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  textTransform: 'uppercase',
+                  fontWeight: 700,
+                  letterSpacing: 1.5,
+                  color: 'text.secondary',
+                  display: 'block',
+                  mb: 1
+                }}
+              >
+                Bio
+              </Typography>
+              <Divider sx={{ mb: 1.5 }} />
+              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                {profile?.bio || 'No bio written yet. Click Edit Profile to share a bit about yourself!'}
+              </Typography>
+            </Paper>
+
+            {/* Quick stats mini visualizer */}
+            {userStats && (
+              <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    textTransform: 'uppercase',
+                    fontWeight: 700,
+                    letterSpacing: 1.5,
+                    color: 'text.secondary',
+                    display: 'block',
+                    mb: 1
+                  }}
+                >
+                  Favorite Taste
+                </Typography>
+                <Divider sx={{ mb: 1.5 }} />
+                <Stack spacing={1.5}>
+                  {userStats.topGenre && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block' }}>Genre</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{userStats.topGenre}</Typography>
+                    </Box>
+                  )}
+                  {userStats.topNarrator && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block' }}>Narrator</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{userStats.topNarrator}</Typography>
+                    </Box>
+                  )}
+                </Stack>
+              </Paper>
+            )}
+          </Stack>
+        </Stack>
+      )}
+
+      {/* Edit Profile Screen */}
+      {isEditing && (
+        <Paper sx={{ p: { xs: 2.5, sm: 4 }, border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
+          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>Edit Profile</Typography>
+            <Button size="small" variant="outlined" onClick={() => setIsEditing(false)}>
+              Back to Profile
+            </Button>
+          </Stack>
+
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={4}>
+            {/* Customization Column (Bio & Favorites) */}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, textTransform: 'uppercase', letterSpacing: 1, color: 'primary.main' }}>
+                About You
+              </Typography>
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                label="Bio"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Share a short bio with the community..."
+                sx={{ mb: 4 }}
+              />
+
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, textTransform: 'uppercase', letterSpacing: 1, color: 'primary.main' }}>
+                Favorite Stories
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                Select up to 5 stories from your listened history to showcase on your profile.
+              </Typography>
+
+              <Stack spacing={2} sx={{ mb: 2 }}>
+                {[
+                  { label: 'Slot 1', value: fav1, setter: setFav1 },
+                  { label: 'Slot 2', value: fav2, setter: setFav2 },
+                  { label: 'Slot 3', value: fav3, setter: setFav3 },
+                  { label: 'Slot 4', value: fav4, setter: setFav4 },
+                  { label: 'Slot 5', value: fav5, setter: setFav5 },
+                ].map((slot, index) => {
+                  const currentStory = listens.find((l) => l._id === slot.value);
+                  return (
+                    <Stack key={slot.label} direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                      <Typography variant="caption" sx={{ minWidth: 45, fontWeight: 700, color: 'text.secondary' }}>
+                        {slot.label}
+                      </Typography>
+                      <Autocomplete
+                        size="small"
+                        sx={{ flex: 1 }}
+                        options={listens}
+                        getOptionLabel={(option) => option.title}
+                        value={currentStory || null}
+                        onChange={(_, newValue) => slot.setter(newValue?._id || '')}
+                        renderInput={(params) => <TextField {...params} placeholder="Choose a listened story..." />}
+                      />
+                      {slot.value && (
+                        <Button size="small" color="error" onClick={() => slot.setter('')}>
+                          Clear
+                        </Button>
+                      )}
+                    </Stack>
+                  );
+                })}
+              </Stack>
+            </Box>
+
+            {/* Divider for desktop */}
+            <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', md: 'block' } }} />
+
+            {/* Account Settings Column (Username & Password) */}
+            <Box sx={{ width: { xs: '100%', md: 320 } }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, textTransform: 'uppercase', letterSpacing: 1, color: 'primary.main' }}>
+                Account Settings
+              </Typography>
+              <Stack spacing={2.5}>
+                <TextField
+                  fullWidth
+                  label="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  size={isMobile ? 'small' : 'medium'}
+                />
+                <TextField
+                  fullWidth
+                  label="Email Address"
+                  value={profile?.email || ''}
+                  disabled
+                  helperText="Email address cannot be changed."
+                  size={isMobile ? 'small' : 'medium'}
+                />
+
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  Change Password
+                </Typography>
+                
+                <TextField
+                  fullWidth
+                  type="password"
+                  label="Current Password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Leave blank to keep current"
+                  size={isMobile ? 'small' : 'medium'}
+                />
+                <TextField
+                  fullWidth
+                  type="password"
+                  label="New Password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Min. 6 characters"
+                  size={isMobile ? 'small' : 'medium'}
+                />
+                <TextField
+                  fullWidth
+                  type="password"
+                  label="Confirm New Password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  size={isMobile ? 'small' : 'medium'}
+                />
+              </Stack>
+            </Box>
+          </Stack>
+
+          <Divider sx={{ my: 4 }} />
+
+          <Stack direction="row" spacing={2} sx={{ justifyContent: 'flex-end' }}>
+            <Button variant="outlined" onClick={() => setIsEditing(false)}>
+              Cancel
+            </Button>
+            <Button variant="contained" onClick={handleUpdateProfile} disabled={saving}>
+              {saving ? 'Saving Changes...' : 'Save Profile'}
             </Button>
           </Stack>
         </Paper>
