@@ -32,6 +32,21 @@ export const loginUser = createAsyncThunk(
   }
 );
 
+export const googleLoginUser = createAsyncThunk(
+  'auth/googleLogin',
+  async (
+    payload: { idToken?: string; isMock?: boolean; mockEmail?: string; mockName?: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const { data } = await api.post('/api/auth/google', payload);
+      return data.user;
+    } catch (err) {
+      return rejectWithValue(err instanceof Error ? err.message : 'Google authentication failed');
+    }
+  }
+);
+
 export const registerUser = createAsyncThunk(
   'auth/register',
   async ({ username, email, password }: { username: string; email: string; password: string }, { rejectWithValue }) => {
@@ -58,6 +73,7 @@ const authSlice = createSlice({
       .addCase(fetchCurrentUser.fulfilled, (state, action) => { state.user = action.payload; state.loading = false; })
       .addCase(fetchCurrentUser.rejected, (state) => { state.user = null; state.loading = false; })
       .addCase(loginUser.fulfilled, (state, action) => { state.user = action.payload; })
+      .addCase(googleLoginUser.fulfilled, (state, action) => { state.user = action.payload; })
       .addCase(registerUser.fulfilled, (state, action) => { state.user = action.payload; })
       .addCase(logoutUser.fulfilled, (state) => { state.user = null; });
   },

@@ -205,9 +205,9 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
           <Typography variant="h4" sx={{ fontWeight: 800, mb: 2, fontSize: { xs: '1.5rem', md: '2rem' } }}>{story.title}</Typography>
 
           <Stack direction="row" spacing={3} sx={{ flexWrap: 'wrap', color: 'text.secondary', fontSize: '0.95rem', pb: 2, mb: 3, borderBottom: '1px solid', borderColor: 'divider' }}>
-            <Typography>Narrator: <strong style={{ color: '#e2e8f0' }}>{story.narrator}</strong></Typography>
-            {story.writer && <Typography>Writer: <strong style={{ color: '#e2e8f0' }}>{story.writer}</strong></Typography>}
-            {story.duration && <Typography>Duration: <strong style={{ color: '#e2e8f0' }}>{formatDuration(story.duration)}</strong></Typography>}
+            <Typography>Narrator: <strong style={{ color: 'var(--text-primary)' }}>{story.narrator}</strong></Typography>
+            {story.writer && <Typography>Writer: <strong style={{ color: 'var(--text-primary)' }}>{story.writer}</strong></Typography>}
+            {story.duration && <Typography>Duration: <strong style={{ color: 'var(--text-primary)' }}>{formatDuration(story.duration)}</strong></Typography>}
             <Typography>
               Source: <a href={story.youtubeUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-on-dark)', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 500, textDecoration: 'none' }}>
                 <YoutubeIcon size={14} /> YouTube Link

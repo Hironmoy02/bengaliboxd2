@@ -1,48 +1,81 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import Script from 'next/script';
 import { useAppSelector, useAppDispatch } from '@/lib/hooks';
-import { registerUser } from '@/store/authSlice';
-import { Box, Typography, Button, Paper } from '@mui/material';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import { googleLoginUser } from '@/store/authSlice';
+import { Box, Typography, Button, Paper, Stack, Divider } from '@mui/material';
+import GoogleIcon from '@mui/icons-material/Google';
 import { AppTextField, AppAlert, AppLoadingState } from '@/components/ui';
 
 export default function RegisterPage() {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Dev Sandbox State
+  const [mockEmail, setMockEmail] = useState('');
+  const [mockName, setMockName] = useState('');
 
   const dispatch = useAppDispatch();
   const { user, loading } = useAppSelector((s) => s.auth);
   const router = useRouter();
 
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
   useEffect(() => {
     if (!loading && user) router.push('/');
   }, [user, loading, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username || !email || !password || !confirmPassword) { setError('Please fill in all fields'); return; }
-    if (username.length < 3) { setError('Username must be at least 3 characters long'); return; }
-    if (password.length < 6) { setError('Password must be at least 6 characters long'); return; }
-    if (password !== confirmPassword) { setError('Passwords do not match'); return; }
+  // Google Callback Registrar
+  useEffect(() => {
+    if (!googleClientId) return;
 
+    (window as any).handleGoogleCredentialResponse = async (response: any) => {
+      setIsSubmitting(true);
+      setError('');
+      try {
+        const result = await dispatch(googleLoginUser({ idToken: response.credential }));
+        if (googleLoginUser.rejected.match(result)) {
+          setError((result.payload as string) || 'Google sign-in failed');
+        } else {
+          router.push('/');
+        }
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'An error occurred during Google sign-in');
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    return () => {
+      delete (window as any).handleGoogleCredentialResponse;
+    };
+  }, [googleClientId, dispatch, router]);
+
+  const handleSandboxLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mockEmail) {
+      setError('Please provide a sandbox email');
+      return;
+    }
     setError('');
     setIsSubmitting(true);
     try {
-      const result = await dispatch(registerUser({ username, email, password }));
-      if (registerUser.rejected.match(result)) {
-        setError((result.payload as string) || 'Registration failed');
+      const result = await dispatch(
+        googleLoginUser({
+          isMock: true,
+          mockEmail,
+          mockName: mockName || 'Hironmoy',
+        })
+      );
+      if (googleLoginUser.rejected.match(result)) {
+        setError((result.payload as string) || 'Sandbox registration failed');
       } else {
         router.push('/');
       }
     } catch {
-      setError('An unexpected error occurred. Please try again.');
+      setError('Sandbox registration failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -51,32 +84,95 @@ export default function RegisterPage() {
   if (loading || user) return <AppLoadingState message="Loading session..." fullScreen />;
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '90vh', px: 2 }}>
-      <Paper sx={{ width: '100%', maxWidth: 440, p: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
-        <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>Create Account</Typography>
-          <Typography color="text.secondary">Join Bengaliboxd to rate, review and list audio stories</Typography>
-        </Box>
+    <>
+      {googleClientId && (
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="afterInteractive"
+        />
+      )}
 
-        {error && <AppAlert severity="error" message={error} onClose={() => setError('')} />}
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', px: 2 }}>
+        <Paper sx={{ width: '100%', maxWidth: 440, p: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+          <Box sx={{ textAlign: 'center', mb: 4 }}>
+            <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>Create Account</Typography>
+            <Typography color="text.secondary">Register or sign in instantly with Google SSO</Typography>
+          </Box>
 
-        <form onSubmit={handleSubmit}>
-          <AppTextField fullWidth label="Username" placeholder="e.g. somak_fan" value={username} onChange={(e) => setUsername(e.target.value)} required sx={{ mb: 2.5 }} />
-          <AppTextField fullWidth label="Email Address" type="email" placeholder="e.g. yourname@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} required sx={{ mb: 2.5 }} />
-          <AppTextField fullWidth label="Password" type="password" placeholder="Min. 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} required sx={{ mb: 2.5 }} />
-          <AppTextField fullWidth label="Confirm Password" type="password" placeholder="Repeat your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required sx={{ mb: 3 }} />
-          <Button type="submit" variant="contained" fullWidth size="large" startIcon={<PersonAddIcon />} disabled={isSubmitting}>
-            {isSubmitting ? 'Creating account...' : 'Create Account'}
-          </Button>
-        </form>
+          {error && <AppAlert severity="error" message={error} onClose={() => setError('')} />}
 
-        <Typography variant="body2" sx={{ textAlign: 'center', mt: 3 }}>
-          Already have an account?{' '}
-          <Link href="/login" style={{ color: 'var(--accent-on-dark)', fontWeight: 600, textDecoration: 'none' }}>
-            Sign In
-          </Link>
-        </Typography>
-      </Paper>
-    </Box>
+          {googleClientId ? (
+            <Stack spacing={3} sx={{ alignItems: 'center', py: 2 }}>
+              {/* Google Native One Tap & Sign-in Button Containers */}
+              <div
+                id="g_id_onload"
+                data-client_id={googleClientId}
+                data-context="signup"
+                data-ux_mode="popup"
+                data-callback="handleGoogleCredentialResponse"
+                data-auto_prompt="false"
+              ></div>
+
+              <div
+                className="g_id_signin"
+                data-type="standard"
+                data-shape="pill"
+                data-theme="outline"
+                data-text="signup_with"
+                data-size="large"
+                data-logo_alignment="left"
+                style={{ width: '100%', display: 'flex', justifyContent: 'center' }}
+              ></div>
+            </Stack>
+          ) : (
+            <Stack spacing={3}>
+              <Box sx={{ p: 2, background: 'rgba(0,102,204,0.06)', borderRadius: 2, border: '1px solid rgba(0,102,204,0.15)' }}>
+                <Typography variant="caption" color="primary.main" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+                  💡 Google OAuth Sandbox Mode
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.4 }}>
+                  To enable real Google registration, configure <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> in your <code>.env.local</code> file.
+                </Typography>
+              </Box>
+
+              <form onSubmit={handleSandboxLogin}>
+                <Stack spacing={2}>
+                  <AppTextField
+                    fullWidth
+                    label="Email Address"
+                    placeholder="e.g. hironmoychowdhury690@gmail.com"
+                    value={mockEmail}
+                    onChange={(e) => setMockEmail(e.target.value)}
+                    required
+                  />
+                  <AppTextField
+                    fullWidth
+                    label="Full Name"
+                    placeholder="e.g. Hironmoy"
+                    value={mockName}
+                    onChange={(e) => setMockName(e.target.value)}
+                  />
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    fullWidth
+                    size="large"
+                    startIcon={<GoogleIcon />}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Registering...' : 'Register with Google (Sandbox)'}
+                  </Button>
+                </Stack>
+              </form>
+            </Stack>
+          )}
+
+          <Divider sx={{ my: 3 }} />
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', lineHeight: 1.4 }}>
+            Sign-in and registration are unified on Bengaliboxd. If you do not have an account, signing in with Google will instantly create one for you.
+          </Typography>
+        </Paper>
+      </Box>
+    </>
   );
 }
