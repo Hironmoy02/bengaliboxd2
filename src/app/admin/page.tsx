@@ -95,6 +95,10 @@ export default function AdminPage() {
   const [bulkUploading, setBulkUploading] = useState(false);
   const [bulkResults, setBulkResults] = useState<{ total: number; success: number; failed: number; results: { row: number; title: string; status: 'success' | 'failed'; error?: string }[] } | null>(null);
 
+  const [bulkSubTab, setBulkSubTab] = useState(0);
+  const [migrateUploading, setMigrateUploading] = useState(false);
+  const [migrateResults, setMigrateResults] = useState<{ total: number; created: number; updated: number; unchanged: number; failed: number; results: { row: number; title: string; status: 'created' | 'updated' | 'unchanged' | 'failed'; error?: string }[] } | null>(null);
+
   const channelsList = [...CHANNELS];
   const genresList = [...GENRES];
 
@@ -316,6 +320,48 @@ export default function AdminPage() {
     };
     reader.readAsText(file);
     e.target.value = '';
+  };
+
+  const handleMigrateFileRead = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError(''); setSuccess(''); setMigrateUploading(true); setMigrateResults(null);
+    try {
+      const XLSX = await import('xlsx');
+      const fileData = await file.arrayBuffer();
+      const workbook = XLSX.read(fileData);
+      const sheetName = workbook.SheetNames[0];
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+      if (rows.length === 0) { setError('Excel file is empty'); setMigrateUploading(false); return; }
+
+      const cols = Object.keys(rows[0] as object);
+      const urlCol = cols.find((c) => /link|url|youtube/i.test(c));
+      if (!urlCol) { setError('Could not find a YouTube URL column (expected: Link, URL, or YouTube URL)'); setMigrateUploading(false); return; }
+
+      const mappedRows = rows.map((row: Record<string, unknown>) => {
+        const r = row as Record<string, unknown>;
+        return {
+          title: (r['Title'] || r['title'] || '') as string,
+          writer: (r['Writer'] || r['writer'] || '') as string,
+          narrator: (r['Narrators'] || r['Narrator'] || r['narrator'] || '') as string,
+          genre: (r['Genre'] || r['genre'] || '') as string,
+          tags: typeof (r['Tags'] || r['tags']) === 'string' ? (r['Tags'] || r['tags'] as string).split(',').map((t: string) => t.trim()).filter(Boolean) : [],
+          duration: (r['Duration'] || r['duration'] || r['Duration (HH:MM:SS)'] || '') as number | string,
+          year: (r['Year'] || r['year'] || r['year'] || '') as number | string,
+          youtubeUrl: (r[urlCol] || '') as string,
+        };
+      });
+
+      const { data } = await api.post('/api/stories/migrate', { rows: mappedRows }, { timeout: 300000 });
+      setMigrateResults(data);
+      if (data.failed === 0) setSuccess(data.message);
+      else setError(data.message);
+    } catch (err) {
+      setError(getErrorMessage(err) || 'Migration failed');
+    } finally {
+      setMigrateUploading(false);
+      e.target.value = '';
+    }
   };
 
   const handleSelectStoryForEdit = (story: Story) => {
@@ -737,33 +783,63 @@ export default function AdminPage() {
           <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2 }}>
               <UploadFileIcon sx={{ color: 'primary.main' }} />
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>Bulk Story Upload</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>Bulk Upload & Migration</Typography>
             </Stack>
             <Divider sx={{ mb: 2 }} />
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Upload a CSV with columns: <strong>Title, Writer, Narrator, Year, YouTube URL</strong> (and optional <strong>Channel</strong>). If Channel is omitted, it&apos;s auto-detected from YouTube.
-            </Typography>
-            <Stack spacing={2}>
-              <Button variant="outlined" component="label" startIcon={<UploadFileIcon />}>
-                Choose CSV File
-                <input type="file" accept=".csv,text/csv" hidden onChange={handleBulkFileRead} />
-              </Button>
-              <TextField
-                multiline
-                rows={8}
-                fullWidth
-                placeholder={`Title,Writer,Narrator,Year,YouTube URL,Channel\nFeluda - Somoy,Supriya,Deep,2019,https://www.youtube.com/watch?v=...,Sunday Suspense\nKankur,Leela Ganguly,Somak,2018,https://www.youtube.com/watch?v=...`}
-                value={bulkCsvText}
-                onChange={(e) => { setBulkCsvText(e.target.value); setBulkResults(null); }}
-                sx={{ '& textarea': { fontFamily: 'monospace', fontSize: '0.85rem' } }}
-              />
-              <Button variant="contained" size="large" onClick={handleBulkUpload} disabled={bulkUploading || !bulkCsvText.trim()}>
-                {bulkUploading ? 'Uploading...' : 'Upload Stories'}
-              </Button>
-            </Stack>
+
+            <Tabs
+              value={bulkSubTab}
+              onChange={(_, v) => setBulkSubTab(v)}
+              sx={{
+                mb: 3,
+                minHeight: 36,
+                '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, fontSize: '0.85rem', minHeight: 36, minWidth: 0, px: 2 },
+              }}
+            >
+              <Tab label="CSV Upload (New Stories)" />
+              <Tab label="Excel Migration (Update & Create)" />
+            </Tabs>
+
+            {bulkSubTab === 0 && (
+              <Stack spacing={2}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Upload a CSV with columns: <strong>Title, Writer, Narrator, Year, YouTube URL</strong> (and optional <strong>Channel</strong>). If Channel is omitted, it&apos;s auto-detected from YouTube. Only creates new stories — duplicates are rejected.
+                </Typography>
+                <Button variant="outlined" component="label" startIcon={<UploadFileIcon />}>
+                  Choose CSV File
+                  <input type="file" accept=".csv,text/csv" hidden onChange={handleBulkFileRead} />
+                </Button>
+                <TextField
+                  multiline
+                  rows={6}
+                  fullWidth
+                  placeholder={`Title,Writer,Narrator,Year,YouTube URL,Channel\nFeluda - Somoy,Supriya,Deep,2019,https://www.youtube.com/watch?v=...,Sunday Suspense\nKankur,Leela Ganguly,Somak,2018,https://www.youtube.com/watch?v=...`}
+                  value={bulkCsvText}
+                  onChange={(e) => { setBulkCsvText(e.target.value); setBulkResults(null); }}
+                  sx={{ '& textarea': { fontFamily: 'monospace', fontSize: '0.85rem' } }}
+                />
+                <Button variant="contained" size="large" onClick={handleBulkUpload} disabled={bulkUploading || !bulkCsvText.trim()}>
+                  {bulkUploading ? 'Uploading...' : 'Upload Stories'}
+                </Button>
+              </Stack>
+            )}
+
+            {bulkSubTab === 1 && (
+              <Stack spacing={2}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Upload an Excel file with columns: <strong>Title, YouTube URL (or Link), Writer, Narrators, Genre, Tags, Duration, Year</strong>.
+                  Existing stories (matched by YouTube URL) will be <strong>updated</strong> with new data. New stories will be <strong>created</strong>.
+                  Duration accepts seconds or <strong>HH:MM:SS</strong> format. Tags should be comma-separated.
+                </Typography>
+                <Button variant="outlined" component="label" startIcon={<UploadFileIcon />} disabled={migrateUploading}>
+                  {migrateUploading ? 'Migrating...' : 'Choose Excel File (.xlsx)'}
+                  <input type="file" accept=".xlsx,.xls" hidden onChange={handleMigrateFileRead} />
+                </Button>
+              </Stack>
+            )}
           </Paper>
 
-          {bulkResults && (
+          {bulkSubTab === 0 && bulkResults && (
             <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Upload Results</Typography>
               <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
@@ -794,6 +870,52 @@ export default function AdminPage() {
                           </TableCell>
                           <TableCell sx={{ color: r.status === 'failed' ? 'error.main' : 'text.secondary', fontSize: '0.8rem' }}>
                             {r.status === 'failed' ? r.error : 'Added successfully'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </Paper>
+          )}
+
+          {bulkSubTab === 1 && migrateResults && (
+            <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Migration Results</Typography>
+              <Stack direction="row" spacing={2} sx={{ mb: 2, flexWrap: 'wrap' }}>
+                <Chip label={`Total: ${migrateResults.total}`} color="default" />
+                <Chip label={`Created: ${migrateResults.created}`} color="success" />
+                <Chip label={`Updated: ${migrateResults.updated}`} color="info" />
+                <Chip label={`Unchanged: ${migrateResults.unchanged}`} color="default" />
+                <Chip label={`Failed: ${migrateResults.failed}`} color={migrateResults.failed > 0 ? 'error' : 'default'} />
+              </Stack>
+              {migrateResults.results.length > 0 && (
+                <TableContainer sx={{ maxHeight: 400 }}>
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 700 }}>Row</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Details</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {migrateResults.results.map((r, i) => (
+                        <TableRow key={i}>
+                          <TableCell>{r.row}</TableCell>
+                          <TableCell>{r.title}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={r.status}
+                              size="small"
+                              color={r.status === 'created' ? 'success' : r.status === 'updated' ? 'info' : r.status === 'failed' ? 'error' : 'default'}
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell sx={{ color: r.status === 'failed' ? 'error.main' : 'text.secondary', fontSize: '0.8rem' }}>
+                            {r.status === 'failed' ? r.error : r.status === 'created' ? 'New story added' : r.status === 'updated' ? 'Existing story updated' : 'No changes needed'}
                           </TableCell>
                         </TableRow>
                       ))}

@@ -7,6 +7,7 @@ import Writer from '@/models/Writer';
 import Settings from '@/models/Settings';
 import { getUserFromSession } from '@/lib/auth';
 import { getYouTubeId } from '@/lib/youtube';
+import { fetchYouTubeMeta } from '@/lib/youtube-meta';
 import { DEFAULT_GENRE, DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT, YOUTUBE_THUMBNAIL, CHANNELS } from '@/lib/constants';
 import { toSearchable } from '@/lib/transliterate';
 
@@ -266,20 +267,12 @@ export async function POST(request: NextRequest) {
     const finalThumbnailUrl = thumbnailUrl || YOUTUBE_THUMBNAIL(youtubeId);
 
     let finalYearPublished = yearPublished ? parseInt(yearPublished, 10) : undefined;
-    if (!finalYearPublished) {
+    let finalDuration = duration ? parseInt(String(duration), 10) : undefined;
+    if (!finalYearPublished || !finalDuration) {
       try {
-        const pageRes = await fetch(`https://www.youtube.com/watch?v=${youtubeId}`, {
-          headers: { 'User-Agent': 'Mozilla/5.0' },
-        });
-        if (pageRes.ok) {
-          const html = await pageRes.text();
-          const dateMatch = html.match(/"datePublished"\s*:\s*"(\d{4})/);
-          if (dateMatch) finalYearPublished = parseInt(dateMatch[1], 10);
-          else {
-            const uploadMatch = html.match(/"uploadDate"\s*:\s*"(\d{4})/);
-            if (uploadMatch) finalYearPublished = parseInt(uploadMatch[1], 10);
-          }
-        }
+        const meta = await fetchYouTubeMeta(youtubeId);
+        if (!finalYearPublished && meta.year) finalYearPublished = meta.year;
+        if (!finalDuration && meta.duration) finalDuration = meta.duration;
       } catch { /* ignore */ }
     }
 
@@ -297,7 +290,7 @@ export async function POST(request: NextRequest) {
       writer: writer ? writer.trim() : '',
       titleSearch: toSearchable(title.trim()),
       yearPublished: finalYearPublished,
-      duration: duration ? parseInt(String(duration), 10) : undefined,
+      duration: finalDuration,
       tags: Array.isArray(tags) ? tags.filter((t: string) => typeof t === 'string' && t.trim()).map((t: string) => t.trim()).slice(0, 10) : [],
       addedBy: user.id as mongoose.Types.ObjectId,
       approved,

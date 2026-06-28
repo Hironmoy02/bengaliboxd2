@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromSession } from '@/lib/auth';
 import { getYouTubeId } from '@/lib/youtube';
 import { matchYouTubeChannel } from '@/lib/constants';
+import { fetchYouTubeMeta } from '@/lib/youtube-meta';
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,21 +48,9 @@ export async function GET(request: NextRequest) {
     let yearPublished: number | undefined;
     let duration: number | undefined;
     try {
-      const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-      });
-      if (pageRes.ok) {
-        const html = await pageRes.text();
-        const dateMatch = html.match(/"datePublished"\s*:\s*"(\d{4})/);
-        if (dateMatch) {
-          yearPublished = parseInt(dateMatch[1], 10);
-        } else {
-          const uploadMatch = html.match(/"uploadDate"\s*:\s*"(\d{4})/);
-          if (uploadMatch) yearPublished = parseInt(uploadMatch[1], 10);
-        }
-        const lengthMatch = html.match(/"lengthSeconds"\s*:\s*"(\d+)"/);
-        if (lengthMatch) duration = parseInt(lengthMatch[1], 10);
-      }
+      const meta = await fetchYouTubeMeta(videoId);
+      if (meta.year) yearPublished = meta.year;
+      if (meta.duration) duration = meta.duration;
     } catch { /* ignore page fetch errors */ }
 
     return NextResponse.json({
