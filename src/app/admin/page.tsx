@@ -338,8 +338,8 @@ export default function AdminPage() {
       const urlCol = cols.find((c) => /link|url|youtube/i.test(c));
       if (!urlCol) { setError('Could not find a YouTube URL column (expected: Link, URL, or YouTube URL)'); setMigrateUploading(false); return; }
 
-      const mappedRows = rows.map((row: Record<string, unknown>) => {
-        const r = row as Record<string, unknown>;
+      const mappedRows = (rows as any[]).map((row: any) => {
+        const r = row as Record<string, any>;
         return {
           title: (r['Title'] || r['title'] || '') as string,
           writer: (r['Writer'] || r['writer'] || '') as string,
