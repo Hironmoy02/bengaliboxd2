@@ -6,6 +6,7 @@ import Story from '@/models/Story';
 import Writer from '@/models/Writer';
 import { getUserFromSession } from '@/lib/auth';
 import { getYouTubeId } from '@/lib/youtube';
+import { fetchYouTubeMeta } from '@/lib/youtube-meta';
 import { matchYouTubeChannel, CHANNELS, YOUTUBE_THUMBNAIL } from '@/lib/constants';
 import { toSearchable } from '@/lib/transliterate';
 
@@ -47,6 +48,22 @@ function parseCSV(csvText: string): string[][] {
 }
 
 const BATCH_SIZE = 5;
+
+async function fetchMetaInBatches(youtubeIds: string[]): Promise<Map<string, { duration?: number; year?: number }>> {
+  const metaMap = new Map<string, { duration?: number; year?: number }>();
+  for (let i = 0; i < youtubeIds.length; i += BATCH_SIZE) {
+    const batch = youtubeIds.slice(i, i + BATCH_SIZE);
+    const promises = batch.map(async (id) => {
+      const meta = await fetchYouTubeMeta(id);
+      return [id, meta] as const;
+    });
+    const results = await Promise.all(promises);
+    for (const [id, meta] of results) {
+      metaMap.set(id, meta);
+    }
+  }
+  return metaMap;
+}
 
 async function detectChannelsInBatches(youtubeIds: string[]): Promise<Map<string, string | null>> {
   const channelMap = new Map<string, string | null>();
@@ -148,7 +165,11 @@ export async function POST(request: NextRequest) {
     const existingStories = await Story.find({ youtubeId: { $in: allYoutubeIds } }).select('youtubeId').lean();
     const existingSet = new Set(existingStories.map((s) => s.youtubeId));
 
-    // Phase 4: Create stories
+    // Phase 4: Batch fetch YouTube metadata (duration, year) for all unique IDs
+    const uniqueAllIds = [...new Set(parsedRows.map((r) => r.youtubeId))];
+    const metaMap = await fetchMetaInBatches(uniqueAllIds);
+
+    // Phase 5: Create stories
     const finalResults: BulkResult[] = [...results];
 
     for (const row of parsedRows) {
@@ -168,12 +189,15 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // Year
+      // Year & duration from CSV or YouTube metadata
+      const meta = metaMap.get(row.youtubeId) || {};
       let yearPublished: number | undefined;
       if (row.yearStr) {
         const parsed = parseInt(row.yearStr, 10);
         if (parsed >= 1900 && parsed <= 2100) yearPublished = parsed;
       }
+      if (!yearPublished && meta.year) yearPublished = meta.year;
+      const duration = meta.duration;
 
       try {
         await Story.create({
@@ -188,6 +212,7 @@ export async function POST(request: NextRequest) {
           writer: row.writer,
           titleSearch: toSearchable(row.title),
           yearPublished,
+          duration,
           addedBy: user.id as mongoose.Types.ObjectId,
           approved: true,
           averageRating: 0,
