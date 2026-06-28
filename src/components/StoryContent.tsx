@@ -209,7 +209,7 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
             {story.writer && <Typography>Writer: <strong style={{ color: '#e2e8f0' }}>{story.writer}</strong></Typography>}
             {story.duration && <Typography>Duration: <strong style={{ color: '#e2e8f0' }}>{formatDuration(story.duration)}</strong></Typography>}
             <Typography>
-              Source: <a href={story.youtubeUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#ff5e2b', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 500, textDecoration: 'none' }}>
+              Source: <a href={story.youtubeUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-on-dark)', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 500, textDecoration: 'none' }}>
                 <YoutubeIcon size={14} /> YouTube Link
               </a>
             </Typography>
@@ -265,7 +265,7 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
                         </Stack>
                         <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           <CalendarTodayIcon sx={{ fontSize: 12 }} />
-                          {new Date(rev.updatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                          {new Date(rev.updatedAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
                         </Typography>
                       </Stack>
                       {rev.reviewText && <Typography variant="body2" color="text.secondary" sx={{ mt: 1, lineHeight: 1.6 }}>{rev.reviewText}</Typography>}

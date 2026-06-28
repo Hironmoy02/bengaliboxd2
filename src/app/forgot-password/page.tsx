@@ -79,7 +79,7 @@ export default function ForgotPasswordPage() {
             </form>
 
             <Typography variant="body2" sx={{ textAlign: 'center', mt: 3 }}>
-              <Link href="/login" style={{ color: '#ff5e2b', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Link href="/login" style={{ color: 'var(--accent-on-dark)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 <ArrowBackIcon sx={{ fontSize: 14 }} /> Back to Sign In
               </Link>
             </Typography>

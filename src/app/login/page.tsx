@@ -75,7 +75,7 @@ export default function LoginPage() {
             sx={{ mb: 1 }}
           />
           <Typography variant="body2" sx={{ textAlign: 'right', mb: 3 }}>
-            <Link href="/forgot-password" style={{ color: '#ff5e2b', fontWeight: 500, textDecoration: 'none', fontSize: '0.85rem' }}>
+            <Link href="/forgot-password" style={{ color: 'var(--accent-on-dark)', fontWeight: 500, textDecoration: 'none', fontSize: '0.85rem' }}>
               Forgot Password?
             </Link>
           </Typography>
@@ -93,7 +93,7 @@ export default function LoginPage() {
 
         <Typography variant="body2" sx={{ textAlign: 'center', mt: 3 }}>
           Don&apos;t have an account?{' '}
-          <Link href="/register" style={{ color: '#ff5e2b', fontWeight: 600, textDecoration: 'none' }}>
+          <Link href="/register" style={{ color: 'var(--accent-on-dark)', fontWeight: 600, textDecoration: 'none' }}>
             Create Account
           </Link>
         </Typography>

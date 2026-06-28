@@ -117,7 +117,7 @@ function ResetPasswordContent() {
             </form>
 
             <Typography variant="body2" sx={{ textAlign: 'center', mt: 3 }}>
-              <Link href="/login" style={{ color: '#ff5e2b', fontWeight: 600, textDecoration: 'none' }}>
+              <Link href="/login" style={{ color: 'var(--accent-on-dark)', fontWeight: 600, textDecoration: 'none' }}>
                 Back to Sign In
               </Link>
             </Typography>

@@ -45,6 +45,13 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Auto-dismiss success toast after 3 seconds
+  useEffect(() => {
+    if (!success) return;
+    const t = setTimeout(() => setSuccess(''), 3000);
+    return () => clearTimeout(t);
+  }, [success]);
+
   const [isEditing, setIsEditing] = useState(false);
   const [bio, setBio] = useState('');
   const [fav1, setFav1] = useState('');
@@ -52,6 +59,61 @@ export default function ProfilePage() {
   const [fav3, setFav3] = useState('');
   const [fav4, setFav4] = useState('');
   const [fav5, setFav5] = useState('');
+
+  const [allStoriesMap, setAllStoriesMap] = useState<Map<string, any>>(new Map());
+  const [defaultStories, setDefaultStories] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const cacheStories = (storiesList: any[]) => {
+    setAllStoriesMap((prev) => {
+      const next = new Map(prev);
+      storiesList.forEach((s) => {
+        if (s && s._id) next.set(s._id, s);
+      });
+      return next;
+    });
+  };
+
+  const getOptionsForSlot = (slotValue: string, allSlotValues: string[]) => {
+    // IDs selected in OTHER slots (to prevent duplicates)
+    const otherSelected = new Set(allSlotValues.filter((v) => v && v !== slotValue));
+    const selectedStory = allStoriesMap.get(slotValue);
+    const baseOptions = (searchResults.length > 0 ? searchResults : defaultStories)
+      .filter((o) => !otherSelected.has(o._id));
+    if (selectedStory) {
+      const filtered = baseOptions.filter(o => o._id !== selectedStory._id);
+      return [selectedStory, ...filtered];
+    }
+    return baseOptions;
+  };
+
+  const handleSearchStories = (query: string) => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      api.get('/api/stories', { params: { search: query, limit: 100 } })
+        .then(({ data }) => {
+          const list = data.stories || [];
+          setSearchResults(list);
+          cacheStories(list);
+        })
+        .catch(() => {});
+    }, 300);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const [username, setUsername] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
@@ -107,8 +169,18 @@ export default function ProfilePage() {
       const payload: any = {};
       if (username && username !== profile?.username) payload.username = username.trim();
       if (currentPassword) {
-        if (!newPassword) { setError('Enter new password'); setSaving(false); return; }
-        if (newPassword !== confirmPassword) { setError('Passwords do not match'); setSaving(false); return; }
+        if (!newPassword) {
+          setError('Enter new password');
+          setSaving(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        if (newPassword !== confirmPassword) {
+          setError('Passwords do not match');
+          setSaving(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
         payload.currentPassword = currentPassword;
         payload.newPassword = newPassword;
       }
@@ -128,7 +200,11 @@ export default function ProfilePage() {
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
       setSuccess(data.message);
       setIsEditing(false);
-    } catch (err) { setError(getErrorMessage(err)); }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      setError(getErrorMessage(err));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     finally { setSaving(false); }
   };
 
@@ -214,6 +290,12 @@ export default function ProfilePage() {
       setRatings(data.ratings || []);
       setListens(data.listens || []);
       setLikedStories(data.likes || []);
+
+      // Cache all stories resolved from profile info
+      cacheStories(favs);
+      cacheStories(data.listens || []);
+      const ratingStories = (data.ratings || []).map((r: any) => r.storyId).filter(Boolean);
+      cacheStories(ratingStories);
     }).catch((err) => setError(getErrorMessage(err)))
       .finally(() => setLoadingData(false));
 
@@ -221,6 +303,15 @@ export default function ProfilePage() {
     api.get('/api/user/stats').then(({ data }) => setUserStats(data.stats)).catch(() => {}).finally(() => setLoadingStats(false));
 
     api.get('/api/writers').then(({ data }) => setWritersList(data.writers || [])).catch(() => {});
+
+    // Fetch initial list of stories from database
+    api.get('/api/stories', { params: { limit: 100 } })
+      .then(({ data }) => {
+        const list = data.stories || [];
+        setDefaultStories(list);
+        cacheStories(list);
+      })
+      .catch(() => {});
   }, [user]);
 
   useEffect(() => {
@@ -272,12 +363,14 @@ export default function ProfilePage() {
     });
     return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0])).map(([key, items]) => {
       const [y, m] = key.split('-');
-      const label = new Date(Number(y), Number(m) - 1).toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
+      const label = new Date(Number(y), Number(m) - 1).toLocaleDateString('en-GB', { year: 'numeric', month: 'long' });
       return { key, label, items };
     });
   }, [listens]);
 
   if (loading || !user || loadingData) return <AppLoadingState message="Loading profile..." fullScreen />;
+
+  const allSlotValues = [fav1, fav2, fav3, fav4, fav5];
 
   return (
     <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 1.5, sm: 2 }, py: { xs: 3, sm: 5 }, minHeight: '80vh' }}>
@@ -334,7 +427,7 @@ export default function ProfilePage() {
               )}
             </Stack>
             <Typography variant="body2" color="text.secondary">
-              {profile?.email} &bull; Joined {new Date(profile?.createdAt || '').toLocaleDateString(undefined, { year: 'numeric', month: 'long' })}
+              {profile?.email} &bull; Joined {new Date(profile?.createdAt || '').toLocaleDateString('en-GB', { year: 'numeric', month: 'long' })}
             </Typography>
           </Box>
         </Stack>
@@ -428,9 +521,9 @@ export default function ProfilePage() {
               <Divider sx={{ mb: 2 }} />
               {profile?.favoriteStories && profile.favoriteStories.length > 0 ? (
                 <Stack direction="row" spacing={1.5} sx={{ overflowX: 'auto', pb: 1, width: '100%' }}>
-                  {profile.favoriteStories.slice(0, 5).map((story) => (
+                  {profile.favoriteStories.slice(0, 5).map((story, idx) => (
                     <Box
-                      key={story._id}
+                      key={`${story._id}-${idx}`}
                       component={Link}
                       href={`/story/${story._id}`}
                       sx={{
@@ -570,7 +663,7 @@ export default function ProfilePage() {
                           <Stack direction="row" spacing={1} sx={{ mt: 0.5, alignItems: 'center', flexWrap: 'wrap' }}>
                             <AppStarRating value={r.ratingValue} readonly size={12} />
                             <Typography variant="caption" color="text.secondary">
-                              &bull; {new Date(r.updatedAt).toLocaleDateString()}
+                              &bull; {new Date(r.updatedAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
                             </Typography>
                           </Stack>
                           {r.reviewText && (
@@ -693,34 +786,72 @@ export default function ProfilePage() {
                 Favorite Stories
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                Select up to 5 stories from your listened history to showcase on your profile.
+                Select up to 5 stories from the catalog to showcase on your profile.
               </Typography>
 
-              <Stack spacing={2} sx={{ mb: 2 }}>
+              <Stack spacing={2.5} sx={{ mb: 2 }}>
                 {[
                   { label: 'Slot 1', value: fav1, setter: setFav1 },
                   { label: 'Slot 2', value: fav2, setter: setFav2 },
                   { label: 'Slot 3', value: fav3, setter: setFav3 },
                   { label: 'Slot 4', value: fav4, setter: setFav4 },
                   { label: 'Slot 5', value: fav5, setter: setFav5 },
-                ].map((slot, index) => {
-                  const currentStory = listens.find((l) => l._id === slot.value);
+                ].map((slot) => {
                   return (
-                    <Stack key={slot.label} direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-                      <Typography variant="caption" sx={{ minWidth: 45, fontWeight: 700, color: 'text.secondary' }}>
-                        {slot.label}
-                      </Typography>
+                    <Stack
+                      key={slot.label}
+                      direction={{ xs: 'column', sm: 'row' }}
+                      spacing={{ xs: 1, sm: 2 }}
+                      sx={{
+                        alignItems: { xs: 'stretch', sm: 'center' },
+                        borderBottom: { xs: '1px dashed rgba(255,255,255,0.06)', sm: 'none' },
+                        pb: { xs: 1.5, sm: 0 }
+                      }}
+                    >
+                      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="caption" sx={{ minWidth: 45, fontWeight: 700, color: 'text.secondary' }}>
+                          {slot.label}
+                        </Typography>
+                        {slot.value && (
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={() => slot.setter('')}
+                            sx={{ display: { xs: 'inline-flex', sm: 'none' }, minWidth: 0, p: 0, fontSize: '0.75rem' }}
+                          >
+                            Clear
+                          </Button>
+                        )}
+                      </Stack>
                       <Autocomplete
                         size="small"
                         sx={{ flex: 1 }}
-                        options={listens}
-                        getOptionLabel={(option) => option.title}
-                        value={currentStory || null}
-                        onChange={(_, newValue) => slot.setter(newValue?._id || '')}
-                        renderInput={(params) => <TextField {...params} placeholder="Choose a listened story..." />}
+                        options={getOptionsForSlot(slot.value, allSlotValues)}
+                        getOptionLabel={(option) => option.title || ''}
+                        isOptionEqualToValue={(option, val) => option._id === val._id}
+                        value={allStoriesMap.get(slot.value) || null}
+                        onChange={(_, newValue) => {
+                          slot.setter(newValue?._id || '');
+                          if (newValue) {
+                            cacheStories([newValue]);
+                          }
+                        }}
+                        onInputChange={(_, newInputValue, reason) => {
+                          if (reason === 'input') {
+                            handleSearchStories(newInputValue);
+                          } else if (reason === 'clear') {
+                            setSearchResults([]);
+                          }
+                        }}
+                        renderInput={(params) => <TextField {...params} placeholder="Search all stories..." />}
                       />
                       {slot.value && (
-                        <Button size="small" color="error" onClick={() => slot.setter('')}>
+                        <Button
+                          size="small"
+                          color="error"
+                          onClick={() => slot.setter('')}
+                          sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
+                        >
                           Clear
                         </Button>
                       )}
@@ -768,6 +899,7 @@ export default function ProfilePage() {
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="Leave blank to keep current"
                   size={isMobile ? 'small' : 'medium'}
+                  autoComplete="new-password"
                 />
                 <TextField
                   fullWidth
@@ -777,6 +909,7 @@ export default function ProfilePage() {
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Min. 6 characters"
                   size={isMobile ? 'small' : 'medium'}
+                  autoComplete="new-password"
                 />
                 <TextField
                   fullWidth
@@ -785,6 +918,7 @@ export default function ProfilePage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   size={isMobile ? 'small' : 'medium'}
+                  autoComplete="new-password"
                 />
               </Stack>
             </Box>
@@ -792,11 +926,11 @@ export default function ProfilePage() {
 
           <Divider sx={{ my: 4 }} />
 
-          <Stack direction="row" spacing={2} sx={{ justifyContent: 'flex-end' }}>
-            <Button variant="outlined" onClick={() => setIsEditing(false)}>
+          <Stack direction={{ xs: 'column-reverse', sm: 'row' }} spacing={2} sx={{ justifyContent: 'flex-end' }}>
+            <Button variant="outlined" fullWidth={isMobile} onClick={() => setIsEditing(false)}>
               Cancel
             </Button>
-            <Button variant="contained" onClick={handleUpdateProfile} disabled={saving}>
+            <Button variant="contained" fullWidth={isMobile} onClick={handleUpdateProfile} disabled={saving}>
               {saving ? 'Saving Changes...' : 'Save Profile'}
             </Button>
           </Stack>
@@ -853,7 +987,7 @@ export default function ProfilePage() {
                       <Chip label={s.approved ? 'Approved' : 'Pending'} size="small" color={s.approved ? 'success' : 'warning'} variant="outlined" />
                     </Box>
                     <Box component="td" sx={{ py: 1.5, px: 1 }}>{s.averageRating > 0 ? `${s.averageRating.toFixed(1)} (${s.ratingsCount})` : '—'}</Box>
-                    <Box component="td" sx={{ py: 1.5, px: 1, color: 'text.secondary', fontSize: '0.85rem' }}>{new Date(s.createdAt).toLocaleDateString()}</Box>
+                    <Box component="td" sx={{ py: 1.5, px: 1, color: 'text.secondary', fontSize: '0.85rem' }}>{new Date(s.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}</Box>
                   </Box>
                 ))}
               </Box>
@@ -939,7 +1073,7 @@ export default function ProfilePage() {
                         <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>&bull; Avg Rating:</Typography>
                         <AppStarRating value={l.averageRating} readonly size={isMobile ? 10 : 12} />
                         <Typography variant="caption" color="text.secondary">({l.ratingsCount})</Typography>
-                        <Typography variant="caption" color="text.secondary">&bull; Listened {new Date(l.listenedAt).toLocaleDateString()}</Typography>
+                        <Typography variant="caption" color="text.secondary">&bull; Listened {new Date(l.listenedAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}</Typography>
                       </Stack>
                     </Box>
                     <Tooltip title="Remove from listened">
@@ -1038,7 +1172,7 @@ export default function ProfilePage() {
                     <Stack direction="row" spacing={1} sx={{ mt: 0.5, alignItems: 'center', flexWrap: 'wrap' }}>
                       <AppStarRating value={r.ratingValue} readonly size={isMobile ? 12 : 14} />
                       <Typography variant="caption" sx={{ color: '#f59e0b', fontWeight: 600 }}>{r.ratingValue}</Typography>
-                      <Typography variant="caption" color="text.secondary">{new Date(r.updatedAt).toLocaleDateString()}</Typography>
+                      <Typography variant="caption" color="text.secondary">{new Date(r.updatedAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}</Typography>
                     </Stack>
                     {r.reviewText && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontStyle: 'italic', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>&ldquo;{r.reviewText}&rdquo;</Typography>}
                   </Box>
@@ -1086,7 +1220,7 @@ export default function ProfilePage() {
                       <Stack direction="row" spacing={1} sx={{ mt: 0.5, alignItems: 'center' }}>
                         <AppStarRating value={b.averageRating} readonly size={isMobile ? 10 : 12} />
                         <Typography variant="caption" color="text.secondary">({b.ratingsCount})</Typography>
-                        <Typography variant="caption" color="text.secondary">&bull; Liked {new Date(b.likedAt).toLocaleDateString()}</Typography>
+                        <Typography variant="caption" color="text.secondary">&bull; Liked {new Date(b.likedAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}</Typography>
                       </Stack>
                     </Box>
                     <Tooltip title="Unlike story">
@@ -1142,7 +1276,7 @@ export default function ProfilePage() {
                       <Stack direction="row" spacing={1} sx={{ mt: 0.5, alignItems: 'center' }}>
                         <AppStarRating value={b.averageRating} readonly size={isMobile ? 10 : 12} />
                         <Typography variant="caption" color="text.secondary">({b.ratingsCount})</Typography>
-                        <Typography variant="caption" color="text.secondary">&bull; Saved {new Date(b.bookmarkedAt).toLocaleDateString()}</Typography>
+                        <Typography variant="caption" color="text.secondary">&bull; Saved {new Date(b.bookmarkedAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}</Typography>
                       </Stack>
                     </Box>
                     <Tooltip title="Remove bookmark">
