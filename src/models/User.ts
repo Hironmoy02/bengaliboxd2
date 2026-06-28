@@ -16,7 +16,7 @@ const UserSchema = new Schema(
       trim: true,
       lowercase: true,
       match: [
-        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/,
         'Please provide a valid email address',
       ],
     },
@@ -40,6 +40,18 @@ const UserSchema = new Schema(
         ref: 'Story',
       },
     ],
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
+    failedLoginAttempts: {
+      type: Number,
+      default: 0,
+    },
+    lockUntil: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

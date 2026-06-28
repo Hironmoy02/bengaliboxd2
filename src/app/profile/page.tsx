@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppSelector } from '@/lib/hooks';
@@ -23,7 +23,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import TimerIcon from '@mui/icons-material/Timer';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import MicIcon from '@mui/icons-material/Mic';
-import { AppAlert, AppLoadingState, AppEmptyState, AppStarRating, AppPagination } from '@/components/ui';
+import { AppAlert, AppLoadingState, AppEmptyState, AppStarRating, AppPagination, AppYearPicker } from '@/components/ui';
 
 function getErrorMessage(err: unknown): string { return err instanceof Error ? err.message : 'An error occurred'; }
 
@@ -120,6 +120,11 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   const [feedbackCategory, setFeedbackCategory] = useState('improvement');
   const [feedbackMessage, setFeedbackMessage] = useState('');
@@ -205,7 +210,7 @@ export default function ProfilePage() {
       setError(getErrorMessage(err));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    finally { setSaving(false); }
+    finally { if (isMountedRef.current) setSaving(false); }
   };
 
   const handleSubmitFeedback = async () => {
@@ -1087,19 +1092,14 @@ export default function ProfilePage() {
               ))}
             </TextField>
 
-            <TextField
-              select
-              size="small"
+            <AppYearPicker
               value={filterYear}
-              onChange={(e) => setFilterYear(e.target.value)}
-              fullWidth={isMobile}
-              slotProps={{ select: { native: true } }}
-            >
-              <option value="All">All Years</option>
-              {uniqueYears.map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </TextField>
+              onChange={setFilterYear}
+              showAllOption
+              allLabel="All Years"
+              customYears={uniqueYears}
+              columns={3}
+            />
 
             {(filterRating !== 'All' || filterAuthor !== 'All' || filterYear !== 'All') && (
               <Button size="small" onClick={() => { setFilterRating('All'); setFilterAuthor('All'); setFilterYear('All'); }}>

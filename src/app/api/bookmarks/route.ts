@@ -1,5 +1,6 @@
 import '@/lib/polyfill';
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/dbConnect';
 import Bookmark from '@/models/Bookmark';
 import Story from '@/models/Story';
@@ -20,9 +21,7 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
     const skip = (page - 1) * limit;
 
-    let sort: Record<string, 1 | -1> = { createdAt: -1 };
-    if (sortBy === 'title') sort = { createdAt: -1 };
-    if (sortBy === 'rating') sort = { createdAt: -1 };
+    const sort: Record<string, 1 | -1> = { createdAt: -1 };
 
     const [bookmarks, total] = await Promise.all([
       Bookmark.find({ userId })
@@ -75,6 +74,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Story ID is required' }, { status: 400 });
     }
 
+    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+      return NextResponse.json({ error: 'Invalid Story ID format' }, { status: 400 });
+    }
+
     const story = await Story.findById(storyId);
     if (!story) {
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });
@@ -106,6 +109,10 @@ export async function DELETE(request: NextRequest) {
 
     if (!storyId) {
       return NextResponse.json({ error: 'Story ID is required' }, { status: 400 });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+      return NextResponse.json({ error: 'Invalid Story ID format' }, { status: 400 });
     }
 
     const bookmark = await Bookmark.findOneAndDelete({ userId, storyId });

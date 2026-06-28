@@ -1,9 +1,9 @@
 import '@/lib/polyfill';
 import { NextRequest, NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
 import PasswordReset, { generateResetToken, hashResetToken } from '@/models/PasswordReset';
+import { sendEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,25 +32,13 @@ export async function POST(request: NextRequest) {
     await PasswordReset.create({
       userId: user._id,
       token: hashedToken,
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     });
 
     // Build reset URL
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password?token=${rawToken}`;
 
-    // Send email
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@bengaliboxd.com',
+    const emailSent = await sendEmail({
       to: user.email,
       subject: 'Bengaliboxd - Password Reset Request',
       html: `
@@ -66,6 +54,10 @@ export async function POST(request: NextRequest) {
         </div>
       `,
     });
+
+    if (!emailSent) {
+      console.warn(`[DEV MODE] Password reset link for ${user.email}: ${resetUrl}`);
+    }
 
     return NextResponse.json({ message: 'If an account exists with that email, a reset link has been sent.' });
   } catch (error: unknown) {

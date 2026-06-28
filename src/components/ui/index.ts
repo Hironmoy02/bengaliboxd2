@@ -14,3 +14,4 @@ export { default as AppAlert } from './AppAlert';
 export { default as AppStarRating } from './AppStarRating';
 export { default as AppRatingDisplay } from './AppRatingDisplay';
 export { default as AppThemeProvider } from './ThemeProvider';
+export { default as AppYearPicker } from './YearPicker';

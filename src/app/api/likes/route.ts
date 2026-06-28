@@ -1,5 +1,6 @@
 import '@/lib/polyfill';
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/dbConnect';
 import Like from '@/models/Like';
 import Story from '@/models/Story';
@@ -73,6 +74,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Story ID is required' }, { status: 400 });
     }
 
+    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+      return NextResponse.json({ error: 'Invalid Story ID format' }, { status: 400 });
+    }
+
     const story = await Story.findById(storyId);
     if (!story) {
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });
@@ -104,6 +109,10 @@ export async function DELETE(request: NextRequest) {
 
     if (!storyId) {
       return NextResponse.json({ error: 'Story ID is required' }, { status: 400 });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(storyId)) {
+      return NextResponse.json({ error: 'Invalid Story ID format' }, { status: 400 });
     }
 
     const like = await Like.findOneAndDelete({ userId, storyId });

@@ -49,9 +49,9 @@ export const googleLoginUser = createAsyncThunk(
 
 export const registerUser = createAsyncThunk(
   'auth/register',
-  async ({ username, email, password }: { username: string; email: string; password: string }, { rejectWithValue }) => {
+  async ({ username, email, password, verificationToken }: { username: string; email: string; password: string; verificationToken: string }, { rejectWithValue }) => {
     try {
-      const { data } = await api.post('/api/auth/register', { username, email, password });
+      const { data } = await api.post('/api/auth/register', { username, email, password, verificationToken });
       return data.user;
     } catch (err) {
       return rejectWithValue(err instanceof Error ? err.message : 'Registration failed');

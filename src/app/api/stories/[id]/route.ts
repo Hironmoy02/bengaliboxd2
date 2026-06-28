@@ -20,6 +20,13 @@ export async function GET(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });
     }
 
+    if (!story.approved) {
+      const user = await getUserFromSession();
+      if (!user || user.role !== 'admin') {
+        return NextResponse.json({ error: 'Story not found' }, { status: 404 });
+      }
+    }
+
     return NextResponse.json({ story });
   } catch (error: unknown) {
     console.error('Fetch story by ID error:', error);
@@ -45,7 +52,12 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
     const updates: Record<string, unknown> = {};
 
-    if (body.title !== undefined) updates.title = String(body.title).trim();
+    if (body.title !== undefined) {
+      const trimmedTitle = String(body.title).trim();
+      updates.title = trimmedTitle;
+      const { toSearchable } = await import('@/lib/transliterate');
+      updates.titleSearch = toSearchable(trimmedTitle);
+    }
     if (body.channel !== undefined) updates.channel = String(body.channel).trim();
     if (body.narrator !== undefined) updates.narrator = String(body.narrator).trim();
     if (body.genre !== undefined) updates.genre = String(body.genre).trim();

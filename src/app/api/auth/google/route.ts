@@ -1,15 +1,22 @@
 import '@/lib/polyfill';
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
 import { signJWT } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
   try {
     await dbConnect();
     const body = await request.json();
     const { idToken, isMock, mockEmail, mockName } = body;
+
+    const rl = checkRateLimit('google-auth', 20, 60 * 60 * 1000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Too many authentication attempts. Please try again later.' }, { status: 429 });
+    }
 
     let email = '';
     let name = '';
@@ -70,12 +77,16 @@ export async function POST(request: Request) {
       }
 
       // Generate a random password (since they login with Google)
-      const randomPassword = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const randomPassword = crypto.randomBytes(32).toString('hex');
       const hashedPassword = await bcrypt.hash(randomPassword, 10);
 
-      // Default first registered user or configured email to admin
+      // Check admin status: first user is always admin; others via ADMIN_EMAILS env var
       const isFirstUser = (await User.countDocuments({})) === 0;
-      const isAdmin = isFirstUser || email === 'hironmoychowdhury690@gmail.com' || email === 'hiru@bengaliboxd.com';
+      const adminEmails = (process.env.ADMIN_EMAILS || '')
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean);
+      const isAdmin = isFirstUser || adminEmails.includes(email);
 
       user = await User.create({
         username: finalUsername,
@@ -93,6 +104,7 @@ export async function POST(request: Request) {
       username: user.username,
       email: user.email,
       role: user.role,
+      tokenVersion: user.tokenVersion,
     };
     const token = await signJWT(jwtPayload);
 
