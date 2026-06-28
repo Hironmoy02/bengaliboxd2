@@ -10,17 +10,14 @@ import {
   AppBar,
   Toolbar,
   Typography,
-  Button,
   IconButton,
   Box,
-  Avatar,
   Menu,
   MenuItem,
   Divider,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import HeadphonesIcon from '@mui/icons-material/Headphones';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LoginIcon from '@mui/icons-material/Login';
@@ -54,47 +51,74 @@ export default function Navbar() {
     <AppBar
       position="sticky"
       sx={{
-        backgroundColor: 'var(--navbar-bg)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        borderBottom: '1px solid var(--navbar-border)',
-        boxShadow: mode === 'light' ? '0 1px 3px rgba(0,0,0,0.04)' : 'none',
+        height: 44,
+        minHeight: '44px !important',
+        '& .MuiToolbar-root': {
+          minHeight: '44px !important',
+          height: 44,
+        },
       }}
     >
-      <Toolbar sx={{ justifyContent: 'space-between', py: 1 }}>
-        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 1 }}>
-          <HeadphonesIcon sx={{ color: 'primary.main', fontSize: 32 }} />
+      <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 4 }, minHeight: '44px !important', height: 44 }}>
+        {/* Logo */}
+        <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Dual dot — bengaliboxd logo mark */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box
+              sx={{
+                width: 9, height: 9, borderRadius: '50%',
+                bgcolor: 'primary.main',
+                flexShrink: 0,
+              }}
+            />
+            <Box
+              sx={{
+                width: 9, height: 9, borderRadius: '50%',
+                bgcolor: 'error.main',
+                flexShrink: 0,
+                ml: '-4px',
+              }}
+            />
+          </Box>
           <Typography
-            variant="h6"
             sx={{
               color: 'text.primary',
-              fontWeight: 700,
-              '& span': { color: 'primary.main' },
+              fontWeight: 600,
+              fontSize: '12px',
+              letterSpacing: '0.10em',
+              textTransform: 'uppercase',
+              lineHeight: 1,
             }}
           >
-            Bengali<span>boxd</span>
+            Bengali<span style={{ color: 'var(--accent-on-dark)' }}>boxd</span>
           </Typography>
         </Link>
 
         {isMobile ? (
           <>
-            <IconButton
-              onClick={toggleTheme}
-              title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              sx={{
-                color: 'text.secondary',
-                '&:hover': { color: 'primary.main' },
-              }}
-            >
-              {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
-            </IconButton>
-            <IconButton
-              color="inherit"
-              onClick={(e) => setMobileAnchor(e.currentTarget)}
-              aria-label="Open menu"
-            >
-              <MenuIcon />
-            </IconButton>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <IconButton
+                onClick={toggleTheme}
+                title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                size="small"
+                sx={{
+                  color: 'text.secondary',
+                  '&:hover': { color: 'text.primary' },
+                  padding: '6px',
+                }}
+              >
+                {mode === 'dark' ? <LightModeIcon sx={{ fontSize: 16 }} /> : <DarkModeIcon sx={{ fontSize: 16 }} />}
+              </IconButton>
+              <IconButton
+                color="inherit"
+                onClick={(e) => setMobileAnchor(e.currentTarget)}
+                aria-label="Open menu"
+                size="small"
+                sx={{ padding: '6px', color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
+              >
+                <MenuIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Box>
             <Menu
               anchorEl={mobileAnchor}
               open={Boolean(mobileAnchor)}
@@ -109,6 +133,7 @@ export default function Navbar() {
                     borderColor: 'divider',
                     mt: 1,
                     minWidth: 180,
+                    borderRadius: '11px',
                   },
                 },
               }}
@@ -123,6 +148,8 @@ export default function Navbar() {
                   sx={{
                     color: pathname === link.href ? 'primary.main' : 'text.primary',
                     fontWeight: pathname === link.href ? 600 : 400,
+                    fontSize: '0.875rem',
+                    letterSpacing: '-0.224px',
                   }}
                 >
                   {link.label}
@@ -140,6 +167,8 @@ export default function Navbar() {
                       color: pathname === '/profile' ? 'primary.main' : 'text.primary',
                       display: 'flex',
                       gap: 1,
+                      fontSize: '0.875rem',
+                      letterSpacing: '-0.224px',
                     }}
                   >
                     <PersonIcon fontSize="small" />
@@ -150,7 +179,7 @@ export default function Navbar() {
                       setMobileAnchor(null);
                       handleLogout();
                     }}
-                    sx={{ color: 'text.primary' }}
+                    sx={{ color: 'text.primary', fontSize: '0.875rem', letterSpacing: '-0.224px' }}
                   >
                     <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
                     Logout
@@ -162,7 +191,7 @@ export default function Navbar() {
                     component={Link}
                     href="/login"
                     onClick={() => setMobileAnchor(null)}
-                    sx={{ color: 'text.primary' }}
+                    sx={{ color: 'text.primary', fontSize: '0.875rem', letterSpacing: '-0.224px' }}
                   >
                     <LoginIcon fontSize="small" sx={{ mr: 1 }} />
                     Sign In
@@ -171,7 +200,7 @@ export default function Navbar() {
                     component={Link}
                     href="/register"
                     onClick={() => setMobileAnchor(null)}
-                    sx={{ color: 'text.primary' }}
+                    sx={{ color: 'text.primary', fontSize: '0.875rem', letterSpacing: '-0.224px' }}
                   >
                     <PersonAddIcon fontSize="small" sx={{ mr: 1 }} />
                     Sign Up
@@ -181,102 +210,117 @@ export default function Navbar() {
             </Menu>
           </>
         ) : (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            {/* Nav links — uppercase, quiet, apple style */}
             {navLinks.map((link) => (
-              <Button
+              <Typography
                 key={link.href}
                 component={Link}
                 href={link.href}
                 sx={{
-                  color: pathname === link.href ? 'primary.main' : 'text.primary',
-                  fontWeight: pathname === link.href ? 600 : 400,
-                  textTransform: 'none',
-                  fontSize: '0.95rem',
-                  position: 'relative',
-                  '&::after': {
-                    content: '""',
-                    position: 'absolute',
-                    bottom: 0,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: pathname === link.href ? '60%' : '0%',
-                    height: '2px',
-                    bgcolor: 'primary.main',
-                    transition: 'width 0.2s ease',
-                  },
-                  '&:hover::after': { width: '60%' },
+                  color: pathname === link.href ? 'primary.main' : 'text.secondary',
+                  fontWeight: 400,
+                  fontSize: '12px',
+                  letterSpacing: '-0.12px',
+                  textDecoration: 'none',
+                  transition: 'color 0.15s ease',
+                  borderBottom: pathname === link.href ? '1px solid' : '1px solid transparent',
+                  borderBottomColor: pathname === link.href ? 'primary.main' : 'transparent',
+                  pb: '2px',
+                  '&:hover': { color: 'text.primary' },
                 }}
               >
                 {link.label}
-              </Button>
+              </Typography>
             ))}
 
+            {/* Theme toggle */}
             <IconButton
               onClick={toggleTheme}
               title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              size="small"
               sx={{
                 color: 'text.secondary',
-                '&:hover': { color: 'primary.main' },
+                padding: '6px',
+                '&:hover': { color: 'text.primary' },
               }}
             >
-              {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+              {mode === 'dark' ? <LightModeIcon sx={{ fontSize: 16 }} /> : <DarkModeIcon sx={{ fontSize: 16 }} />}
             </IconButton>
 
             {user ? (
               <>
-                <Button
+                <Typography
                   component={Link}
                   href="/profile"
-                  startIcon={<PersonIcon />}
                   sx={{
-                    color: pathname === '/profile' ? 'primary.main' : 'text.primary',
-                    textTransform: 'none',
-                    fontWeight: pathname === '/profile' ? 600 : 400,
-                    borderRadius: '20px',
-                    px: 2,
+                    color: pathname === '/profile' ? 'primary.main' : 'text.secondary',
+                    fontWeight: 400,
+                    fontSize: '12px',
+                    letterSpacing: '-0.12px',
+                    textDecoration: 'none',
+                    transition: 'color 0.15s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    '&:hover': { color: 'text.primary' },
                   }}
                 >
+                  <PersonIcon sx={{ fontSize: 14 }} />
                   {user.username}
-                </Button>
+                </Typography>
                 <IconButton
                   onClick={handleLogout}
                   title="Logout"
+                  size="small"
                   sx={{
                     color: 'text.secondary',
+                    padding: '6px',
                     '&:hover': { color: 'error.main' },
                   }}
                 >
-                  <LogoutIcon fontSize="small" />
+                  <LogoutIcon sx={{ fontSize: 16 }} />
                 </IconButton>
               </>
             ) : (
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
+                <Typography
                   component={Link}
                   href="/login"
-                  variant="outlined"
-                  startIcon={<LoginIcon />}
                   sx={{
-                    textTransform: 'none',
-                    borderRadius: '20px',
-                    px: 2,
+                    color: 'text.secondary',
+                    fontWeight: 400,
+                    fontSize: '12px',
+                    letterSpacing: '-0.12px',
+                    textDecoration: 'none',
+                    transition: 'color 0.15s ease',
+                    '&:hover': { color: 'text.primary' },
                   }}
                 >
                   Sign In
-                </Button>
-                <Button
+                </Typography>
+                <Typography
                   component={Link}
                   href="/register"
-                  variant="contained"
-                  startIcon={<PersonAddIcon />}
                   sx={{
-                    textTransform: 'none',
-                    borderRadius: '20px',
-                    px: 2,
+                    bgcolor: 'primary.main',
+                    color: '#ffffff !important',
+                    fontWeight: 400,
+                    fontSize: '12px',
+                    letterSpacing: '-0.12px',
+                    textDecoration: 'none',
+                    borderRadius: '9999px',
+                    px: 1.5,
+                    py: '4px',
+                    transition: 'background-color 0.15s ease, transform 0.15s ease',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    '&:hover': { bgcolor: 'primary.dark' },
+                    '&:active': { transform: 'scale(0.95)' },
                   }}
                 >
                   Sign Up
-                </Button>
+                </Typography>
               </Box>
             )}
           </Box>
