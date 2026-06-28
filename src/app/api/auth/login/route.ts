@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
 import { signJWT } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
   try {
@@ -18,6 +19,13 @@ export async function POST(request: Request) {
     }
 
     const input = emailOrUsername.trim().toLowerCase();
+    const rl = checkRateLimit(`login:${input}`);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Too many login attempts. Try again in ${Math.ceil(rl.retryAfterMs / 60000)} minutes.` },
+        { status: 429 }
+      );
+    }
 
     // Escape regex special characters to prevent ReDoS/injection
     const escaped = input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -37,14 +45,45 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check account lockout
+    if (user.lockUntil && user.lockUntil > new Date()) {
+      const minutesLeft = Math.ceil((user.lockUntil.getTime() - Date.now()) / 60000);
+      return NextResponse.json(
+        { error: `Account is locked. Try again in ${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}.` },
+        { status: 423 }
+      );
+    }
+
+    // If lockout expired, reset attempts
+    if (user.lockUntil && user.lockUntil <= new Date()) {
+      user.failedLoginAttempts = 0;
+      user.lockUntil = null;
+      await user.save();
+    }
+
     // Verify password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
+      if (user.failedLoginAttempts >= 5) {
+        user.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+        await user.save();
+        return NextResponse.json(
+          { error: 'Account locked due to too many failed attempts. Try again in 15 minutes.' },
+          { status: 423 }
+        );
+      }
+      await user.save();
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 400 }
       );
     }
+
+    // Successful login — reset failed attempts
+    user.failedLoginAttempts = 0;
+    user.lockUntil = null;
+    await user.save();
 
     // Create JWT
     const payload = {
@@ -52,6 +91,7 @@ export async function POST(request: Request) {
       username: user.username,
       email: user.email,
       role: user.role,
+      tokenVersion: user.tokenVersion,
     };
     const token = await signJWT(payload);
 

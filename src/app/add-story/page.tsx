@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAppSelector } from '@/lib/hooks';
 import api from '@/lib/axios';
-import { CHANNELS, GENRES, CHANNEL_KEYWORDS, NARRATOR_KEYWORDS, YEARS_RANGE, YOUTUBE_THUMBNAIL, DEFAULT_CHANNEL, DEFAULT_GENRE, matchYouTubeChannel, SUGGESTED_TAGS, formatDuration } from '@/lib/constants';
+import { CHANNELS, GENRES, NARRATOR_KEYWORDS, DEFAULT_CHANNEL, DEFAULT_GENRE, matchYouTubeChannel, SUGGESTED_TAGS, formatDuration } from '@/lib/constants';
 import {
   Box, Typography, Button, Paper, Stack, TextField, IconButton, InputAdornment,
   Autocomplete, Chip,
@@ -14,7 +14,7 @@ import YouTubeIcon from '@mui/icons-material/YouTube';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SendIcon from '@mui/icons-material/Send';
-import { AppAlert, AppLoadingState } from '@/components/ui';
+import { AppAlert, AppLoadingState, AppYearPicker } from '@/components/ui';
 
 function getErrorMessage(err: unknown): string { return err instanceof Error ? err.message : 'An error occurred'; }
 
@@ -147,12 +147,11 @@ export default function AddStoryPage() {
             renderInput={(params) => <TextField {...params} label="Writer / Author" placeholder="Type to search or add new writer..." fullWidth />}
             fullWidth
           />
-          <TextField select slotProps={{ select: { native: true } }} label="Year Published on YouTube" value={yearPublished} onChange={(e) => setYearPublished(e.target.value)} fullWidth>
-            <option value="">Select Year (optional)</option>
-            {Array.from({ length: YEARS_RANGE }, (_, i) => new Date().getFullYear() - i).map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </TextField>
+          <AppYearPicker
+            value={yearPublished}
+            onChange={(y) => setYearPublished(y === 'All' ? '' : y)}
+            label="Year Published on YouTube"
+          />
           <Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Tags (optional)</Typography>
             <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5 }}>

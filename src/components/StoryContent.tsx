@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useAppSelector } from '@/lib/hooks';
 import api from '@/lib/axios';
 import {
-  Box, Typography, Button, Paper, Stack, Chip, TextField, Avatar, LinearProgress, IconButton, Tooltip, Divider,
+  Box, Typography, Button, Paper, Stack, Chip, TextField, Avatar, IconButton, Tooltip, Divider,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SendIcon from '@mui/icons-material/Send';
@@ -76,6 +76,13 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isListened, setIsListened] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const successTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -158,8 +165,17 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
         ratingsCount: data.stats.ratingsCount,
       }));
 
+      // Update form state to reflect submitted values
+      if (data.rating) {
+        setUserRating(data.rating.ratingValue);
+        setNarrationRating(data.rating.narrationRating || 0);
+        setAtmosphereRating(data.rating.atmosphereRating || 0);
+        setReviewText(data.rating.reviewText || '');
+      }
+
       // Auto-clear success message after 3 seconds
-      setTimeout(() => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+      successTimerRef.current = setTimeout(() => {
         setSuccess('');
       }, 3000);
 

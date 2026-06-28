@@ -27,11 +27,11 @@ export async function GET() {
 
     const totalListened = listens.length;
 
-    const totalMinutes = listens.reduce((sum, l) => {
+    const totalSeconds = listens.reduce((sum, l) => {
       const dur = (l as unknown as { duration?: number }).duration || 0;
       return sum + dur;
     }, 0);
-    const totalHours = Math.round((totalMinutes / 60) * 10) / 10;
+    const totalHours = Math.round((totalSeconds / 3600) * 10) / 10;
 
     const genreCounts: Record<string, number> = {};
     const authorCounts: Record<string, number> = {};

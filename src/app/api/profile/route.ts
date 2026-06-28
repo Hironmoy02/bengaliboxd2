@@ -6,7 +6,7 @@ import Story from '@/models/Story';
 import Rating from '@/models/Rating';
 import Like from '@/models/Like';
 import Listen from '@/models/Listen';
-import { getUserFromSession } from '@/lib/auth';
+import { getUserFromSession, signJWT } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
 export async function GET() {
@@ -98,6 +98,7 @@ export async function PUT(request: NextRequest) {
       }
       const salt = await bcrypt.genSalt(10);
       body.password = await bcrypt.hash(body.newPassword, salt);
+      body.tokenVersion = (userDoc.tokenVersion || 0) + 1;
     }
 
     const updates: any = {};
@@ -105,13 +106,14 @@ export async function PUT(request: NextRequest) {
     if (body.password) updates.password = body.password;
     if (body.bio !== undefined) updates.bio = body.bio.trim();
     if (body.favoriteStories !== undefined) updates.favoriteStories = body.favoriteStories;
+    if (body.tokenVersion !== undefined) updates.tokenVersion = body.tokenVersion;
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }
 
     const updated = await User.findByIdAndUpdate(userId, { $set: updates }, { new: true, runValidators: true })
-      .select('username email role createdAt bio favoriteStories')
+      .select('username email role createdAt bio favoriteStories tokenVersion')
       .populate({
         path: 'favoriteStories',
         select: 'title channel narrator genre writer youtubeId thumbnailUrl averageRating ratingsCount yearPublished youtubeUrl approved'
@@ -123,7 +125,28 @@ export async function PUT(request: NextRequest) {
       favoriteStories: (updated?.favoriteStories || []).filter(Boolean),
     };
 
-    return NextResponse.json({ message: 'Profile updated successfully', user: updatedCopy });
+    let responsePayload: Record<string, unknown> = { message: 'Profile updated successfully', user: updatedCopy };
+
+    if (body.tokenVersion !== undefined) {
+      const newToken = await signJWT({
+        id: userId,
+        username: updated!.username,
+        email: updated!.email,
+        role: updated!.role,
+        tokenVersion: updated!.tokenVersion,
+      });
+      const response = NextResponse.json(responsePayload);
+      response.cookies.set('token', newToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60,
+        path: '/',
+      });
+      return response;
+    }
+
+    return NextResponse.json(responsePayload);
   } catch (error: unknown) {
     console.error('Profile update error:', error);
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to update profile' }, { status: 500 });

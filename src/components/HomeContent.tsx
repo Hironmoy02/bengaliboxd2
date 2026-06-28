@@ -11,11 +11,11 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
+import HeadphonesIcon from '@mui/icons-material/Headphones';
 import {
-  AppPagination, AppSortSelect, AppStoryCard, AppEmptyState, AppRatingDisplay, AppLoadingState,
-  AppSelect,
+  AppPagination, AppSortSelect, AppStoryCard, AppEmptyState, AppRatingDisplay, AppLoadingState, AppYearPicker,
 } from '@/components/ui';
-import { CHANNELS, GENRES, YEARS_RANGE, DEFAULT_PAGE_LIMIT, type SortValue } from '@/lib/constants';
+import { CHANNELS, GENRES, DEFAULT_PAGE_LIMIT, type SortValue } from '@/lib/constants';
 
 interface Story {
   _id: string;
@@ -65,7 +65,6 @@ export default function HomeContent({ initialStories, initialPagination, initial
   const { user } = useAppSelector((s) => s.auth);
   const [spotlightIdx, setSpotlightIdx] = useState(0);
   const [openWriter, setOpenWriter] = useState(false);
-  const [openYear, setOpenYear] = useState(false);
   const [openSort, setOpenSort] = useState(false);
 
   useEffect(() => {
@@ -74,13 +73,6 @@ export default function HomeContent({ initialStories, initialPagination, initial
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [openWriter]);
-
-  useEffect(() => {
-    if (!openYear) return;
-    const handleScroll = () => setOpenYear(false);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [openYear]);
 
   useEffect(() => {
     if (!openSort) return;
@@ -96,7 +88,7 @@ export default function HomeContent({ initialStories, initialPagination, initial
       setSpotlightIdx((prev) => (prev + 1) % count);
     }, 3000);
     return () => clearInterval(timer);
-  }, [initialSpotlightStories]);
+  }, [initialSpotlightStories.length]);
 
   useEffect(() => { api.post('/api/stats/visit').catch(() => {}); }, []);
 
@@ -117,8 +109,6 @@ export default function HomeContent({ initialStories, initialPagination, initial
       }).catch(() => {});
     }
   }, [user]);
-
-  const yearsList = ['All', ...Array.from({ length: YEARS_RANGE }, (_, i) => String(new Date().getFullYear() - i))];
 
   useEffect(() => {
     const timer = setTimeout(() => { setDebouncedSearch(search); setCurrentPage(1); }, 300);
@@ -182,7 +172,7 @@ export default function HomeContent({ initialStories, initialPagination, initial
                   <Chip label={featuredStory.genre} size="small" variant="outlined" />
                   {featuredStory.writer && <Typography variant="body2" color="text.secondary">Written by {featuredStory.writer}</Typography>}
                 </Stack>
-                <Button component={Link} href={`/story/${featuredStory._id}`} variant="contained" size="large" startIcon={<span className="material-icons" />}>
+                <Button component={Link} href={`/story/${featuredStory._id}`} variant="contained" size="large" startIcon={<HeadphonesIcon />}>
                   Listen & Review
                 </Button>
               </Box>
@@ -287,30 +277,15 @@ export default function HomeContent({ initialStories, initialPagination, initial
               sx={{ width: { xs: '100%', sm: 200 } }}
               renderInput={(params) => <TextField {...params} placeholder="Filter by writer..." />}
             />
-            <Autocomplete
-              size="small"
-              open={openYear}
-              onOpen={() => setOpenYear(true)}
-              onClose={() => setOpenYear(false)}
-              options={['All Years', ...yearsList.filter(y => y !== 'All')]}
-              value={year === 'All' ? 'All Years' : year}
-              onChange={(_, newValue) => {
-                setYear(newValue === 'All Years' ? 'All' : newValue || 'All');
-                setCurrentPage(1);
-              }}
-              slotProps={{
-                paper: {
-                  sx: {
-                    maxHeight: 250,
-                    '& .MuiAutocomplete-listbox': {
-                      maxHeight: 250,
-                    }
-                  }
-                }
-              }}
-              sx={{ width: { xs: '100%', sm: 160 } }}
-              renderInput={(params) => <TextField {...params} placeholder="Filter by year..." />}
-            />
+            <Box sx={{ width: { xs: '100%', sm: 240 } }}>
+              <AppYearPicker
+                value={year}
+                onChange={(y) => { setYear(y); setCurrentPage(1); }}
+                showAllOption
+                allLabel="All Years"
+                label="Filter by Year"
+              />
+            </Box>
           </Stack>
           <Tabs
             value={channelsList.indexOf(channel)}

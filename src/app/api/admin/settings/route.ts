@@ -41,13 +41,17 @@ export async function PUT(request: NextRequest) {
     await dbConnect();
     const body = await request.json();
 
-    const settings = await Settings.getSettings();
+    const settings = await Settings.findOneAndUpdate(
+      {},
+      typeof body.allowUserSubmissions === 'boolean'
+        ? { $set: { allowUserSubmissions: body.allowUserSubmissions } }
+        : {},
+      { new: true, runValidators: true }
+    );
 
-    if (typeof body.allowUserSubmissions === 'boolean') {
-      settings.allowUserSubmissions = body.allowUserSubmissions;
+    if (!settings) {
+      return NextResponse.json({ error: 'Settings not found' }, { status: 404 });
     }
-
-    await settings.save();
 
     return NextResponse.json({
       message: 'Settings updated successfully',

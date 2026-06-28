@@ -6,8 +6,8 @@ import { useAppSelector } from '@/lib/hooks';
 import api from '@/lib/axios';
 import {
   Box, Typography, Button, Paper, Stack, TextField, Tab, Tabs, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, Avatar, Chip, IconButton, Switch, FormGroup,
-  FormControlLabel, Divider, Card, CardContent, InputAdornment, TextareaAutosize,
+  TableContainer, TableHead, TableRow, Avatar, Chip, IconButton, Switch,
+  Divider, Card, CardContent, InputAdornment,
   Autocomplete, useMediaQuery, useTheme,
 } from '@mui/material';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -24,11 +24,11 @@ import YouTubeIcon from '@mui/icons-material/YouTube';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import {
-  AppAlert, AppConfirmModal, AppLoadingState, AppEmptyState,
+  AppAlert, AppConfirmModal, AppLoadingState, AppEmptyState, AppYearPicker,
 } from '@/components/ui';
-import { CHANNELS, GENRES, CHANNEL_KEYWORDS, NARRATOR_KEYWORDS, DEFAULT_CHANNEL, DEFAULT_GENRE, ADMIN_TAB_LABELS, YEARS_RANGE, YOUTUBE_THUMBNAIL, matchYouTubeChannel, SUGGESTED_TAGS, formatDuration } from '@/lib/constants';
+import { CHANNELS, GENRES, NARRATOR_KEYWORDS, ADMIN_TAB_LABELS, YOUTUBE_THUMBNAIL, matchYouTubeChannel, SUGGESTED_TAGS, formatDuration } from '@/lib/constants';
 
-interface Story { _id: string; title: string; channel: string; narrator: string; genre: string; writer?: string; youtubeId: string; youtubeUrl: string; approved: boolean; duration?: number; tags?: string[]; }
+interface Story { _id: string; title: string; channel: string; narrator: string; genre: string; writer?: string; youtubeId: string; youtubeUrl: string; approved: boolean; duration?: number; tags?: string[]; description?: string; thumbnailUrl?: string; yearPublished?: number; }
 interface UserProfile { _id: string; username: string; email: string; role: string; createdAt: string; }
 interface TrafficStat { date: string; visitors: number; }
 interface AdminStats { totalUsers: number; adminUsers: number; approvedStories: number; pendingStories: number; totalReviews: number; }
@@ -157,14 +157,16 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!user || user.role !== 'admin') return;
-    Promise.resolve().then(() => {
-      if (activeTab === 0) fetchStats();
-      if (activeTab === 1) fetchPendingStories();
-      if (activeTab === 2) fetchUsers();
-      if (activeTab === 4) fetchAllStories();
-      if (activeTab === 6) fetchSettings();
-      if (activeTab === 7) fetchFeedbacks();
-    });
+    if (activeTab === 0) fetchStats();
+    if (activeTab === 1) fetchPendingStories();
+    if (activeTab === 2) fetchUsers();
+    if (activeTab === 4) fetchAllStories();
+    if (activeTab === 6) fetchSettings();
+  }, [activeTab, user]);
+
+  useEffect(() => {
+    if (!user || user.role !== 'admin') return;
+    if (activeTab === 7) fetchFeedbacks();
   }, [activeTab, user, feedbackPage, feedbackStatusFilter]);
 
   useEffect(() => { if (user && user.role !== 'admin') { Promise.resolve().then(() => setActiveTab(3)); } }, [user]);
@@ -214,12 +216,17 @@ export default function AdminPage() {
         if (!writers.some((w) => w.name.toLowerCase() === trimmed.toLowerCase())) {
           try {
             const { data } = await api.post('/api/writers', { name: trimmed });
-            if (data.writer) setWriters((prev) => [...prev, data.writer].sort((a, b) => a.name.localeCompare(b.name)));
+            if (data.writer) setWriters((prev) => {
+              const updated = [...prev, data.writer];
+              return updated.sort((a, b) => a.name.localeCompare(b.name));
+            });
           } catch { /* writer already exists or error */ }
         }
       }
       const { data } = await api.post('/api/stories', { title, channel, youtubeUrl, narrator, genre, writer, description, thumbnailUrl, yearPublished, duration: duration || undefined, tags });
       setSuccess(data.message || 'Story added!');
+      // Refresh writers list to ensure new writers appear
+      api.get('/api/writers').then(({ data: wData }) => setWriters(wData.writers || [])).catch(() => {});
       setYoutubeUrl(''); setTitle(''); setNarrator(''); setWriter(''); setYearPublished(''); setDescription(''); setThumbnailUrl(''); setDuration(0); setTags([]);
       if (user?.role === 'admin') fetchStats();
     } catch (err) { setError(getErrorMessage(err) || 'Error saving story.'); }
@@ -319,9 +326,9 @@ export default function AdminPage() {
       narrator: story.narrator,
       genre: story.genre,
       writer: story.writer || '',
-      description: '',
-      thumbnailUrl: '',
-      yearPublished: '',
+      description: story.description || '',
+      thumbnailUrl: story.thumbnailUrl || '',
+      yearPublished: story.yearPublished ? String(story.yearPublished) : '',
       youtubeUrl: story.youtubeUrl || '',
       duration: story.duration || 0,
       tags: story.tags || [],
@@ -332,16 +339,18 @@ export default function AdminPage() {
     if (!editingStory) return;
     setSavingEdit(true);
     try {
-      const payload: Record<string, string> = {};
+      const payload: Record<string, unknown> = {};
       if (editForm.title) payload.title = editForm.title;
       if (editForm.channel) payload.channel = editForm.channel;
       if (editForm.narrator) payload.narrator = editForm.narrator;
       if (editForm.genre) payload.genre = editForm.genre;
       if (editForm.writer !== undefined) payload.writer = editForm.writer;
+      if (editForm.description !== undefined) payload.description = editForm.description;
+      if (editForm.thumbnailUrl !== undefined) payload.thumbnailUrl = editForm.thumbnailUrl;
       if (editForm.yearPublished) payload.yearPublished = editForm.yearPublished;
       if (editForm.youtubeUrl) payload.youtubeUrl = editForm.youtubeUrl;
       if (editForm.duration) payload.duration = String(editForm.duration);
-      payload.tags = JSON.stringify(editForm.tags);
+      payload.tags = editForm.tags;
       const { data } = await api.put(`/api/stories/${editingStory._id}`, payload);
       setSuccess(data.message || 'Story updated!');
       setEditingStory(null);
@@ -553,21 +562,11 @@ export default function AdminPage() {
                   )}
                   fullWidth
                 />
-                <TextField
-                  select
-                  slotProps={{ select: { native: true } }}
-                  label="Year Published on YouTube"
+                <AppYearPicker
                   value={yearPublished}
-                  onChange={(e) => setYearPublished(e.target.value)}
-                  fullWidth
-                >
-                  <option value=""></option>
-                  {Array.from({ length: YEARS_RANGE }, (_, i) => new Date().getFullYear() - i).map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </TextField>
+                  onChange={(y) => setYearPublished(y === 'All' ? '' : y)}
+                  label="Year Published on YouTube"
+                />
                 {duration > 0 && (
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                     Duration auto-detected: <strong>{formatDuration(duration)}</strong>
@@ -684,19 +683,11 @@ export default function AdminPage() {
                   renderInput={(params) => <TextField {...params} label="Writer / Author" placeholder="Type to search or add new writer..." fullWidth />}
                   fullWidth
                 />
-                <TextField
-                  select
-                  slotProps={{ select: { native: true } }}
-                  label="Year Published"
+                <AppYearPicker
                   value={editForm.yearPublished}
-                  onChange={(e) => setEditForm((p) => ({ ...p, yearPublished: e.target.value }))}
-                  fullWidth
-                >
-                  <option value="">Select Year (optional)</option>
-                  {Array.from({ length: YEARS_RANGE }, (_, i) => new Date().getFullYear() - i).map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </TextField>
+                  onChange={(y) => setEditForm((p) => ({ ...p, yearPublished: y === 'All' ? '' : y }))}
+                  label="Year Published"
+                />
                 {editForm.duration > 0 && (
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                     Duration: <strong>{formatDuration(editForm.duration)}</strong>

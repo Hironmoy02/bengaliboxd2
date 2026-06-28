@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const trimmed = name.trim();
     const existing = await Writer.findOne({ name: { $regex: `^${escapeRegex(trimmed)}$`, $options: 'i' } });
     if (existing) {
-      return NextResponse.json({ error: 'Writer already exists', writer: existing }, { status: 400 });
+      return NextResponse.json({ message: 'Writer already exists', writer: existing });
     }
 
     const writer = await Writer.create({ name: trimmed });

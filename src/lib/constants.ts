@@ -55,16 +55,14 @@ export type SortValue = (typeof SORT_OPTIONS)[number]['value'];
 export const DEFAULT_PAGE_LIMIT = 20;
 export const MAX_PAGE_LIMIT = 100;
 
-export const YEARS_RANGE = 21;
-
 export const YOUTUBE_THUMBNAIL = (id: string, quality: 'hq' | 'maxres' = 'hq') =>
   `https://img.youtube.com/vi/${id}/${quality === 'maxres' ? 'maxresdefault' : 'hqdefault'}.jpg`;
 
 export const SUGGESTED_TAGS = [
-  'Village', 'Urban', 'Detective', 'Ghost', 'Psychological', 'Supernatural',
+  'Village', 'Urban', 'Detective', 'Ghost', 'Psychological', 'Supernatural', 'Mythological',
   'Social', 'Emotional', 'Suspense', 'Twist End', 'Period', 'Thriller',
-  'Children', 'Romance', 'Satire', 'Folklore', 'Noir', 'Dark',
-  'Train', 'Night', 'Rain', 'Lonely', 'Revenge', 'Mystery',
+  'Children', 'Romance', 'Satire', 'Folklore', 'Noir', 'Dark', 'Historical',
+  'Train', 'Night', 'Rain', 'Lonely', 'Revenge', 'Mystery', 'Satire',
 ] as const;
 
 export function formatDuration(totalSeconds: number): string {
