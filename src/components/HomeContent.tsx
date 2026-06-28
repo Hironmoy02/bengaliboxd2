@@ -43,10 +43,10 @@ interface Pagination {
 interface HomeContentProps {
   initialStories: Story[];
   initialPagination: Pagination;
-  initialSpotlightStory?: Story | null;
+  initialSpotlightStories?: Story[];
 }
 
-export default function HomeContent({ initialStories, initialPagination, initialSpotlightStory }: HomeContentProps) {
+export default function HomeContent({ initialStories, initialPagination, initialSpotlightStories = [] }: HomeContentProps) {
   const [stories, setStories] = useState<Story[]>(initialStories);
   const [pagination, setPagination] = useState<Pagination>(initialPagination);
   const [loading, setLoading] = useState(false);
@@ -63,7 +63,7 @@ export default function HomeContent({ initialStories, initialPagination, initial
   const [bookmarkIds, setBookmarkIds] = useState<Set<string>>(new Set());
   const [listenIds, setListenIds] = useState<Set<string>>(new Set());
   const { user } = useAppSelector((s) => s.auth);
-  const [spotlightStory, setSpotlightStory] = useState<Story | null>(initialSpotlightStory || null);
+  const [spotlightIdx, setSpotlightIdx] = useState(0);
   const [openWriter, setOpenWriter] = useState(false);
   const [openYear, setOpenYear] = useState(false);
   const [openSort, setOpenSort] = useState(false);
@@ -90,10 +90,13 @@ export default function HomeContent({ initialStories, initialPagination, initial
   }, [openSort]);
 
   useEffect(() => {
-    if (!initialSpotlightStory && initialStories.length > 0) {
-      setSpotlightStory(initialStories[0]);
-    }
-  }, [initialSpotlightStory, initialStories]);
+    const count = initialSpotlightStories?.length || 0;
+    if (count <= 1) return;
+    const timer = setInterval(() => {
+      setSpotlightIdx((prev) => (prev + 1) % count);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [initialSpotlightStories]);
 
   useEffect(() => { api.post('/api/stats/visit').catch(() => {}); }, []);
 
@@ -139,7 +142,7 @@ export default function HomeContent({ initialStories, initialPagination, initial
     fetchStories(currentPage);
   }, [fetchStories, currentPage]);
 
-  const featuredStory = spotlightStory;
+  const featuredStory = initialSpotlightStories.length > 0 ? initialSpotlightStories[spotlightIdx] : null;
 
   const channelsList = ['All', ...CHANNELS];
   const genresList = ['All', ...GENRES];

@@ -17,16 +17,23 @@ export default async function HomePage() {
     hash = (hash << 5) - hash + dateStr.charCodeAt(i);
     hash |= 0;
   }
-  const index = totalApproved > 0 ? Math.abs(hash) % totalApproved : 0;
 
-  let spotlightStory = null;
+  let spotlightStories = [];
   if (totalApproved > 0) {
-    const spotlightStoryDoc = await Story.findOne({ approved: true })
-      .skip(index)
-      .populate('addedBy', 'username')
+    const allStories = await Story.find({ approved: true })
+      .select('_id title channel narrator genre writer youtubeId thumbnailUrl averageRating ratingsCount description duration tags')
       .lean();
-    if (spotlightStoryDoc) {
-      spotlightStory = JSON.parse(JSON.stringify(spotlightStoryDoc));
+    if (allStories.length > 0) {
+      const picked = [];
+      const tempStories = [...allStories];
+      let currentHash = Math.abs(hash);
+      for (let j = 0; j < Math.min(5, allStories.length); j++) {
+        const idx = currentHash % tempStories.length;
+        picked.push(tempStories[idx]);
+        tempStories.splice(idx, 1);
+        currentHash = (currentHash * 31 + 17) | 0;
+      }
+      spotlightStories = JSON.parse(JSON.stringify(picked));
     }
   }
 
@@ -45,7 +52,7 @@ export default async function HomePage() {
         total: result.total,
         totalPages: result.totalPages
       }}
-      initialSpotlightStory={spotlightStory}
+      initialSpotlightStories={spotlightStories}
     />
   );
 }

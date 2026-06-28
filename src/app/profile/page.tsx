@@ -384,7 +384,6 @@ export default function ProfilePage() {
         sx={{
           mb: { xs: 4, sm: 6 },
           alignItems: { xs: 'flex-start', md: 'center' },
-          justifyContent: 'space-between',
           borderBottom: '1px solid',
           borderColor: 'divider',
           pb: 4
@@ -427,40 +426,9 @@ export default function ProfilePage() {
               )}
             </Stack>
             <Typography variant="body2" color="text.secondary">
-              {profile?.email} &bull; Joined {new Date(profile?.createdAt || '').toLocaleDateString('en-GB', { year: 'numeric', month: 'long' })}
+              {profile?.bio ? (profile.bio.length > 50 ? `${profile.bio.slice(0, 50)}...` : profile.bio) : 'No bio written yet.'}
             </Typography>
           </Box>
-        </Stack>
-
-        {/* Stats Summary Column */}
-        <Stack
-          direction="row"
-          spacing={3}
-          sx={{
-            flexWrap: 'wrap',
-            gap: 1.5,
-            width: { xs: '100%', md: 'auto' },
-            justifyContent: { xs: 'space-between', md: 'flex-end' },
-            borderTop: { xs: '1px dashed rgba(255,255,255,0.08)', md: 'none' },
-            pt: { xs: 2.5, md: 0 }
-          }}
-        >
-          {[
-            { label: 'Added', count: stories.length },
-            { label: 'Listened', count: listens.length },
-            { label: 'Rated', count: ratings.length },
-            { label: 'Liked', count: likedStories.length },
-            { label: 'Bookmarks', count: bookmarks.length },
-          ].map((stat) => (
-            <Box key={stat.label} sx={{ textAlign: 'center', minWidth: 60 }}>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary' }}>
-                {stat.count}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, letterSpacing: 1.5 }}>
-                {stat.label}
-              </Typography>
-            </Box>
-          ))}
         </Stack>
       </Stack>
 
@@ -520,17 +488,28 @@ export default function ProfilePage() {
               </Typography>
               <Divider sx={{ mb: 2 }} />
               {profile?.favoriteStories && profile.favoriteStories.length > 0 ? (
-                <Stack direction="row" spacing={1.5} sx={{ overflowX: 'auto', pb: 1, width: '100%' }}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                      xs: 'repeat(2, 1fr)',
+                      sm: 'repeat(3, 1fr)',
+                      md: 'repeat(5, 1fr)'
+                    },
+                    gap: 2,
+                    width: '100%',
+                    mb: 1
+                  }}
+                >
                   {profile.favoriteStories.slice(0, 5).map((story, idx) => (
                     <Box
                       key={`${story._id}-${idx}`}
                       component={Link}
                       href={`/story/${story._id}`}
                       sx={{
-                        width: { xs: 110, sm: 140 },
-                        flexShrink: 0,
+                        width: '100%',
                         textDecoration: 'none',
-                        '&:hover .img-hover': { transform: 'scale(1.05)', boxShadow: '0 8px 24px rgba(255,94,43,0.3)' },
+                        '&:hover .img-hover': { transform: 'scale(1.05)', boxShadow: '0 8px 24px rgba(0,102,204,0.3)' },
                         '&:hover .title-hover': { color: 'primary.main' }
                       }}
                     >
@@ -572,7 +551,7 @@ export default function ProfilePage() {
                       </Typography>
                     </Box>
                   ))}
-                </Stack>
+                </Box>
               ) : (
                 <Paper
                   sx={{
@@ -698,26 +677,6 @@ export default function ProfilePage() {
 
           {/* Sidebar (Bio + Stats Summary) */}
           <Stack spacing={3} sx={{ width: { xs: '100%', md: 260 }, flexShrink: 0 }}>
-            <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-              <Typography
-                variant="caption"
-                sx={{
-                  textTransform: 'uppercase',
-                  fontWeight: 700,
-                  letterSpacing: 1.5,
-                  color: 'text.secondary',
-                  display: 'block',
-                  mb: 1
-                }}
-              >
-                Bio
-              </Typography>
-              <Divider sx={{ mb: 1.5 }} />
-              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                {profile?.bio || 'No bio written yet. Click Edit Profile to share a bit about yourself!'}
-              </Typography>
-            </Paper>
-
             {/* Quick stats mini visualizer */}
             {userStats && (
               <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
@@ -774,11 +733,12 @@ export default function ProfilePage() {
               <TextField
                 fullWidth
                 multiline
-                rows={3}
+                rows={2}
                 label="Bio"
                 value={bio}
-                onChange={(e) => setBio(e.target.value)}
+                onChange={(e) => setBio(e.target.value.slice(0, 50))}
                 placeholder="Share a short bio with the community..."
+                helperText={`${bio.length}/50 characters`}
                 sx={{ mb: 4 }}
               />
 
@@ -829,6 +789,7 @@ export default function ProfilePage() {
                         options={getOptionsForSlot(slot.value, allSlotValues)}
                         getOptionLabel={(option) => option.title || ''}
                         isOptionEqualToValue={(option, val) => option._id === val._id}
+                        filterOptions={(x) => x}
                         value={allStoriesMap.get(slot.value) || null}
                         onChange={(_, newValue) => {
                           slot.setter(newValue?._id || '');

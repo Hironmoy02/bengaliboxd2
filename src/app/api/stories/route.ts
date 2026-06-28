@@ -10,6 +10,68 @@ import { getYouTubeId } from '@/lib/youtube';
 import { DEFAULT_GENRE, DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT, YOUTUBE_THUMBNAIL, CHANNELS } from '@/lib/constants';
 import { toSearchable } from '@/lib/transliterate';
 
+function calculateRelevance(story: any, query: string, searchableQuery: string): number {
+  const q = query.toLowerCase().trim();
+  const sq = searchableQuery.toLowerCase().trim();
+  if (!q) return 0;
+
+  const title = (story.title || '').toLowerCase();
+  const titleSearch = (story.titleSearch || '').toLowerCase();
+  const narrator = (story.narrator || '').toLowerCase();
+  const writer = (story.writer || '').toLowerCase();
+  const genre = (story.genre || '').toLowerCase();
+  const channel = (story.channel || '').toLowerCase();
+
+  let score = 0;
+
+  // Exact Title starts-with is highest priority
+  if (title.startsWith(q)) {
+    score += 1000;
+  } else if (titleSearch.startsWith(sq)) {
+    score += 900;
+  }
+  
+  // Vowel-normalized starts-with (for o/a interchangeable search, e.g. "op" -> "ap")
+  const normSq = sq.replace(/[oa]/g, 'a');
+  const normTitleSearch = titleSearch.replace(/[oa]/g, 'a');
+  if (normTitleSearch.startsWith(normSq)) {
+    score += 800;
+  }
+  // Exact Title contains
+  else if (title.includes(q)) {
+    score += 500;
+  } else if (titleSearch.includes(sq)) {
+    score += 400;
+  }
+  // Vowel-normalized contains
+  else if (normTitleSearch.includes(normSq)) {
+    score += 300;
+  }
+
+  // Narrator / Writer starts with
+  if (narrator.startsWith(q) || writer.startsWith(q)) {
+    score += 200;
+  }
+  // Narrator / Writer contains
+  else if (narrator.includes(q) || writer.includes(q)) {
+    score += 100;
+  }
+
+  // Channel starts with / contains
+  if (channel.startsWith(q)) {
+    score += 50;
+  } else if (channel.includes(q)) {
+    score += 20;
+  }
+
+  // Genre contains
+  if (genre.includes(q)) {
+    score += 10;
+  }
+
+  return score;
+}
+
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
@@ -37,13 +99,19 @@ export async function GET(request: NextRequest) {
       filter.approved = true;
     }
 
+    let searchableQuery = '';
     if (search) {
       const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const searchableQuery = toSearchable(search);
+      searchableQuery = toSearchable(search);
       const escapedSearchable = searchableQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      // Support interchangeability of vowel representations (a and o) in Bengali searches
+      const tolerantPattern = escapedSearchable.replace(/[oa]/gi, '[oa]');
+
       filter.$or = [
         { title: { $regex: escapedSearch, $options: 'i' } },
         { titleSearch: { $regex: escapedSearchable, $options: 'i' } },
+        { titleSearch: { $regex: tolerantPattern, $options: 'i' } },
         { narrator: { $regex: escapedSearch, $options: 'i' } },
         { channel: { $regex: escapedSearch, $options: 'i' } },
         { writer: { $regex: escapedSearch, $options: 'i' } },
@@ -68,6 +136,47 @@ export async function GET(request: NextRequest) {
       filter.yearPublished = parseInt(year, 10);
     }
 
+    const skip = (page - 1) * limit;
+
+    if (search) {
+      // If searching, fetch a larger pool to ensure we capture all high-relevance matches
+      const searchLimit = 200;
+      const [allMatchingStories, total] = await Promise.all([
+        Story.find(filter).populate('addedBy', 'username').limit(searchLimit),
+        Story.countDocuments(filter)
+      ]);
+
+      // Calculate relevance score and sort
+      const scored = allMatchingStories.map(story => ({
+        story,
+        score: calculateRelevance(story, search, searchableQuery)
+      }));
+
+      // Sort by relevance score descending, then by averageRating/ratingsCount descending
+      scored.sort((a, b) => {
+        if (b.score !== a.score) {
+          return b.score - a.score;
+        }
+        const ratingA = a.story.averageRating || 0;
+        const ratingB = b.story.averageRating || 0;
+        if (ratingB !== ratingA) return ratingB - ratingA;
+        return (b.story.ratingsCount || 0) - (a.story.ratingsCount || 0);
+      });
+
+      const sortedStories = scored.map(item => item.story);
+      const paginatedStories = sortedStories.slice(skip, skip + limit);
+
+      return NextResponse.json({
+        stories: paginatedStories,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      });
+    }
+
     let sort: Record<string, 1 | -1> = {};
     if (sortBy === 'newest') {
       sort = { createdAt: -1 };
@@ -76,8 +185,6 @@ export async function GET(request: NextRequest) {
     } else {
       sort = { averageRating: -1, ratingsCount: -1 };
     }
-
-    const skip = (page - 1) * limit;
 
     const [stories, total] = await Promise.all([
       Story.find(filter).sort(sort).populate('addedBy', 'username').skip(skip).limit(limit),
