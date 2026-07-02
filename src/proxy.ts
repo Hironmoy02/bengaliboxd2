@@ -62,6 +62,7 @@ async function getUserFromCookie(request: NextRequest): Promise<{ role: string }
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  console.log('--- MIDDLEWARE pathname:', pathname);
 
   if (pathname.startsWith('/_next') || pathname.startsWith('/favicon') || pathname.includes('.')) {
     return NextResponse.next();

@@ -62,7 +62,7 @@ export const SUGGESTED_TAGS = [
   'Village', 'Urban', 'Detective', 'Ghost', 'Psychological', 'Supernatural', 'Mythological',
   'Social', 'Emotional', 'Suspense', 'Twist End', 'Period', 'Thriller',
   'Children', 'Romance', 'Satire', 'Folklore', 'Noir', 'Dark', 'Historical',
-  'Train', 'Night', 'Rain', 'Lonely', 'Revenge', 'Mystery', 'Satire',
+  'Train', 'Night', 'Rain', 'Lonely', 'Revenge', 'Mystery',
 ] as const;
 
 export function formatDuration(totalSeconds: number): string {
