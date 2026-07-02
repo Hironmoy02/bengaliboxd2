@@ -28,7 +28,7 @@ import { AppAlert, AppLoadingState, AppEmptyState, AppStarRating, AppPagination,
 function getErrorMessage(err: unknown): string { return err instanceof Error ? err.message : 'An error occurred'; }
 
 interface UserProfile { _id: string; username: string; email: string; role: string; createdAt: string; bio?: string; favoriteStories?: Story[]; }
-interface Story { _id: string; title: string; channel: string; youtubeId: string; approved: boolean; createdAt: string; averageRating: number; ratingsCount: number; }
+interface Story { _id: string; title: string; channel: string; youtubeId: string; approved: boolean; createdAt: string; averageRating: number; ratingsCount: number; thumbnailUrl?: string; }
 interface Rating { _id: string; storyId: { _id: string; title: string; youtubeId: string; narrator?: string; writer?: string; channel?: string; yearPublished?: number } | null; ratingValue: number; reviewText: string; updatedAt: string; }
 
 export default function ProfilePage() {
@@ -378,7 +378,7 @@ export default function ProfilePage() {
   const allSlotValues = [fav1, fav2, fav3, fav4, fav5];
 
   return (
-    <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 1.5, sm: 2 }, py: { xs: 3, sm: 5 }, minHeight: '80vh' }}>
+    <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 1.5, sm: 2 }, py: { xs: 3, sm: 5 }, minHeight: '80vh' }}>
       {error && <AppAlert severity="error" message={error} onClose={() => setError('')} />}
       {success && <AppAlert severity="success" message={success} onClose={() => setSuccess('')} />}
 
@@ -442,22 +442,22 @@ export default function ProfilePage() {
         <Tabs
           value={activeTab}
           onChange={(_, v) => setActiveTab(v)}
-          variant="scrollable"
-          scrollButtons="auto"
-          allowScrollButtonsMobile
+          variant={isMobile ? "scrollable" : "standard"}
+          scrollButtons={isMobile ? "auto" : false}
+          allowScrollButtonsMobile={isMobile}
           sx={{
             mb: { xs: 3, sm: 4 },
             borderBottom: '1px solid', borderColor: 'divider',
-            minHeight: 44,
+            minHeight: 38,
             '& .MuiTab-root': {
               textTransform: 'none',
               fontWeight: 600,
-              fontSize: { xs: '0.75rem', sm: '0.9rem' },
-              minHeight: 44,
+              fontSize: { xs: '0.7rem', sm: '0.72rem', md: '0.78rem' },
+              minHeight: 38,
               minWidth: 0,
-              px: { xs: 1, sm: 2 },
+              px: { xs: 0.5, sm: 0.8, md: 1 },
             },
-            '& .MuiTab-iconWrapper': { mr: { xs: 0.3, sm: 0.5 } },
+            '& .MuiTab-iconWrapper': { mr: { xs: 0.2, sm: 0.4 } },
           }}
         >
           <Tab icon={<PersonIcon />} iconPosition="start" label={isMobile ? undefined : "Profile"} />
@@ -532,7 +532,7 @@ export default function ProfilePage() {
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={YOUTUBE_THUMBNAIL(story.youtubeId)}
+                          src={story.thumbnailUrl || YOUTUBE_THUMBNAIL(story.youtubeId)}
                           alt={story.title}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
@@ -681,7 +681,7 @@ export default function ProfilePage() {
           </Box>
 
           {/* Sidebar (Bio + Stats Summary) */}
-          <Stack spacing={3} sx={{ width: { xs: '100%', md: 260 }, flexShrink: 0 }}>
+          <Stack spacing={3} sx={{ width: { xs: '100%', md: 220 }, flexShrink: 0 }}>
             {/* Quick stats mini visualizer */}
             {userStats && (
               <Paper sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>

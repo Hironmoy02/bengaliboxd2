@@ -56,7 +56,7 @@ const mockPagination = {
 
 describe('HomeContent', () => {
   it('renders the hero section with spotlight story', () => {
-    render(<HomeContent initialStories={mockStories} initialPagination={mockPagination} />);
+    render(<HomeContent initialStories={mockStories} initialPagination={mockPagination} initialSpotlightStories={mockStories} />);
     expect(screen.getByText('Spotlight Story')).toBeInTheDocument();
     expect(screen.getAllByText('Test Story').length).toBeGreaterThanOrEqual(1);
   });
