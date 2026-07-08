@@ -149,7 +149,7 @@ function StoryCard({ story, index }: { story: Story; index: number }) {
             {story.writer}
           </Typography>
         )}
-        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.5 }}>
+        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', mt: 0.5 }}>
           {story.averageRating > 0 ? (
             <>
               <StarIcon sx={{ fontSize: 11, color: '#f59e0b' }} />
