@@ -295,7 +295,7 @@ export default function AdminPage() {
     setError('');
     setSuccess('');
     try {
-      const { data } = await api.post('/api/stories/bulk', { csv: bulkCsvText });
+      const { data } = await api.post('/api/stories/bulk', { csv: bulkCsvText }, { timeout: 300000 });
       setBulkResults(data);
       if (data.failed === 0) {
         setSuccess(data.message);
@@ -343,7 +343,7 @@ export default function AdminPage() {
         return {
           title: (r['Title'] || r['title'] || '') as string,
           writer: (r['Writer'] || r['writer'] || '') as string,
-          narrator: (r['Narrators'] || r['Narrator'] || r['narrator'] || '') as string,
+          narrator: (r['Narrators'] || r['Narrator'] || r['narrators'] || r['narrator'] || '') as string,
           genre: (r['Genre'] || r['genre'] || '') as string,
           tags: typeof (r['Tags'] || r['tags']) === 'string' ? (r['Tags'] || r['tags'] as string).split(',').map((t: string) => t.trim()).filter(Boolean) : [],
           duration: (r['Duration'] || r['duration'] || r['Duration (HH:MM:SS)'] || '') as number | string,
