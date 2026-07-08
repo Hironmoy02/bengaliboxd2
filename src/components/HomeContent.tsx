@@ -129,8 +129,20 @@ export default function HomeContent({ initialStories, initialPagination, initial
 
   useEffect(() => {
     if (isInitialMount.current) { isInitialMount.current = false; return; }
+    // Skip the initial redundant fetch on load if all filters are at their defaults
+    if (
+      debouncedSearch === '' &&
+      channel === 'All' &&
+      genre === 'All' &&
+      writer === 'All' &&
+      year === 'All' &&
+      sortBy === 'rating' &&
+      currentPage === 1
+    ) {
+      return;
+    }
     fetchStories(currentPage);
-  }, [fetchStories, currentPage]);
+  }, [fetchStories, currentPage, debouncedSearch, channel, genre, writer, year, sortBy]);
 
   const featuredStory = initialSpotlightStories.length > 0 ? initialSpotlightStories[spotlightIdx] : null;
 
@@ -283,7 +295,6 @@ export default function HomeContent({ initialStories, initialPagination, initial
                 onChange={(y) => { setYear(y); setCurrentPage(1); }}
                 showAllOption
                 allLabel="All Years"
-                label="Filter by Year"
               />
             </Box>
           </Stack>

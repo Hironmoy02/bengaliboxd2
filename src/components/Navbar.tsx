@@ -43,6 +43,7 @@ export default function Navbar() {
 
   const navLinks = [
     { href: '/', label: 'Stories' },
+    { href: '/explore', label: 'Explore' },
     ...(user ? [{ href: '/add-story', label: 'Add Story' }] : []),
     ...(user?.role === 'admin' ? [{ href: '/admin', label: 'Admin' }] : []),
   ];

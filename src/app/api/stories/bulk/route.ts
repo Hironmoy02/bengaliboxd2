@@ -47,7 +47,7 @@ function parseCSV(csvText: string): string[][] {
   return rows;
 }
 
-const BATCH_SIZE = 5;
+const BATCH_SIZE = 15;
 
 async function fetchMetaInBatches(youtubeIds: string[]): Promise<Map<string, { duration?: number; year?: number }>> {
   const metaMap = new Map<string, { duration?: number; year?: number }>();
@@ -165,17 +165,36 @@ export async function POST(request: NextRequest) {
     const existingStories = await Story.find({ youtubeId: { $in: allYoutubeIds } }).select('youtubeId').lean();
     const existingSet = new Set(existingStories.map((s) => s.youtubeId));
 
-    // Phase 4: Batch fetch YouTube metadata (duration, year) for all unique IDs
-    const uniqueAllIds = [...new Set(parsedRows.map((r) => r.youtubeId))];
+    // Phase 4: Batch fetch YouTube metadata (duration, year) for all unique IDs (only for new stories)
+    const uniqueAllIds = [...new Set(parsedRows.map((r) => r.youtubeId))].filter(id => !existingSet.has(id));
     const metaMap = await fetchMetaInBatches(uniqueAllIds);
 
-    // Phase 5: Create stories
+    // Phase 5: Create or update stories
     const finalResults: BulkResult[] = [...results];
 
     for (const row of parsedRows) {
-      // Duplicate check
+      // Duplicate update
       if (existingSet.has(row.youtubeId)) {
-        finalResults.push({ row: row.rowNum, title: row.title, status: 'failed', error: 'Duplicate YouTube URL' });
+        try {
+          await Story.updateOne(
+            { youtubeId: row.youtubeId },
+            { 
+              $set: { 
+                title: row.title, 
+                narrator: row.narrator,
+                writer: row.writer,
+                titleSearch: toSearchable(row.title)
+              } 
+            }
+          );
+          if (row.writer) {
+            const existingWriter = await Writer.findOne({ name: { $regex: `^${row.writer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } });
+            if (!existingWriter) await Writer.create({ name: row.writer });
+          }
+          finalResults.push({ row: row.rowNum, title: row.title, status: 'success' });
+        } catch (err) {
+          finalResults.push({ row: row.rowNum, title: row.title, status: 'failed', error: err instanceof Error ? err.message : 'Update failed' });
+        }
         continue;
       }
 

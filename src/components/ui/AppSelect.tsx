@@ -9,13 +9,14 @@ interface AppSelectProps extends Omit<SelectProps, 'children'> {
 }
 
 export default function AppSelect({ label, options, sx, ...props }: AppSelectProps) {
-  const labelId = `select-${label.replace(/\s/g, '-').toLowerCase()}`;
   return (
-    <FormControl size="small" sx={{ minWidth: 120, ...sx }}>
-      <InputLabel id={labelId}>{label}</InputLabel>
+    <FormControl size="small" sx={{ minWidth: 150, ...sx }}>
       <Select
-        labelId={labelId}
-        label={label}
+        displayEmpty
+        renderValue={(selected) => {
+          const foundOption = options.find((opt) => opt.value === selected);
+          return foundOption ? foundOption.label : String(selected);
+        }}
         {...props}
       >
         {options.map((opt) => (

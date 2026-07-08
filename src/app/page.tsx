@@ -28,7 +28,7 @@ export default async function HomePage() {
       const tempStories = [...allStories];
       let currentHash = Math.abs(hash);
       for (let j = 0; j < Math.min(5, allStories.length); j++) {
-        const idx = currentHash % tempStories.length;
+        const idx = Math.abs(currentHash) % tempStories.length;
         picked.push(tempStories[idx]);
         tempStories.splice(idx, 1);
         currentHash = (currentHash * 31 + 17) | 0;

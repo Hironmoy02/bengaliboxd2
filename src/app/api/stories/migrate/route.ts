@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
       } else {
         // Create new story
         try {
-          const resolvedTitle = title || meta.year ? `Story ${rowNum}` : '';
+          const resolvedTitle = title || (meta.year ? `Story ${rowNum}` : '');
           if (!resolvedTitle) {
             finalResults.push({ row: rowNum, title: '', status: 'failed', error: 'Title is required for new stories' });
             continue;
