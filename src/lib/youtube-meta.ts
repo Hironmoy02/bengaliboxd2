@@ -13,7 +13,11 @@ async function fetchViaInnerTube(videoId: string): Promise<YouTubeMeta> {
   try {
     const res = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0' },
+      headers: { 
+        'Content-Type': 'application/json', 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Cookie': 'CONSENT=YES+cb.20210328-17-p0.en+FX+999'
+      },
       body: JSON.stringify({
         context: { client: { clientName: 'WEB', clientVersion: '2.20250601.00.00' } },
         videoId,
@@ -46,7 +50,10 @@ async function fetchViaInnerTube(videoId: string): Promise<YouTubeMeta> {
 async function fetchViaHtmlScrape(videoId: string): Promise<YouTubeMeta> {
   try {
     const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Cookie': 'CONSENT=YES+cb.20210328-17-p0.en+FX+999'
+      },
     });
     if (!res.ok) return {};
     const html = await res.text();

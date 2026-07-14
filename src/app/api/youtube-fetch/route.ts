@@ -53,6 +53,17 @@ export async function GET(request: NextRequest) {
       if (meta.duration) duration = meta.duration;
     } catch { /* ignore page fetch errors */ }
 
+    // Fallback: Check if the video title contains a 4-digit year (between 2000 and current year)
+    if (!yearPublished && data.title) {
+      const yearMatch = data.title.match(/\b(20\d{2})\b/);
+      if (yearMatch) {
+        const y = parseInt(yearMatch[1], 10);
+        if (y >= 2000 && y <= new Date().getFullYear()) {
+          yearPublished = y;
+        }
+      }
+    }
+
     return NextResponse.json({
       youtubeId: videoId,
       title: data.title || '',
