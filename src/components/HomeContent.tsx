@@ -6,7 +6,7 @@ import api from '@/lib/axios';
 import { useAppSelector } from '@/lib/hooks';
 import {
   Box, Typography, Button, TextField, InputAdornment, Tabs, Tab, Paper, Stack, Chip,
-  Autocomplete,
+  Autocomplete, Fade,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -169,27 +169,33 @@ export default function HomeContent({ initialStories, initialPagination, initial
         <div className="container">
           {featuredStory ? (
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={5} sx={{ alignItems: 'center' }}>
-              <Box sx={{ flex: 1 }}>
-                <Chip icon={<AutoAwesomeIcon sx={{ fontSize: 14 }} />} label="Spotlight Story" color="primary" size="small" sx={{ mb: 2 }} />
-                <Typography variant="h3" sx={{ fontWeight: 800, fontSize: { xs: '1.8rem', md: '2.8rem' }, lineHeight: 1.15, mb: 2 }}>
-                  {featuredStory.title}
-                </Typography>
-                <Typography sx={{ color: 'text.secondary', mb: 3, lineHeight: 1.6 }}>
-                  Narrated by <strong style={{ color: 'var(--text-primary)' }}>{featuredStory.narrator}</strong> on{' '}
-                  <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{featuredStory.channel}</span>.
-                  {featuredStory.description && ` ${featuredStory.description.slice(0, 180)}...`}
-                </Typography>
-                <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3 }}>
-                  <AppRatingDisplay rating={featuredStory.averageRating} count={featuredStory.ratingsCount} size={16} />
-                  <Chip label={featuredStory.genre} size="small" variant="outlined" />
-                  {featuredStory.writer && <Typography variant="body2" color="text.secondary">Written by {featuredStory.writer}</Typography>}
-                </Stack>
-                <Button component={Link} href={`/story/${featuredStory._id}`} variant="contained" size="large" startIcon={<HeadphonesIcon />}>
-                  Listen & Review
-                </Button>
+              <Box sx={{ flex: 1, minHeight: { xs: 230, md: 310 } }}>
+                <Fade in={true} timeout={500} key={featuredStory._id}>
+                  <div>
+                    <Chip icon={<AutoAwesomeIcon sx={{ fontSize: 14 }} />} label="Spotlight Story" color="primary" size="small" sx={{ mb: 2 }} />
+                    <Typography variant="h3" sx={{ fontWeight: 800, fontSize: { xs: '1.8rem', md: '2.8rem' }, lineHeight: 1.15, mb: 2 }}>
+                      {featuredStory.title}
+                    </Typography>
+                    <Typography sx={{ color: 'text.secondary', mb: 3, lineHeight: 1.6 }}>
+                      Narrated by <strong style={{ color: 'var(--text-primary)' }}>{featuredStory.narrator}</strong> on{' '}
+                      <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{featuredStory.channel}</span>.
+                      {featuredStory.description && ` ${featuredStory.description.slice(0, 180)}...`}
+                    </Typography>
+                    <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3 }}>
+                      <AppRatingDisplay rating={featuredStory.averageRating} count={featuredStory.ratingsCount} size={16} />
+                      <Chip label={featuredStory.genre} size="small" variant="outlined" />
+                      {featuredStory.writer && <Typography variant="body2" color="text.secondary">Written by {featuredStory.writer}</Typography>}
+                    </Stack>
+                    <Button component={Link} href={`/story/${featuredStory._id}`} variant="contained" size="large" startIcon={<HeadphonesIcon />}>
+                      Listen & Review
+                    </Button>
+                  </div>
+                </Fade>
               </Box>
               <Paper sx={{ width: { xs: '100%', md: 340 }, height: { xs: 200, md: 260 }, borderRadius: 3, overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-                <img src={featuredStory.thumbnailUrl || `https://img.youtube.com/vi/${featuredStory.youtubeId}/maxresdefault.jpg`} alt={featuredStory.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <Fade in={true} timeout={500} key={`img-${featuredStory._id}`}>
+                  <img src={featuredStory.thumbnailUrl || `https://img.youtube.com/vi/${featuredStory.youtubeId}/maxresdefault.jpg`} alt={featuredStory.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                </Fade>
               </Paper>
             </Stack>
           ) : (
