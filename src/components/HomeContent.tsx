@@ -169,7 +169,7 @@ export default function HomeContent({ initialStories, initialPagination, initial
         <div className="container">
           {featuredStory ? (
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={5} sx={{ alignItems: 'center' }}>
-              <Box sx={{ flex: 1, minHeight: { xs: 260, md: 310 } }}>
+              <Box sx={{ flex: 1, minHeight: { xs: 230, md: 310 } }}>
                 <Fade in={true} timeout={500} key={featuredStory._id}>
                   <div>
                     <Chip icon={<AutoAwesomeIcon sx={{ fontSize: 14 }} />} label="Spotlight Story" color="primary" size="small" sx={{ mb: 2 }} />
