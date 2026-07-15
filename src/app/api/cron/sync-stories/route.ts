@@ -12,12 +12,12 @@ const CHANNELS_SYNC = [
   {
     name: 'Sunday Suspense',
     channelId: 'UCmzj6hXrPZ_AwIZ8lgo-HuQ',
-    keywords: ['suspense', 'mirchi', 'horror'],
+    keywords: ['sunday suspense'],
   },
   {
     name: 'Goppo Mirer Thek',
     channelId: 'UCkvRE7QapbwT97rFj40u1Dw',
-    keywords: ['thek', 'mir afsar', 'mir', 'sayak'],
+    keywords: [],
   }
 ];
 
@@ -140,15 +140,16 @@ export async function GET(request: NextRequest) {
         }
 
         const titleLower = entry.title.toLowerCase();
-        const descLower = entry.description.toLowerCase();
-        const matchesKeywords = chanConfig.keywords.some(
-          kw => titleLower.includes(kw) || descLower.includes(kw)
-        );
 
-        if (!matchesKeywords) {
-          channelReport.skipped.push(`${entry.title} (did not match channel keywords)`);
-          continue;
+        // Channel-specific filters
+        if (chanConfig.name === 'Sunday Suspense') {
+          // 2nd Channel check: only add if title contains 'sunday suspense'
+          if (!titleLower.includes('sunday suspense')) {
+            channelReport.skipped.push(`${entry.title} (did not contain 'sunday suspense' in title)`);
+            continue;
+          }
         }
+        // 1st Channel (Goppo Mirer Thek): no filter, take all.
 
         let matchedWriter = 'Unknown';
         // Pass 1: Look for explicit "by <Writer Name>" pattern in title/description
@@ -228,7 +229,7 @@ export async function GET(request: NextRequest) {
           yearPublished,
           duration: durationSec,
           tags: [],
-          approved: true,
+          approved: false,
           averageRating: 0,
           ratingsCount: 0,
         });
