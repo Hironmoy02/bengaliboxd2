@@ -94,3 +94,34 @@ export async function PUT(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to update story' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest, { params }: Params) {
+  try {
+    const user = await getUserFromSession();
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await dbConnect();
+    const { id } = await params;
+
+    const story = await Story.findByIdAndDelete(id);
+    if (!story) {
+      return NextResponse.json({ error: 'Story not found' }, { status: 404 });
+    }
+
+    // Clean up writer entry if no active stories remain for this writer
+    if (story.writer && story.writer.trim()) {
+      const remainingCount = await Story.countDocuments({ writer: story.writer.trim() });
+      if (remainingCount === 0) {
+        const WriterModel = (await import('@/models/Writer')).default;
+        await WriterModel.deleteOne({ name: { $regex: `^${story.writer.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } });
+      }
+    }
+
+    return NextResponse.json({ message: 'Story deleted successfully' });
+  } catch (error: unknown) {
+    console.error('Delete story error:', error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to delete story' }, { status: 500 });
+  }
+}

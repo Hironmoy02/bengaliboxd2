@@ -64,15 +64,7 @@ export default function HomeContent({ initialStories, initialPagination, initial
   const [listenIds, setListenIds] = useState<Set<string>>(new Set());
   const { user } = useAppSelector((s) => s.auth);
   const [spotlightIdx, setSpotlightIdx] = useState(0);
-  const [openWriter, setOpenWriter] = useState(false);
   const [openSort, setOpenSort] = useState(false);
-
-  useEffect(() => {
-    if (!openWriter) return;
-    const handleScroll = () => setOpenWriter(false);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [openWriter]);
 
   useEffect(() => {
     if (!openSort) return;
@@ -259,20 +251,16 @@ export default function HomeContent({ initialStories, initialPagination, initial
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 3, flexWrap: 'wrap', gap: 1, alignItems: { sm: 'center' } }}>
             <Autocomplete
               size="small"
-              open={openWriter}
-              onOpen={() => setOpenWriter(true)}
-              onClose={() => setOpenWriter(false)}
-              options={['All Writers', ...writers.map((w) => w.name)]}
-              value={writer === 'All' ? 'All Writers' : writer}
+              options={writers.map((w) => w.name)}
+              value={writer === 'All' ? null : writer}
               onChange={(_, newValue) => {
-                setWriter(newValue === 'All Writers' ? 'All' : newValue || 'All');
+                setWriter(newValue || 'All');
                 setCurrentPage(1);
               }}
               filterOptions={(options, state) => {
                 const inputValue = state.inputValue.trim().toLowerCase();
                 if (!inputValue) return options;
                 return options.filter((option) => {
-                  if (option === 'All Writers') return false;
                   const lowerOption = option.toLowerCase();
                   if (inputValue.length === 1) {
                     return lowerOption.startsWith(inputValue);
@@ -292,8 +280,8 @@ export default function HomeContent({ initialStories, initialPagination, initial
                   }
                 }
               }}
-              sx={{ width: { xs: '100%', sm: 200 } }}
-              renderInput={(params) => <TextField {...params} placeholder="Filter by writer..." />}
+              sx={{ width: { xs: '100%', sm: 220 } }}
+              renderInput={(params) => <TextField {...params} placeholder="All Writers" />}
             />
             <Box sx={{ width: { xs: '100%', sm: 240 } }}>
               <AppYearPicker

@@ -89,6 +89,14 @@ export async function DELETE(
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });
     }
 
+    if (story.writer && story.writer.trim()) {
+      const remainingCount = await Story.countDocuments({ writer: story.writer.trim() });
+      if (remainingCount === 0) {
+        const WriterModel = (await import('@/models/Writer')).default;
+        await WriterModel.deleteOne({ name: { $regex: `^${story.writer.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } });
+      }
+    }
+
     return NextResponse.json({
       message: 'Story rejected and removed successfully.',
     });
