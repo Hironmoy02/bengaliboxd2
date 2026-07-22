@@ -14,9 +14,19 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
 
-    const filter: Record<string, unknown> = {};
+    const Story = (await import('@/models/Story')).default;
+    const activeWriters = await Story.distinct('writer', { approved: { $ne: false }, writer: { $exists: true, $ne: '' } });
+
+    const filter: Record<string, unknown> = {
+      name: { $in: activeWriters.map((w: string) => new RegExp(`^${escapeRegex(w.trim())}$`, 'i')) }
+    };
     if (search) {
-      filter.name = { $regex: escapeRegex(search), $options: 'i' };
+      filter.name = {
+        $and: [
+          filter.name,
+          { $regex: escapeRegex(search), $options: 'i' }
+        ]
+      };
     }
 
     const writers = await Writer.find(filter).sort({ name: 1 }).lean();
