@@ -251,17 +251,16 @@ export default function HomeContent({ initialStories, initialPagination, initial
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 3, flexWrap: 'wrap', gap: 1, alignItems: { sm: 'center' } }}>
             <Autocomplete
               size="small"
-              options={['All Writers', ...writers.map((w) => w.name)]}
+              options={writers.map((w) => w.name)}
               value={writer === 'All' ? null : writer}
               onChange={(_, newValue) => {
-                setWriter(!newValue || newValue === 'All Writers' ? 'All' : newValue);
+                setWriter(newValue || 'All');
                 setCurrentPage(1);
               }}
               filterOptions={(options, state) => {
                 const inputValue = state.inputValue.trim().toLowerCase();
                 if (!inputValue) return options;
                 return options.filter((option) => {
-                  if (option === 'All Writers') return true;
                   const lowerOption = option.toLowerCase();
                   if (inputValue.length === 1) {
                     return lowerOption.startsWith(inputValue);
