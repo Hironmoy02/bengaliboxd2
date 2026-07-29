@@ -38,7 +38,7 @@ export default async function HomePage() {
   }
 
   const result = await fetchStoriesServer({
-    sortBy: 'rating',
+    sortBy: 'newest',
     page: 1,
     limit: 20,
   });

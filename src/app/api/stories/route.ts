@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     const genre = searchParams.get('genre') || '';
     const writer = searchParams.get('writer') || '';
     const year = searchParams.get('year') || '';
-    const sortBy = searchParams.get('sortBy') || 'rating';
+    const sortBy = searchParams.get('sortBy') || 'newest';
     const status = searchParams.get('status') || 'approved';
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const limit = Math.min(MAX_PAGE_LIMIT, Math.max(1, parseInt(searchParams.get('limit') || String(DEFAULT_PAGE_LIMIT), 10)));

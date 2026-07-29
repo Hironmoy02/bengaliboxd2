@@ -17,6 +17,7 @@ import AddIcon from '@mui/icons-material/Add';
 import SettingsIcon from '@mui/icons-material/Settings';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import CheckIcon from '@mui/icons-material/Check';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import SearchIcon from '@mui/icons-material/Search';
@@ -83,6 +84,9 @@ export default function AdminPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [allStories, setAllStories] = useState<Story[]>([]);
   const [loadingAllStories, setLoadingAllStories] = useState(false);
+  const [editingPendingStory, setEditingPendingStory] = useState<Story | null>(null);
+  const [pendingEditForm, setPendingEditForm] = useState({ title: '', channel: '', narrator: '', genre: '', writer: '', description: '', thumbnailUrl: '', yearPublished: '', youtubeUrl: '', duration: 0, tags: [] as string[] });
+  const [savingPendingEdit, setSavingPendingEdit] = useState(false);
 
   interface FeedbackItem { _id: string; userId: { username: string; email: string }; category: string; message: string; status: string; createdAt: string; }
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
@@ -257,6 +261,47 @@ export default function AdminPage() {
         finally { setActionInProgress(null); setConfirmModal((p) => ({ ...p, open: false })); }
       }
     });
+  };
+
+  const handleEditPendingStory = (story: Story) => {
+    setEditingPendingStory(story);
+    setPendingEditForm({
+      title: story.title,
+      channel: story.channel,
+      narrator: story.narrator,
+      genre: story.genre,
+      writer: story.writer || '',
+      description: story.description || '',
+      thumbnailUrl: story.thumbnailUrl || '',
+      yearPublished: story.yearPublished ? String(story.yearPublished) : '',
+      youtubeUrl: story.youtubeUrl || '',
+      duration: story.duration || 0,
+      tags: story.tags || [],
+    });
+  };
+
+  const handleSavePendingEdit = async () => {
+    if (!editingPendingStory) return;
+    setSavingPendingEdit(true);
+    try {
+      const payload: Record<string, unknown> = {};
+      if (pendingEditForm.title) payload.title = pendingEditForm.title;
+      if (pendingEditForm.channel) payload.channel = pendingEditForm.channel;
+      if (pendingEditForm.narrator) payload.narrator = pendingEditForm.narrator;
+      if (pendingEditForm.genre) payload.genre = pendingEditForm.genre;
+      if (pendingEditForm.writer !== undefined) payload.writer = pendingEditForm.writer;
+      if (pendingEditForm.description !== undefined) payload.description = pendingEditForm.description;
+      if (pendingEditForm.thumbnailUrl !== undefined) payload.thumbnailUrl = pendingEditForm.thumbnailUrl;
+      if (pendingEditForm.yearPublished) payload.yearPublished = pendingEditForm.yearPublished;
+      if (pendingEditForm.youtubeUrl) payload.youtubeUrl = pendingEditForm.youtubeUrl;
+      if (pendingEditForm.duration) payload.duration = String(pendingEditForm.duration);
+      payload.tags = pendingEditForm.tags;
+      const { data } = await api.put(`/api/stories/${editingPendingStory._id}`, payload);
+      setSuccess(data.message || 'Story updated!');
+      setEditingPendingStory(null);
+      fetchPendingStories();
+    } catch (err) { setError(getErrorMessage(err) || 'Failed to update story'); }
+    finally { setSavingPendingEdit(false); }
   };
 
   const handlePromoteUser = async (targetUserId: string, username: string) => {
@@ -473,31 +518,93 @@ export default function AdminPage() {
         loadingPending ? <AppLoadingState message="Loading pending stories..." /> : pendingStories.length === 0 ? (
           <AppEmptyState title="All clear!" message="No pending story submissions waiting for approval." />
         ) : (
-          <Stack spacing={2}>
-            {pendingStories.map((story) => (
-              <Paper key={story._id} sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', gap: { xs: 1.5, sm: 2 }, alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', border: '1px solid', borderColor: 'divider' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={YOUTUBE_THUMBNAIL(story.youtubeId)} alt="" style={{ width: isMobile ? 120 : 160, aspectRatio: '16/9', objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
-                <Box sx={{ flex: 1, minWidth: isMobile ? 'calc(100% - 140px)' : 200 }}>
-                  <Chip label={story.channel} size="small" color="primary" variant="outlined" sx={{ mb: 0.5 }} />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{story.title}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Narrator: {story.narrator} &bull; Genre: {story.genre}{story.writer && <>&bull; Writer: {story.writer}</>}
-                  </Typography>
-                  {story.youtubeUrl && <Button size="small" href={story.youtubeUrl} target="_blank" startIcon={<OpenInNewIcon sx={{ fontSize: 12 }} />} sx={{ mt: 0.5, textTransform: 'none' }}>
-                    Play on YouTube
-                  </Button>}
-                </Box>
-                <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-                  <Button variant="contained" size="small" startIcon={<CheckIcon />} onClick={() => handleApproveStory(story._id)} disabled={actionInProgress !== null} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                    {actionInProgress === story._id ? 'Working...' : 'Approve'}
+          <Stack spacing={3}>
+            {editingPendingStory && (
+              <Paper sx={{ p: 3, border: '1px solid rgba(255,94,43,0.2)' }}>
+                <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>Editing: {editingPendingStory.title}</Typography>
+                  <Button size="small" onClick={() => setEditingPendingStory(null)}>Cancel</Button>
+                </Stack>
+                <Stack spacing={2.5}>
+                  <TextField fullWidth label="Title" value={pendingEditForm.title} onChange={(e) => setPendingEditForm((p) => ({ ...p, title: e.target.value }))} />
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                    <TextField select slotProps={{ select: { native: true } }} label="Channel" value={pendingEditForm.channel} onChange={(e) => setPendingEditForm((p) => ({ ...p, channel: e.target.value }))} sx={{ flex: 1 }}>
+                      {channelsList.map((ch) => <option key={ch} value={ch}>{ch}</option>)}
+                    </TextField>
+                    <TextField select slotProps={{ select: { native: true } }} label="Genre" value={pendingEditForm.genre} onChange={(e) => setPendingEditForm((p) => ({ ...p, genre: e.target.value }))} sx={{ flex: 1 }}>
+                      {genresList.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </TextField>
+                  </Stack>
+                  <TextField fullWidth label="Narrator(s)" value={pendingEditForm.narrator} onChange={(e) => setPendingEditForm((p) => ({ ...p, narrator: e.target.value }))} />
+                  <Autocomplete
+                    freeSolo
+                    options={writers.map((w) => w.name)}
+                    value={pendingEditForm.writer}
+                    onInputChange={(_, newValue) => setPendingEditForm((p) => ({ ...p, writer: newValue || '' }))}
+                    onChange={async (_, newValue) => {
+                      if (newValue && !writers.some((w) => w.name.toLowerCase() === newValue.toLowerCase())) {
+                        try { const { data } = await api.post('/api/writers', { name: newValue }); if (data.writer) setWriters((prev) => [...prev, data.writer].sort((a, b) => a.name.localeCompare(b.name))); } catch { /* already exists */ }
+                      }
+                    }}
+                    renderInput={(params) => <TextField {...params} label="Writer / Author" fullWidth />}
+                    fullWidth
+                  />
+                  <AppYearPicker value={pendingEditForm.yearPublished} onChange={(y) => setPendingEditForm((p) => ({ ...p, yearPublished: y === 'All' ? '' : y }))} label="Year Published" />
+                  {pendingEditForm.duration > 0 && (
+                    <Typography variant="caption" color="text.secondary">Duration: <strong>{formatDuration(pendingEditForm.duration)}</strong></Typography>
+                  )}
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Tags</Typography>
+                    <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+                      {SUGGESTED_TAGS.map((tag) => (
+                        <Chip key={tag} label={tag} size="small" variant={pendingEditForm.tags.includes(tag) ? 'filled' : 'outlined'} color={pendingEditForm.tags.includes(tag) ? 'primary' : 'default'}
+                          onClick={() => setPendingEditForm((p) => ({ ...p, tags: p.tags.includes(tag) ? p.tags.filter((t) => t !== tag) : p.tags.length < 10 ? [...p.tags, tag] : p.tags }))}
+                          sx={{ borderColor: 'divider' }} />
+                      ))}
+                    </Stack>
+                  </Box>
+                  <TextField fullWidth multiline rows={3} label="Description" value={pendingEditForm.description} onChange={(e) => setPendingEditForm((p) => ({ ...p, description: e.target.value }))} />
+                  <Button variant="contained" fullWidth size="large" onClick={handleSavePendingEdit} disabled={savingPendingEdit}>
+                    {savingPendingEdit ? 'Saving...' : 'Save Changes'}
                   </Button>
-                  <IconButton color="error" size="small" onClick={() => handleRejectStory(story._id)} disabled={actionInProgress !== null}>
-                    <DeleteOutlinedIcon fontSize="small" />
-                  </IconButton>
                 </Stack>
               </Paper>
-            ))}
+            )}
+
+            <Stack spacing={2}>
+              {pendingStories.map((story) => (
+                <Paper key={story._id} sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', gap: { xs: 1.5, sm: 2 }, alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', border: '1px solid', borderColor: 'divider' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={YOUTUBE_THUMBNAIL(story.youtubeId)} alt="" style={{ width: isMobile ? 120 : 160, aspectRatio: '16/9', objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
+                  <Box sx={{ flex: 1, minWidth: isMobile ? 'calc(100% - 140px)' : 200 }}>
+                    <Chip label={story.channel} size="small" color="primary" variant="outlined" sx={{ mb: 0.5 }} />
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{story.title}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Narrator: {story.narrator} &bull; Genre: {story.genre}{story.writer && <>&bull; Writer: {story.writer}</>}
+                    </Typography>
+                    {story.duration ? (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                        Duration: <strong>{formatDuration(story.duration)}</strong>
+                      </Typography>
+                    ) : null}
+                    {story.youtubeUrl && <Button size="small" href={story.youtubeUrl} target="_blank" startIcon={<OpenInNewIcon sx={{ fontSize: 12 }} />} sx={{ mt: 0.5, textTransform: 'none' }}>
+                      Play on YouTube
+                    </Button>}
+                  </Box>
+                  <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+                    <Button variant="outlined" size="small" startIcon={<EditOutlinedIcon sx={{ fontSize: 14 }} />} onClick={() => handleEditPendingStory(story)} disabled={actionInProgress !== null || editingPendingStory !== null} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                      Edit
+                    </Button>
+                    <Button variant="contained" size="small" startIcon={<CheckIcon />} onClick={() => handleApproveStory(story._id)} disabled={actionInProgress !== null} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                      {actionInProgress === story._id ? 'Working...' : 'Approve'}
+                    </Button>
+                    <IconButton color="error" size="small" onClick={() => handleRejectStory(story._id)} disabled={actionInProgress !== null}>
+                      <DeleteOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                </Paper>
+              ))}
+            </Stack>
           </Stack>
         )
       )}

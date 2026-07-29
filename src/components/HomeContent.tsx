@@ -56,7 +56,7 @@ export default function HomeContent({ initialStories, initialPagination, initial
   const [writer, setWriter] = useState('All');
   const [writers, setWriters] = useState<{ name: string }[]>([]);
   const [year, setYear] = useState('All');
-  const [sortBy, setSortBy] = useState<SortValue>('rating');
+  const [sortBy, setSortBy] = useState<SortValue>('newest');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const isInitialMount = useRef(true);
@@ -64,15 +64,6 @@ export default function HomeContent({ initialStories, initialPagination, initial
   const [listenIds, setListenIds] = useState<Set<string>>(new Set());
   const { user } = useAppSelector((s) => s.auth);
   const [spotlightIdx, setSpotlightIdx] = useState(0);
-  const [openSort, setOpenSort] = useState(false);
-
-  useEffect(() => {
-    if (!openSort) return;
-    const handleScroll = () => setOpenSort(false);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [openSort]);
-
   useEffect(() => {
     const count = initialSpotlightStories?.length || 0;
     if (count <= 1) return;
@@ -82,23 +73,23 @@ export default function HomeContent({ initialStories, initialPagination, initial
     return () => clearInterval(timer);
   }, [initialSpotlightStories.length]);
 
-  useEffect(() => { api.post('/api/stats/visit').catch(() => {}); }, []);
+  useEffect(() => { api.post('/api/stats/visit').catch(() => { }); }, []);
 
   useEffect(() => {
-    api.get('/api/writers').then(({ data }) => setWriters(data.writers || [])).catch(() => {});
+    api.get('/api/writers').then(({ data }) => setWriters(data.writers || [])).catch(() => { });
   }, []);
 
   useEffect(() => {
     api.get('/api/bookmarks/ids').then(({ data }) => {
       setBookmarkIds(new Set(data.bookmarkIds || []));
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   useEffect(() => {
     if (user) {
       api.get('/api/listens/ids').then(({ data }) => {
         setListenIds(new Set(data.listenIds || []));
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [user]);
 
@@ -121,18 +112,6 @@ export default function HomeContent({ initialStories, initialPagination, initial
 
   useEffect(() => {
     if (isInitialMount.current) { isInitialMount.current = false; return; }
-    // Skip the initial redundant fetch on load if all filters are at their defaults
-    if (
-      debouncedSearch === '' &&
-      channel === 'All' &&
-      genre === 'All' &&
-      writer === 'All' &&
-      year === 'All' &&
-      sortBy === 'rating' &&
-      currentPage === 1
-    ) {
-      return;
-    }
     fetchStories(currentPage);
   }, [fetchStories, currentPage, debouncedSearch, channel, genre, writer, year, sortBy]);
 
@@ -232,9 +211,6 @@ export default function HomeContent({ initialStories, initialPagination, initial
               <AppSortSelect
                 value={sortBy}
                 onChange={setSortBy}
-                open={openSort}
-                onOpen={() => setOpenSort(true)}
-                onClose={() => setOpenSort(false)}
                 sx={{ width: { xs: '100%', sm: 'auto' } }}
               />
             </Stack>

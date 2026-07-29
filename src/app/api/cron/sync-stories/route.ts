@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Story from '@/models/Story';
 import Writer from '@/models/Writer';
-import { fetchYouTubeMeta } from '@/lib/youtube-meta';
+import { fetchYouTubeMeta, fetchChannelVideos } from '@/lib/youtube-meta';
 import { toSearchable } from '@/lib/transliterate';
 import { YOUTUBE_THUMBNAIL } from '@/lib/constants';
 
@@ -12,43 +12,21 @@ const CHANNELS_SYNC = [
   {
     name: 'Sunday Suspense',
     channelId: 'UCmzj6hXrPZ_AwIZ8lgo-HuQ',
-    keywords: ['sunday suspense'],
   },
   {
     name: 'Goppo Mirer Thek',
     channelId: 'UCkvRE7QapbwT97rFj40u1Dw',
-    keywords: [],
-  }
+  },
 ];
 
 const COMMON_NARRATORS = ["Mir", "Deep", "Somak", "Jojo", "Sayak", "Agni", "Pushpal", "Anujoy", "Godhuli", "Sree", "Richard", "Papiya", "Sabyasachi"];
 const GENRES = ["Horror", "Mystery", "Thriller", "Drama", "Comedy", "Classic", "Adventure"];
-
-function parseRssFeed(xmlText: string) {
-  const entries: { videoId: string; title: string; published: string; description: string }[] = [];
-  const entryMatches = xmlText.matchAll(/<entry>([\s\S]*?)<\/entry>/g);
-  for (const match of entryMatches) {
-    const content = match[1];
-    const videoIdMatch = content.match(/<yt:videoId>([^<]+)<\/yt:videoId>/);
-    const titleMatch = content.match(/<title>([^<]+)<\/title>/);
-    const publishedMatch = content.match(/<published>([^<]+)<\/published>/);
-    const descMatch = content.match(/<media:description>([\s\S]*?)<\/media:description>/);
-    
-    if (videoIdMatch && titleMatch) {
-      entries.push({
-        videoId: videoIdMatch[1].trim(),
-        title: titleMatch[1].trim(),
-        published: publishedMatch ? publishedMatch[1].trim() : '',
-        description: descMatch ? descMatch[1].trim() : '',
-      });
-    }
-  }
-  return entries;
-}
+const MIN_DURATION_SECONDS = 1200;
+const MAX_VIDEOS_PER_CHANNEL = 50;
 
 function cleanTitle(title: string, channelName: string, writer: string, narratorsMatched: string[]): string {
   let cleaned = title;
-  
+
   const noise = [
     channelName,
     "Sunday Suspense",
@@ -61,26 +39,26 @@ function cleanTitle(title: string, channelName: string, writer: string, narrator
     "Full Story",
     "SundaySuspense"
   ];
-  
+
   for (const n of noise) {
     const reg = new RegExp(`\\b${n}\\b|${n}`, "gi");
     cleaned = cleaned.replace(reg, "");
   }
-  
+
   if (writer) {
     const reg = new RegExp(`\\bby\\s+${writer}\\b|\\b${writer}\\b|${writer}`, "gi");
     cleaned = cleaned.replace(reg, "");
   }
-  
+
   for (const n of narratorsMatched) {
     const reg = new RegExp(`\\b${n}\\b`, "gi");
     cleaned = cleaned.replace(reg, "");
   }
-  
+
   cleaned = cleaned.replace(/\|/g, " ");
   cleaned = cleaned.replace(/^[-\s:|]+|[-\s:|]+$/g, "");
   cleaned = cleaned.replace(/\s+/g, " ");
-  
+
   return cleaned.trim();
 }
 
@@ -88,7 +66,7 @@ export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('Authorization');
     const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
-    
+
     const isDev = process.env.NODE_ENV === 'development';
     if (!isDev && process.env.CRON_SECRET && authHeader !== expectedAuth) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -98,37 +76,24 @@ export async function GET(request: NextRequest) {
 
     const dbWriters = await Writer.find({}).select('name').lean();
     const registeredWriters = dbWriters
-      .map((w: any) => w.name.trim())
+      .map((w: { name: string }) => w.name.trim())
       .filter(Boolean)
       .sort((a, b) => b.length - a.length);
 
     const report: {
       channel: string;
       fetched: number;
-      imported: { title: string; youtubeId: string; writer: string; narrators: string }[];
+      imported: { title: string; youtubeId: string; writer: string; narrators: string; duration: string }[];
       skipped: string[];
     }[] = [];
 
     for (const chanConfig of CHANNELS_SYNC) {
-      const feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${chanConfig.channelId}`;
-      const res = await fetch(feedUrl, { cache: 'no-store' });
-      if (!res.ok) {
-        report.push({
-          channel: chanConfig.name,
-          fetched: 0,
-          imported: [],
-          skipped: [`Failed to fetch feed (status: ${res.status})`],
-        });
-        continue;
-      }
-
-      const xmlText = await res.text();
-      const entries = parseRssFeed(xmlText);
+      const entries = await fetchChannelVideos(chanConfig.channelId, MAX_VIDEOS_PER_CHANNEL);
 
       const channelReport = {
         channel: chanConfig.name,
         fetched: entries.length,
-        imported: [] as any[],
+        imported: [] as { title: string; youtubeId: string; writer: string; narrators: string; duration: string }[],
         skipped: [] as string[],
       };
 
@@ -141,18 +106,36 @@ export async function GET(request: NextRequest) {
 
         const titleLower = entry.title.toLowerCase();
 
-        // Channel-specific filters
         if (chanConfig.name === 'Sunday Suspense') {
-          // 2nd Channel check: only add if title contains 'sunday suspense'
-          if (!titleLower.includes('sunday suspense')) {
-            channelReport.skipped.push(`${entry.title} (did not contain 'sunday suspense' in title)`);
+          if (!titleLower.includes('sunday suspense') && !titleLower.includes('sunday suspense classics')) {
+            channelReport.skipped.push(`${entry.title} (did not contain 'sunday suspense' or 'sunday suspense classics' in title)`);
             continue;
           }
         }
-        // 1st Channel (Goppo Mirer Thek): no filter, take all.
+
+        let durationSec: number | undefined = entry.durationSeconds;
+        let yearPublished: number | undefined;
+
+        if (!durationSec || !yearPublished) {
+          try {
+            const meta = await fetchYouTubeMeta(entry.videoId);
+            if (!durationSec && meta.duration) durationSec = meta.duration;
+            if (!yearPublished && meta.year) yearPublished = meta.year;
+          } catch { /* ignore */ }
+        }
+
+        if (!yearPublished && entry.published) {
+          const y = parseInt(entry.published.slice(0, 4), 10);
+          if (y >= 1900 && y <= 2100) yearPublished = y;
+        }
+
+        if (!durationSec || durationSec < MIN_DURATION_SECONDS) {
+          const displayDuration = durationSec ? `${Math.floor(durationSec / 60)}m` : 'unknown';
+          channelReport.skipped.push(`${entry.title} (duration ${displayDuration} < 20 min)`);
+          continue;
+        }
 
         let matchedWriter = 'Unknown';
-        // Pass 1: Look for explicit "by <Writer Name>" pattern in title/description
         for (const writerName of registeredWriters) {
           const escaped = writerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           const byReg = new RegExp(`\\bby\\s+${escaped}\\b`, 'i');
@@ -162,15 +145,14 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        // Pass 2: Fallback to substring matching on normalized writer names (removing spaces/punctuation)
         if (matchedWriter === 'Unknown') {
           const cleanTitleStr = entry.title.toLowerCase().replace(/[^a-z0-9\u0980-\u09ff]/g, '');
           const cleanDescStr = entry.description.toLowerCase().replace(/[^a-z0-9\u0980-\u09ff]/g, '');
-          
+
           for (const writerName of registeredWriters) {
             const cleanWriter = writerName.toLowerCase().replace(/[^a-z0-9\u0980-\u09ff]/g, '');
             if (cleanWriter.length < 4) continue;
-            
+
             if (cleanTitleStr.includes(cleanWriter) || cleanDescStr.includes(cleanWriter)) {
               matchedWriter = writerName;
               break;
@@ -202,19 +184,6 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        let durationSec = undefined;
-        let yearPublished = undefined;
-        try {
-          const meta = await fetchYouTubeMeta(entry.videoId);
-          if (meta.duration) durationSec = meta.duration;
-          if (meta.year) yearPublished = meta.year;
-        } catch { }
-
-        if (!yearPublished) {
-          const y = parseInt(entry.published.slice(0, 4), 10);
-          if (y >= 1900 && y <= 2100) yearPublished = y;
-        }
-
         await Story.create({
           title: cleanStoryTitle,
           channel: chanConfig.name,
@@ -243,11 +212,13 @@ export async function GET(request: NextRequest) {
           }
         }
 
+        const displayDur = durationSec ? `${Math.floor(durationSec / 60)}m ${durationSec % 60}s` : 'N/A';
         channelReport.imported.push({
           title: cleanStoryTitle,
           youtubeId: entry.videoId,
           writer: matchedWriter,
           narrators: finalNarrators,
+          duration: displayDur,
         });
       }
 
@@ -256,11 +227,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Weekly story sync completed.',
+      message: 'Story sync completed.',
       report,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Story sync cron error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
   }
 }
