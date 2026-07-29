@@ -139,35 +139,35 @@ export default function HomeContent({ initialStories, initialPagination, initial
       <Box sx={{ background: 'linear-gradient(135deg, rgba(255,94,43,0.08) 0%, rgba(167,139,250,0.06) 100%)', py: { xs: 6, md: 10 }, borderBottom: '1px solid', borderColor: 'divider' }}>
         <div className="container">
           {featuredStory ? (
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={5} sx={{ alignItems: 'center' }}>
-              <Box sx={{ flex: 1, minHeight: { xs: 230, md: 310 } }}>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 3, md: 5 }} sx={{ alignItems: 'center' }}>
+              <Paper sx={{ width: { xs: '100%', md: 340 }, height: { xs: 180, sm: 220, md: 260 }, borderRadius: 3, overflow: 'hidden', position: 'relative', flexShrink: 0, order: { xs: 0, md: 1 } }}>
+                <Fade in={true} timeout={500} key={`img-${featuredStory._id}`}>
+                  <img src={featuredStory.thumbnailUrl || `https://img.youtube.com/vi/${featuredStory.youtubeId}/maxresdefault.jpg`} alt={featuredStory.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                </Fade>
+              </Paper>
+              <Box sx={{ flex: 1, minHeight: 200, width: '100%', order: { xs: 1, md: 0 } }}>
                 <Fade in={true} timeout={500} key={featuredStory._id}>
                   <div>
                     <Chip icon={<AutoAwesomeIcon sx={{ fontSize: 14 }} />} label="Spotlight Story" color="primary" size="small" sx={{ mb: 2 }} />
-                    <Typography variant="h3" sx={{ fontWeight: 800, fontSize: { xs: '1.8rem', md: '2.8rem' }, lineHeight: 1.15, mb: 2 }}>
+                    <Typography variant="h3" sx={{ fontWeight: 800, fontSize: { xs: '1.5rem', sm: '1.8rem', md: '2.8rem' }, lineHeight: 1.15, mb: 2 }}>
                       {featuredStory.title}
                     </Typography>
-                    <Typography sx={{ color: 'text.secondary', mb: 3, lineHeight: 1.6 }}>
+                    <Typography sx={{ color: 'text.secondary', mb: 3, lineHeight: 1.6, fontSize: { xs: '0.875rem', md: '1rem' } }}>
                       Narrated by <strong style={{ color: 'var(--text-primary)' }}>{featuredStory.narrator}</strong> on{' '}
                       <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{featuredStory.channel}</span>.
                       {featuredStory.description && ` ${featuredStory.description.slice(0, 180)}...`}
                     </Typography>
-                    <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3 }}>
+                    <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
                       <AppRatingDisplay rating={featuredStory.averageRating} count={featuredStory.ratingsCount} size={16} />
                       <Chip label={featuredStory.genre} size="small" variant="outlined" />
                       {featuredStory.writer && <Typography variant="body2" color="text.secondary">Written by {featuredStory.writer}</Typography>}
                     </Stack>
-                    <Button component={Link} href={`/story/${featuredStory._id}`} variant="contained" size="large" startIcon={<HeadphonesIcon />}>
+                    <Button component={Link} href={`/story/${featuredStory._id}`} variant="contained" size="large" startIcon={<HeadphonesIcon />} sx={{ width: { xs: '100%', md: 'auto' } }}>
                       Listen & Review
                     </Button>
                   </div>
                 </Fade>
               </Box>
-              <Paper sx={{ width: { xs: '100%', md: 340 }, height: { xs: 200, md: 260 }, borderRadius: 3, overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-                <Fade in={true} timeout={500} key={`img-${featuredStory._id}`}>
-                  <img src={featuredStory.thumbnailUrl || `https://img.youtube.com/vi/${featuredStory.youtubeId}/maxresdefault.jpg`} alt={featuredStory.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                </Fade>
-              </Paper>
             </Stack>
           ) : (
             <Box sx={{ textAlign: 'center', py: 4 }}>
