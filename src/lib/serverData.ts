@@ -31,7 +31,7 @@ export async function fetchStoriesServer(params: {
     genre = '',
     writer = '',
     year = '',
-    sortBy = 'rating',
+    sortBy = 'newest',
     page = 1,
     limit = DEFAULT_PAGE_LIMIT,
   } = params;
