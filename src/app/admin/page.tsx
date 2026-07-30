@@ -1089,6 +1089,9 @@ export default function AdminPage() {
                         {fb.userId?.username?.[0]?.toUpperCase() || '?'}
                       </Avatar>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{fb.userId?.username || 'Unknown'}</Typography>
+                      {fb.userId?.email && (
+                        <Typography variant="caption" color="text.secondary">({fb.userId.email})</Typography>
+                      )}
                       <Chip label={fb.category} size="small" variant="outlined" sx={{ textTransform: 'capitalize' }} />
                     </Stack>
                     <Typography variant="caption" color="text.secondary">{new Date(fb.createdAt).toLocaleString()}</Typography>
