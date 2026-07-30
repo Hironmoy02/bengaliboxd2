@@ -1338,6 +1338,12 @@ export default function ProfilePage() {
             <Button variant="contained" fullWidth onClick={handleSubmitFeedback} disabled={submittingFeedback} size={isMobile ? 'small' : 'medium'}>
               {submittingFeedback ? 'Submitting...' : 'Submit Feedback'}
             </Button>
+            <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', mt: 1 }}>
+              Want to discuss further? Reach us at{' '}
+              <a href={`mailto:${process.env.NEXT_PUBLIC_CONTACT_EMAIL}`} style={{ color: 'inherit', textDecoration: 'underline' }}>
+                {process.env.NEXT_PUBLIC_CONTACT_EMAIL}
+              </a>
+            </Typography>
           </Stack>
         </Paper>
       )}
