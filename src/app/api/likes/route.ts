@@ -5,6 +5,7 @@ import dbConnect from '@/lib/dbConnect';
 import Like from '@/models/Like';
 import Story from '@/models/Story';
 import { getUserFromSession } from '@/lib/auth';
+import { processUserGamificationAction } from '@/lib/gamification';
 
 export async function GET(request: NextRequest) {
   try {
@@ -89,7 +90,8 @@ export async function POST(request: NextRequest) {
     }
 
     const like = await Like.create({ userId, storyId });
-    return NextResponse.json({ message: 'Story liked', like }, { status: 201 });
+    const gamification = await processUserGamificationAction(userId, 'LISTEN', { storyId });
+    return NextResponse.json({ message: 'Story liked', like, gamification }, { status: 201 });
   } catch (error: unknown) {
     console.error('Create like error:', error);
     return NextResponse.json({ error: 'Failed to like story' }, { status: 500 });

@@ -193,6 +193,62 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
     return { ratingDistribution: dist, totalReviewsCount: pagination.total || reviews.length };
   }, [reviews, pagination.total]);
 
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    if (!story.youtubeId || !user) return;
+
+    let player: any = null;
+    let isCancelled = false;
+
+    const initPlayer = () => {
+      if (!iframeRef.current || isCancelled) return;
+      try {
+        player = new (window as any).YT.Player(iframeRef.current, {
+          events: {
+            onStateChange: (event: any) => {
+              // 0 is YT.PlayerState.ENDED
+              if (event.data === 0) {
+                api.post('/api/listens', { storyId: story._id, completed: true })
+                  .then(({ data }) => {
+                    setIsListened(true);
+                    setSuccess('🎉 আপনি সম্পূর্ণ গল্পটি শেষ করেছেন! +৩০ রসগোল্লা অর্জিত হয়েছে!');
+                    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+                    successTimerRef.current = setTimeout(() => setSuccess(''), 5000);
+                  })
+                  .catch(() => {});
+              }
+            },
+          },
+        });
+      } catch { /* ignore */ }
+    };
+
+    if (typeof (window as any).YT === 'undefined' || typeof (window as any).YT.Player === 'undefined') {
+      const existingScript = document.getElementById('yt-iframe-api-script');
+      if (!existingScript) {
+        const tag = document.createElement('script');
+        tag.id = 'yt-iframe-api-script';
+        tag.src = 'https://www.youtube.com/iframe_api';
+        document.body.appendChild(tag);
+      }
+      const prevCallback = (window as any).onYouTubeIframeAPIReady;
+      (window as any).onYouTubeIframeAPIReady = () => {
+        if (prevCallback) prevCallback();
+        initPlayer();
+      };
+    } else {
+      initPlayer();
+    }
+
+    return () => {
+      isCancelled = true;
+      if (player && player.destroy) {
+        try { player.destroy(); } catch {}
+      }
+    };
+  }, [story._id, user, story.youtubeId]);
+
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto', px: 2, py: 5, minHeight: '90vh' }}>
       <Button component={Link} href="/" variant="text" startIcon={<ArrowBackIcon />} sx={{ mb: 3, color: 'text.secondary' }}>
@@ -205,7 +261,8 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
           {/* Video */}
           <Paper sx={{ borderRadius: 2, overflow: 'hidden', mb: 3, aspectRatio: '16/9' }}>
             <iframe
-              src={`https://www.youtube.com/embed/${story.youtubeId}`}
+              ref={iframeRef}
+              src={`https://www.youtube.com/embed/${story.youtubeId}?enablejsapi=1`}
               title={story.title}
               style={{ width: '100%', height: '100%', border: 'none' }}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

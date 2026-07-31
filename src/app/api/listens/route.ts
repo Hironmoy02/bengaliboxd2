@@ -6,6 +6,7 @@ import Listen from '@/models/Listen';
 import Story from '@/models/Story';
 import Rating from '@/models/Rating';
 import { getUserFromSession } from '@/lib/auth';
+import { processUserGamificationAction } from '@/lib/gamification';
 
 export async function GET(request: NextRequest) {
   try {
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
     }
 
     await dbConnect();
-    const { storyId } = await request.json();
+    const { storyId, completed } = await request.json();
 
     if (!storyId) {
       return NextResponse.json({ error: 'Story ID is required' }, { status: 400 });
@@ -118,7 +119,14 @@ export async function POST(request: NextRequest) {
       { new: true, upsert: true }
     );
 
-    return NextResponse.json({ message: 'Story marked as listened', listen });
+    const actionType = completed ? 'FULL_LISTEN' : 'LISTEN';
+    const gamification = await processUserGamificationAction(user.id as string, actionType, {
+      storyId,
+      storyTitle: story.title,
+      storyWriter: story.writer,
+    });
+
+    return NextResponse.json({ message: 'Story marked as listened', listen, gamification });
   } catch (error: unknown) {
     console.error('Create listen error:', error);
     return NextResponse.json({ error: 'Failed to mark story as listened' }, { status: 500 });

@@ -52,6 +52,22 @@ const UserSchema = new Schema(
       type: Date,
       default: null,
     },
+    streak: {
+      current: { type: Number, default: 0 },
+      longest: { type: Number, default: 0 },
+      lastActiveDate: { type: String, default: null },
+    },
+    karmaPoints: {
+      type: Number,
+      default: 0,
+      index: true,
+    },
+    badges: [
+      {
+        badgeId: { type: String, required: true },
+        unlockedAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );
