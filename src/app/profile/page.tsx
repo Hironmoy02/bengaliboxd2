@@ -9,6 +9,7 @@ import { YOUTUBE_THUMBNAIL } from '@/lib/constants';
 import {
   Box, Typography, Button, Paper, Stack, TextField, Tab, Tabs, Avatar, Chip, Divider,
   IconButton, Tooltip, useMediaQuery, useTheme, MenuItem, Card, CardContent, Autocomplete,
+  LinearProgress,
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import HeadphonesIcon from '@mui/icons-material/Headphones';
@@ -23,7 +24,8 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import TimerIcon from '@mui/icons-material/Timer';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import MicIcon from '@mui/icons-material/Mic';
-import { AppAlert, AppLoadingState, AppEmptyState, AppStarRating, AppPagination, AppYearPicker } from '@/components/ui';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import { AppAlert, AppLoadingState, AppEmptyState, AppStarRating, AppPagination, AppYearPicker, StreakFlame, BadgeCard } from '@/components/ui';
 
 function getErrorMessage(err: unknown): string { return err instanceof Error ? err.message : 'An error occurred'; }
 
@@ -41,6 +43,8 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stories, setStories] = useState<Story[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
+  const [gamificationProfile, setGamificationProfile] = useState<any>(null);
+  const [badgeCategoryFilter, setBadgeCategoryFilter] = useState<'all' | 'listening' | 'community' | 'streak'>('all');
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -308,6 +312,12 @@ export default function ProfilePage() {
     api.get('/api/user/stats').then(({ data }) => setUserStats(data.stats)).catch(() => {}).finally(() => setLoadingStats(false));
 
     api.get('/api/writers').then(({ data }) => setWritersList(data.writers || [])).catch(() => {});
+    api.get('/api/user/gamification').then(({ data }) => setGamificationProfile(data)).catch(() => {});
+
+    const handleGamifyUpdate = () => {
+      api.get('/api/user/gamification').then(({ data }) => setGamificationProfile(data)).catch(() => {});
+    };
+    window.addEventListener('gamificationUpdated', handleGamifyUpdate);
 
     // Fetch initial list of stories from database
     api.get('/api/stories', { params: { limit: 100 } })
@@ -317,6 +327,10 @@ export default function ProfilePage() {
         cacheStories(list);
       })
       .catch(() => {});
+
+    return () => {
+      window.removeEventListener('gamificationUpdated', handleGamifyUpdate);
+    };
   }, [user]);
 
   useEffect(() => {
@@ -433,6 +447,35 @@ export default function ProfilePage() {
             <Typography variant="body2" color="text.secondary">
               {profile?.bio ? (profile.bio.length > 50 ? `${profile.bio.slice(0, 50)}...` : profile.bio) : 'No bio written yet.'}
             </Typography>
+            {gamificationProfile && (
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mt: 1, flexWrap: 'wrap', gap: 1 }}>
+                <Chip
+                  icon={<span style={{ fontSize: 14 }}>{gamificationProfile.currentLevel?.icon}</span>}
+                  label={gamificationProfile.currentLevel?.nameBn}
+                  size="small"
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: '0.75rem',
+                    bgcolor: `${gamificationProfile.currentLevel?.color}22`,
+                    color: gamificationProfile.currentLevel?.color,
+                    border: '1px solid',
+                    borderColor: `${gamificationProfile.currentLevel?.color}66`,
+                  }}
+                />
+                <Chip
+                  icon={<AutoAwesomeIcon sx={{ fontSize: '14px !important', color: 'primary.main' }} />}
+                  label={`${gamificationProfile.karmaPoints || 0} রসগোল্লা`}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontWeight: 700, fontSize: '0.75rem' }}
+                />
+                <StreakFlame
+                  currentStreak={gamificationProfile.streak?.current || 0}
+                  longestStreak={gamificationProfile.streak?.longest || 0}
+                  size="small"
+                />
+              </Stack>
+            )}
           </Box>
         </Stack>
       </Stack>
@@ -467,6 +510,7 @@ export default function ProfilePage() {
           <Tab icon={<FavoriteIcon />} iconPosition="start" label={isMobile ? undefined : `Liked (${likedStories.length})`} />
           <Tab icon={<BookmarkIcon />} iconPosition="start" label={isMobile ? undefined : "Bookmarks"} />
           <Tab icon={<BarChartIcon />} iconPosition="start" label={isMobile ? undefined : "Stats"} />
+          <Tab icon={<EmojiEventsIcon />} iconPosition="start" label={isMobile ? undefined : `Badges (${gamificationProfile?.unlockedCount || 0}/${gamificationProfile?.totalBadgesCount || 11})`} />
           <Tab icon={<FeedbackIcon />} iconPosition="start" label={isMobile ? undefined : "Feedback"} />
         </Tabs>
       )}
@@ -1320,8 +1364,148 @@ export default function ProfilePage() {
         </Box>
       )}
 
-      {/* Tab 7: Feedback */}
-      {activeTab === 7 && (
+      {/* Tab 7: Badges & Medals */}
+      {activeTab === 7 && !isEditing && (
+        <Box>
+          {/* Level Rank Banner */}
+          {gamificationProfile && (
+            <Paper
+              sx={{
+                p: { xs: 2.5, sm: 3.5 },
+                borderRadius: 3,
+                mb: 4,
+                background: 'linear-gradient(135deg, rgba(24,24,27,0.95) 0%, rgba(39,39,42,0.95) 100%)',
+                border: '1px solid',
+                borderColor: 'divider',
+              }}
+            >
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <Stack direction="row" spacing={2.5} sx={{ alignItems: 'center' }}>
+                  <Box
+                    sx={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: '50%',
+                      bgcolor: 'action.hover',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '2rem',
+                      border: '2px solid',
+                      borderColor: gamificationProfile.currentLevel?.color || '#ffd700',
+                      boxShadow: `0 0 16px ${gamificationProfile.currentLevel?.color || '#ffd700'}44`,
+                    }}
+                  >
+                    {gamificationProfile.currentLevel?.icon}
+                  </Box>
+                  <Box>
+                    <Typography variant="overline" sx={{ letterSpacing: 1.5, fontWeight: 700, color: 'text.secondary' }}>
+                      বর্তমান কথা Rank
+                    </Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 800, color: gamificationProfile.currentLevel?.color || 'text.primary' }}>
+                      {gamificationProfile.currentLevel?.nameBn}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      মোট অর্জন: <strong>{gamificationProfile.karmaPoints}</strong> রসগোল্লা
+                    </Typography>
+                  </Box>
+                </Stack>
+
+                <StreakFlame
+                  currentStreak={gamificationProfile.streak?.current || 0}
+                  longestStreak={gamificationProfile.streak?.longest || 0}
+                  size="medium"
+                />
+              </Stack>
+
+              {/* Progress to Next Level */}
+              {gamificationProfile.nextLevel ? (
+                <Box sx={{ mt: 3 }}>
+                  <Stack direction="row" sx={{ justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      পরবর্তী Rank: {gamificationProfile.nextLevel.icon} <strong>{gamificationProfile.nextLevel.nameBn}</strong>
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                      {gamificationProfile.progressPercent}% ({gamificationProfile.nextLevel.minPoints - gamificationProfile.karmaPoints} পয়েন্ট বাকি)
+                    </Typography>
+                  </Stack>
+                  <LinearProgress
+                    variant="determinate"
+                    value={gamificationProfile.progressPercent}
+                    sx={{
+                      height: 8,
+                      borderRadius: 4,
+                      bgcolor: 'action.hover',
+                      '& .MuiLinearProgress-bar': {
+                        borderRadius: 4,
+                        bgcolor: gamificationProfile.nextLevel.color,
+                      },
+                    }}
+                  />
+                </Box>
+              ) : (
+                <Typography variant="caption" sx={{ display: 'block', mt: 2, color: 'primary.main', fontWeight: 700 }}>
+                  💎 Maximum Rank Achieved! You are a legendary Maha Shrota.
+                </Typography>
+              )}
+            </Paper>
+          )}
+
+          {/* Badges Filter & Header */}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between', alignItems: { sm: 'center' }, mb: 3 }}>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 800 }}>
+                Achievements & Badges
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Unlocked {gamificationProfile?.unlockedCount || 0} of {gamificationProfile?.totalBadgesCount || 11} badges
+              </Typography>
+            </Box>
+
+            <Stack direction="row" spacing={1} sx={{ overflowX: 'auto', pb: 0.5 }}>
+              {[
+                { id: 'all', label: 'All Badges' },
+                { id: 'listening', label: '🎧 Listening' },
+                { id: 'community', label: '✍️ Community' },
+                { id: 'streak', label: '🔥 Streak' },
+              ].map((cat) => (
+                <Chip
+                  key={cat.id}
+                  label={cat.label}
+                  clickable
+                  color={badgeCategoryFilter === cat.id ? 'primary' : 'default'}
+                  variant={badgeCategoryFilter === cat.id ? 'filled' : 'outlined'}
+                  onClick={() => setBadgeCategoryFilter(cat.id as any)}
+                  size="small"
+                  sx={{ fontWeight: 600 }}
+                />
+              ))}
+            </Stack>
+          </Stack>
+
+          {/* Badges Grid */}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: 'repeat(2, 1fr)',
+                sm: 'repeat(3, 1fr)',
+                md: 'repeat(4, 1fr)',
+              },
+              gap: 2.5,
+            }}
+          >
+            {gamificationProfile?.badges
+              ?.filter((b: any) => badgeCategoryFilter === 'all' || b.category === badgeCategoryFilter)
+              .map((badge: any) => (
+                <BadgeCard key={badge.id} {...badge} />
+              ))}
+          </Box>
+        </Box>
+      )}
+
+      {/* Tab 8: Feedback */}
+      {activeTab === 8 && (
         <Paper sx={{ p: { xs: 2, sm: 3 }, maxWidth: 600, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Share Your Feedback</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>

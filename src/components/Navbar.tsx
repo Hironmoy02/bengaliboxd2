@@ -25,6 +25,9 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import MenuIcon from '@mui/icons-material/Menu';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import api from '@/lib/axios';
+import { StreakFlame } from '@/components/ui';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -35,6 +38,38 @@ export default function Navbar() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileAnchor, setMobileAnchor] = useState<null | HTMLElement>(null);
   const [profileAnchor, setProfileAnchor] = useState<null | HTMLElement>(null);
+  const [streak, setStreak] = useState<{ current: number; longest: number }>({ current: 0, longest: 0 });
+  const [karmaPoints, setKarmaPoints] = useState<number>(0);
+
+  const fetchGamification = React.useCallback(() => {
+    if (user) {
+      api.get('/api/user/gamification')
+        .then(({ data }) => {
+          if (data.streak) setStreak(data.streak);
+          if (typeof data.karmaPoints === 'number') setKarmaPoints(data.karmaPoints);
+        })
+        .catch(() => {});
+    }
+  }, [user]);
+
+  React.useEffect(() => {
+    fetchGamification();
+
+    const handleCustomUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail) {
+        if (customEvent.detail.streak) setStreak(customEvent.detail.streak);
+        if (typeof customEvent.detail.karmaPoints === 'number') setKarmaPoints(customEvent.detail.karmaPoints);
+      } else {
+        fetchGamification();
+      }
+    };
+
+    window.addEventListener('gamificationUpdated', handleCustomUpdate);
+    return () => {
+      window.removeEventListener('gamificationUpdated', handleCustomUpdate);
+    };
+  }, [user, pathname, fetchGamification]);
 
   const handleLogout = () => {
     setProfileAnchor(null);
@@ -251,12 +286,13 @@ export default function Navbar() {
 
             {user ? (
               <>
+                <StreakFlame currentStreak={streak.current} longestStreak={streak.longest} size="small" />
                 <Typography
                   component={Link}
                   href="/profile"
                   sx={{
                     color: pathname === '/profile' ? 'primary.main' : 'text.secondary',
-                    fontWeight: 400,
+                    fontWeight: 500,
                     fontSize: '12px',
                     letterSpacing: '-0.12px',
                     textDecoration: 'none',
@@ -269,6 +305,26 @@ export default function Navbar() {
                 >
                   <PersonIcon sx={{ fontSize: 14 }} />
                   {user.username}
+                  <Box
+                    component="span"
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.3,
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      color: 'primary.main',
+                      bgcolor: 'action.hover',
+                      px: 0.8,
+                      py: '1px',
+                      borderRadius: '9999px',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                    }}
+                  >
+                    <AutoAwesomeIcon sx={{ fontSize: 10, color: 'primary.main' }} />
+                    {karmaPoints}
+                  </Box>
                 </Typography>
                 <IconButton
                   onClick={handleLogout}

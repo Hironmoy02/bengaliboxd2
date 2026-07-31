@@ -15,3 +15,7 @@ export { default as AppStarRating } from './AppStarRating';
 export { default as AppRatingDisplay } from './AppRatingDisplay';
 export { default as AppThemeProvider } from './ThemeProvider';
 export { default as AppYearPicker } from './YearPicker';
+export { default as StreakFlame } from './StreakFlame';
+export { default as BadgeCard } from './BadgeCard';
+export { default as BadgeUnlockToast } from './BadgeUnlockToast';
+

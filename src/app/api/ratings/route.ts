@@ -6,6 +6,7 @@ import Rating from '@/models/Rating';
 import Story from '@/models/Story';
 import Listen from '@/models/Listen';
 import { getUserFromSession } from '@/lib/auth';
+import { processUserGamificationAction } from '@/lib/gamification';
 
 export async function POST(request: NextRequest) {
   try {
@@ -100,10 +101,18 @@ export async function POST(request: NextRequest) {
       { upsert: true, new: true }
     ).catch(() => {});
 
+    const gamification = await processUserGamificationAction(user.id as string, 'REVIEW', {
+      storyId,
+      reviewLength: reviewText ? reviewText.trim().length : 0,
+      storyTitle: storyExists.title,
+      storyWriter: storyExists.writer,
+    });
+
     return NextResponse.json({
       message: 'Rating submitted successfully',
       rating,
       stats: { averageRating, ratingsCount },
+      gamification,
     });
   } catch (error: unknown) {
     console.error('Submit rating error:', error);
