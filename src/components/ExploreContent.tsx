@@ -14,6 +14,7 @@ import {
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import CollectionsIcon from '@mui/icons-material/Collections';
 import StarIcon from '@mui/icons-material/Star';
 import { formatDuration } from '@/lib/constants';
 import type { CuratorConfig } from '@/lib/explore-picks';
@@ -37,8 +38,18 @@ interface CuratorWithStories extends CuratorConfig {
   stories: Story[];
 }
 
+interface CollectionData {
+  _id: string;
+  name: string;
+  slug: string;
+  description: string;
+  gradient: string;
+  stories: Story[];
+}
+
 interface ExploreContentProps {
   curators: CuratorWithStories[];
+  collections?: CollectionData[];
 }
 
 function StoryCard({ story, index }: { story: Story; index: number }) {
@@ -312,7 +323,7 @@ function CuratorSection({ curator, index }: { curator: CuratorWithStories; index
   );
 }
 
-export default function ExploreContent({ curators }: ExploreContentProps) {
+export default function ExploreContent({ curators, collections = [] }: ExploreContentProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
@@ -379,6 +390,103 @@ export default function ExploreContent({ curators }: ExploreContentProps) {
           <CuratorSection key={curator.key} curator={curator} index={i} />
         ))}
       </Box>
+
+      {/* Collections section */}
+      {collections.length > 0 && (
+        <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 4 }, mt: { xs: 6, md: 8 } }}>
+          <Stack direction="row" spacing={1} sx={{ mb: 1.5, alignItems: 'center' }}>
+            <CollectionsIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+            <Typography
+              sx={{
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                color: 'text.secondary',
+              }}
+            >
+              Collections
+            </Typography>
+          </Stack>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              fontSize: { xs: '1.25rem', md: '1.75rem' },
+              mb: 3,
+            }}
+          >
+            Browse by Collection
+          </Typography>
+
+          <Stack
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: 'repeat(2, 1fr)',
+                md: 'repeat(3, 1fr)',
+              },
+              gap: { xs: 2, md: 3 },
+            }}
+          >
+            {collections.map((col) => (
+              <Box
+                key={col._id}
+                component={Link}
+                href={`/explore/collection/${col.slug}`}
+                sx={{
+                  textDecoration: 'none',
+                  display: 'block',
+                  borderRadius: 3,
+                  overflow: 'hidden',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  transition: 'all 0.25s ease',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: isDark
+                      ? '0 12px 40px rgba(0,0,0,0.5)'
+                      : '0 12px 40px rgba(0,0,0,0.12)',
+                    borderColor: 'primary.main',
+                  },
+                }}
+              >
+                <Box
+                  sx={{
+                    background: col.gradient,
+                    p: { xs: 2.5, md: 3 },
+                    minHeight: 100,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'flex-end',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Box sx={{ position: 'absolute', top: -15, right: -15, width: 70, height: 70, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.1)' }} />
+                  <Typography sx={{ color: '#fff', fontSize: { xs: '1.1rem', md: '1.25rem' }, fontWeight: 800, lineHeight: 1.2, position: 'relative', zIndex: 1 }}>
+                    {col.name}
+                  </Typography>
+                </Box>
+                <Box sx={{ p: 2 }}>
+                  {col.description && (
+                    <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', mb: 1.5 }}>
+                      {col.description}
+                    </Typography>
+                  )}
+                  <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                    <CollectionsIcon sx={{ fontSize: 14, color: 'primary.main' }} />
+                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'text.primary' }}>
+                      {col.stories.length} {col.stories.length === 1 ? 'story' : 'stories'}
+                    </Typography>
+                  </Stack>
+                </Box>
+              </Box>
+            ))}
+          </Stack>
+        </Box>
+      )}
     </Box>
   );
 }

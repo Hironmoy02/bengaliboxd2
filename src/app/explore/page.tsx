@@ -1,5 +1,6 @@
 import dbConnect from '@/lib/dbConnect';
 import Story from '@/models/Story';
+import Collection from '@/models/Collection';
 import mongoose from 'mongoose';
 import { MONTHLY_PICKS } from '@/lib/explore-picks';
 import ExploreContent from '@/components/ExploreContent';
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Explore | Bengaliboxd',
-  description: 'Curated monthly story picks by our developers — handpicked Bengali audio stories to discover.',
+  description: 'Curated monthly story picks and collections — handpicked Bengali audio stories to discover.',
 };
 
 /** Deterministic pseudo-random seeded by YYYY-MM string */
@@ -37,7 +38,6 @@ export default async function ExplorePage() {
 
   const curators = await Promise.all(
     MONTHLY_PICKS.map(async (curator) => {
-      // Fetch pinned stories in declared order
       const pinnedObjectIds = curator.pinnedIds
         .filter((id) => mongoose.Types.ObjectId.isValid(id))
         .map((id) => new mongoose.Types.ObjectId(id));
@@ -51,7 +51,6 @@ export default async function ExplorePage() {
         .map((id) => pinnedMap.get(id))
         .filter(Boolean) as typeof allStories;
 
-      // Random pool — exclude all pinned IDs site-wide
       const excludeSet = new Set(allPinnedIds);
       const pool = allStories.filter((s) => !excludeSet.has(s._id.toString()));
 
@@ -71,5 +70,33 @@ export default async function ExplorePage() {
     })
   );
 
-  return <ExploreContent curators={curators} />;
+  const dbCollections = await Collection.find({})
+    .select('name slug description gradient storyIds')
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const collections = await Promise.all(
+    dbCollections.map(async (col) => {
+      const storyObjectIds = (col.storyIds || [])
+        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+        .map((id) => new mongoose.Types.ObjectId(id));
+
+      const stories = storyObjectIds.length > 0
+        ? await Story.find({ _id: { $in: storyObjectIds }, approved: true })
+            .select('_id title channel narrator genre writer youtubeId thumbnailUrl averageRating ratingsCount duration yearPublished')
+            .lean()
+        : [];
+
+      return {
+        _id: col._id.toString(),
+        name: col.name,
+        slug: col.slug,
+        description: col.description,
+        gradient: col.gradient,
+        stories: JSON.parse(JSON.stringify(stories)),
+      };
+    })
+  );
+
+  return <ExploreContent curators={curators} collections={collections} />;
 }

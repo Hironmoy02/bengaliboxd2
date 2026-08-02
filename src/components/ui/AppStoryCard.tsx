@@ -25,6 +25,7 @@ interface StoryCardProps {
   isListened?: boolean;
   duration?: number;
   onBookmarkToggle?: (storyId: string) => void;
+  adminActions?: React.ReactNode;
 }
 
 export default function StoryCard({
@@ -41,6 +42,7 @@ export default function StoryCard({
   isListened = false,
   duration,
   onBookmarkToggle,
+  adminActions,
 }: StoryCardProps) {
   return (
     <Box
@@ -60,6 +62,7 @@ export default function StoryCard({
         },
       }}
     >
+      {adminActions}
       {onBookmarkToggle && (
         <Tooltip title={isBookmarked ? 'Remove bookmark' : 'Bookmark for later'}>
           <IconButton

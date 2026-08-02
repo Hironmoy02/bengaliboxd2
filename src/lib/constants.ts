@@ -7,7 +7,7 @@ export const CHANNELS = [
 ] as const;
 
 export const CHANNEL_KEYWORDS: Record<string, string[]> = {
-  'Sunday Suspense': ['suspense', 'mirchi'],
+  'Sunday Suspense': ['suspense', 'mirchi', 'friday classics', 'classics'],
   'Goppo Mirer Thek': ['thek', 'mir afsar'],
   'Midnight Horror Station': ['midnight', 'station'],
   'Kahon': ['kahon'],
@@ -74,4 +74,4 @@ export function formatDuration(totalSeconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export const ADMIN_TAB_LABELS = ['Analytics', 'Approvals', 'Users', 'Add Story', 'Edit Story', 'Bulk Upload', 'Settings', 'Feedback'] as const;
+export const ADMIN_TAB_LABELS = ['Analytics', 'Approvals', 'Users', 'Add Story', 'Edit Story', 'Bulk Upload', 'Collections', 'Settings', 'Feedback'] as const;

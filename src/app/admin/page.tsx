@@ -103,6 +103,19 @@ export default function AdminPage() {
   const [migrateUploading, setMigrateUploading] = useState(false);
   const [migrateResults, setMigrateResults] = useState<{ total: number; created: number; updated: number; unchanged: number; failed: number; results: { row: number; title: string; status: 'created' | 'updated' | 'unchanged' | 'failed'; error?: string }[] } | null>(null);
 
+  interface CollectionItem { _id: string; name: string; slug: string; description: string; gradient: string; storyIds: string[]; storyCount: number; createdAt: string; }
+  interface CollectionStory { _id: string; title: string; channel: string; narrator: string; writer?: string; youtubeId: string; thumbnailUrl?: string; averageRating?: number; ratingsCount?: number; duration?: number; isInCollection: boolean; }
+  const [collections, setCollections] = useState<CollectionItem[]>([]);
+  const [loadingCollections, setLoadingCollections] = useState(true);
+  const [collectionName, setCollectionName] = useState('');
+  const [collectionDesc, setCollectionDesc] = useState('');
+  const [collectionGradient, setCollectionGradient] = useState('linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)');
+  const [creatingCollection, setCreatingCollection] = useState(false);
+  const [selectedCollection, setSelectedCollection] = useState<CollectionItem | null>(null);
+  const [collectionStorySearch, setCollectionStorySearch] = useState('');
+  const [collectionStories, setCollectionStories] = useState<CollectionStory[]>([]);
+  const [loadingCollectionStories, setLoadingCollectionStories] = useState(false);
+
   const channelsList = [...CHANNELS];
   const genresList = [...GENRES];
 
@@ -163,18 +176,85 @@ export default function AdminPage() {
     finally { setLoadingFeedback(false); }
   };
 
+  const fetchCollections = async () => {
+    if (!user || user.role !== 'admin') return;
+    setLoadingCollections(true);
+    try {
+      const { data } = await api.get('/api/collections');
+      setCollections(data.collections || []);
+    } catch { console.error('Failed to load collections'); }
+    finally { setLoadingCollections(false); }
+  };
+
+  const handleCreateCollection = async () => {
+    if (!collectionName.trim()) return;
+    setCreatingCollection(true);
+    try {
+      const { data } = await api.post('/api/collections', { name: collectionName, description: collectionDesc, gradient: collectionGradient });
+      setSuccess(data.message || 'Collection created!');
+      setCollectionName('');
+      setCollectionDesc('');
+      setCollectionGradient('linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)');
+      fetchCollections();
+    } catch (err) { setError(getErrorMessage(err) || 'Failed to create collection'); }
+    finally { setCreatingCollection(false); }
+  };
+
+  const handleDeleteCollection = async (collectionId: string) => {
+    setConfirmModal({
+      open: true, title: 'Delete Collection', message: 'This will permanently delete this collection.', severity: 'error', action: async () => {
+        setError(''); setSuccess(''); setActionInProgress(collectionId);
+        try {
+          await api.delete(`/api/collections/${collectionId}`);
+          setSuccess('Collection deleted');
+          if (selectedCollection?._id === collectionId) setSelectedCollection(null);
+          fetchCollections();
+        } catch (err) { setError(getErrorMessage(err) || 'Failed to delete collection'); }
+        finally { setActionInProgress(null); setConfirmModal((p) => ({ ...p, open: false })); }
+      }
+    });
+  };
+
+  const fetchCollectionStories = async (collectionId: string, search: string) => {
+    setLoadingCollectionStories(true);
+    try {
+      const params: Record<string, string> = {};
+      if (search) params.search = search;
+      const { data } = await api.get(`/api/collections/${collectionId}/stories`, { params });
+      setCollectionStories(data.stories || []);
+    } catch { console.error('Failed to load collection stories'); }
+    finally { setLoadingCollectionStories(false); }
+  };
+
+  const handleAddStoryToCollection = async (collectionId: string, storyId: string) => {
+    try {
+      await api.post(`/api/collections/${collectionId}/stories`, { storyId });
+      fetchCollectionStories(collectionId, collectionStorySearch);
+      fetchCollections();
+    } catch (err) { setError(getErrorMessage(err) || 'Failed to add story'); }
+  };
+
+  const handleRemoveStoryFromCollection = async (collectionId: string, storyId: string) => {
+    try {
+      await api.delete(`/api/collections/${collectionId}/stories`, { data: { storyId } });
+      fetchCollectionStories(collectionId, collectionStorySearch);
+      fetchCollections();
+    } catch (err) { setError(getErrorMessage(err) || 'Failed to remove story'); }
+  };
+
   useEffect(() => {
     if (!user || user.role !== 'admin') return;
     if (activeTab === 0) fetchStats();
     if (activeTab === 1) fetchPendingStories();
     if (activeTab === 2) fetchUsers();
     if (activeTab === 4) fetchAllStories();
-    if (activeTab === 6) fetchSettings();
+    if (activeTab === 6) fetchCollections();
+    if (activeTab === 7) fetchSettings();
   }, [activeTab, user]);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') return;
-    if (activeTab === 7) fetchFeedbacks();
+    if (activeTab === 8) fetchFeedbacks();
   }, [activeTab, user, feedbackPage, feedbackStatusFilter]);
 
   useEffect(() => { if (user && user.role !== 'admin') { Promise.resolve().then(() => setActiveTab(3)); } }, [user]);
@@ -1035,8 +1115,124 @@ export default function AdminPage() {
         </Stack>
       )}
 
-      {/* Tab 6: Settings */}
+      {/* Tab 6: Collections */}
       {isAdmin && activeTab === 6 && (
+        <Stack spacing={3}>
+          <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>Create Collection</Typography>
+            </Stack>
+            <Divider sx={{ mb: 2 }} />
+            <Stack spacing={2}>
+              <TextField fullWidth size="small" label="Collection Name" placeholder="e.g. Best of Feluda" value={collectionName} onChange={(e) => setCollectionName(e.target.value)} />
+              <TextField fullWidth size="small" label="Description (optional)" placeholder="Short description..." value={collectionDesc} onChange={(e) => setCollectionDesc(e.target.value)} />
+              <TextField fullWidth size="small" label="Gradient CSS" placeholder="linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)" value={collectionGradient} onChange={(e) => setCollectionGradient(e.target.value)} />
+              <Button variant="contained" size="large" onClick={handleCreateCollection} disabled={creatingCollection || !collectionName.trim()} sx={{ maxWidth: 200 }}>
+                {creatingCollection ? 'Creating...' : 'Create Collection'}
+              </Button>
+            </Stack>
+          </Paper>
+
+          <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
+            <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>All Collections</Typography>
+            </Stack>
+            {loadingCollections ? <AppLoadingState message="Loading collections..." /> : collections.length === 0 ? (
+              <AppEmptyState title="No collections yet" message="Create your first collection above." />
+            ) : (
+              <Stack spacing={2}>
+                {collections.map((col) => (
+                  <Paper
+                    key={col._id}
+                    sx={{
+                      p: 2,
+                      display: 'flex',
+                      gap: 2,
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                      border: '1px solid',
+                      borderColor: selectedCollection?._id === col._id ? 'primary.main' : 'divider',
+                      '&:hover': { borderColor: 'rgba(255,94,43,0.4)' },
+                    }}
+                    onClick={() => {
+                      setSelectedCollection(col);
+                      setCollectionStorySearch('');
+                      fetchCollectionStories(col._id, '');
+                    }}
+                  >
+                    <Box sx={{ width: 48, height: 48, borderRadius: 2, background: col.gradient, flexShrink: 0 }} />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{col.name}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+                        {col.storyCount} {col.storyCount === 1 ? 'story' : 'stories'}
+                        {col.description && <> &bull; {col.description}</>}
+                      </Typography>
+                    </Box>
+                    <IconButton
+                      color="error"
+                      size="small"
+                      onClick={(e) => { e.stopPropagation(); handleDeleteCollection(col._id); }}
+                      disabled={actionInProgress === col._id}
+                    >
+                      <DeleteOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </Paper>
+                ))}
+              </Stack>
+            )}
+          </Paper>
+
+          {selectedCollection && (
+            <Paper sx={{ p: 3, border: '1px solid rgba(255,94,43,0.2)' }}>
+              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>Manage: {selectedCollection.name}</Typography>
+                <Button size="small" onClick={() => setSelectedCollection(null)}>Close</Button>
+              </Stack>
+              <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Search stories by title, narrator, writer..."
+                  value={collectionStorySearch}
+                  onChange={(e) => setCollectionStorySearch(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') fetchCollectionStories(selectedCollection._id, collectionStorySearch); }}
+                />
+                <Button variant="contained" onClick={() => fetchCollectionStories(selectedCollection._id, collectionStorySearch)} disabled={loadingCollectionStories}>
+                  {loadingCollectionStories ? 'Searching...' : 'Search'}
+                </Button>
+              </Stack>
+              {loadingCollectionStories ? <AppLoadingState message="Searching stories..." /> : collectionStories.length === 0 ? (
+                <AppEmptyState title="No stories found" message="Try a different search term." />
+              ) : (
+                <Stack spacing={1}>
+                  {collectionStories.map((story) => (
+                    <Paper key={story._id} sx={{ p: 1.5, display: 'flex', gap: 1.5, alignItems: 'center', border: '1px solid', borderColor: 'divider' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={story.thumbnailUrl || YOUTUBE_THUMBNAIL(story.youtubeId)} alt="" style={{ width: 80, aspectRatio: '16/9', objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>{story.title}</Typography>
+                        <Typography variant="caption" color="text.secondary">{story.channel} &bull; {story.narrator}</Typography>
+                      </Box>
+                      {story.isInCollection ? (
+                        <Button size="small" variant="outlined" color="error" onClick={() => handleRemoveStoryFromCollection(selectedCollection._id, story._id)}>
+                          Remove
+                        </Button>
+                      ) : (
+                        <Button size="small" variant="contained" onClick={() => handleAddStoryToCollection(selectedCollection._id, story._id)}>
+                          Add
+                        </Button>
+                      )}
+                    </Paper>
+                  ))}
+                </Stack>
+              )}
+            </Paper>
+          )}
+        </Stack>
+      )}
+
+      {/* Tab 7: Settings */}
+      {isAdmin && activeTab === 7 && (
         loadingSettings ? <AppLoadingState message="Loading settings..." /> : (
           <Paper sx={{ p: 3, maxWidth: 600, border: '1px solid', borderColor: 'divider' }}>
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 3 }}>
@@ -1057,8 +1253,8 @@ export default function AdminPage() {
         )
       )}
 
-      {/* Tab 7: Feedback */}
-      {isAdmin && activeTab === 7 && (
+      {/* Tab 8: Feedback */}
+      {isAdmin && activeTab === 8 && (
         <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
           <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>User Feedback</Typography>
