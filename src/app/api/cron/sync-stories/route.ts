@@ -22,7 +22,7 @@ const CHANNELS_SYNC = [
 const COMMON_NARRATORS = ["Mir", "Deep", "Somak", "Jojo", "Sayak", "Agni", "Pushpal", "Anujoy", "Godhuli", "Sree", "Richard", "Papiya", "Sabyasachi"];
 const GENRES = ["Horror", "Mystery", "Thriller", "Drama", "Comedy", "Classic", "Adventure"];
 const MIN_DURATION_SECONDS = 1200;
-const MAX_VIDEOS_PER_CHANNEL = 50;
+const MAX_VIDEOS_PER_CHANNEL = 200;
 
 function cleanTitle(title: string, channelName: string, writer: string, narratorsMatched: string[]): string {
   let cleaned = title;
@@ -30,14 +30,17 @@ function cleanTitle(title: string, channelName: string, writer: string, narrator
   const noise = [
     channelName,
     "Sunday Suspense",
+    "SundaySuspense",
     "Goppo Mirer Thek",
     "Mirchi Bangla",
+    "Friday Classics",
+    "FridayClassics",
+    "Classics",
     "Audio Story",
     "Bengali Audio Story",
     "Psychological Horror Thriller",
     "#GoppoMirerThek",
     "Full Story",
-    "SundaySuspense"
   ];
 
   for (const n of noise) {
@@ -102,15 +105,6 @@ export async function GET(request: NextRequest) {
         if (exists) {
           channelReport.skipped.push(`${entry.title} (already in DB)`);
           continue;
-        }
-
-        const titleLower = entry.title.toLowerCase();
-
-        if (chanConfig.name === 'Sunday Suspense') {
-          if (!titleLower.includes('sunday suspense') && !titleLower.includes('sunday suspense classics')) {
-            channelReport.skipped.push(`${entry.title} (did not contain 'sunday suspense' or 'sunday suspense classics' in title)`);
-            continue;
-          }
         }
 
         let durationSec: number | undefined = entry.durationSeconds;

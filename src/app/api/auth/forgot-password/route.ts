@@ -35,8 +35,9 @@ export async function POST(request: NextRequest) {
       expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     });
 
-    // Build reset URL
-    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password?token=${rawToken}`;
+    // Build reset URL - use env var, fall back to request origin, then localhost
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin || 'http://localhost:3000';
+    const resetUrl = `${appUrl}/reset-password?token=${rawToken}`;
 
     const emailSent = await sendEmail({
       to: user.email,
