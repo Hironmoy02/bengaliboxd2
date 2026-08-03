@@ -35,8 +35,39 @@ export async function POST(request: NextRequest) {
       expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     });
 
-    // Build reset URL - use env var, fall back to request origin, then localhost
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin || 'http://localhost:3000';
+    // Build reset URL - dynamically detect origin from request headers, forwarded host, or env
+    const getAppBaseUrl = (req: NextRequest): string => {
+      const origin = req.headers.get('origin');
+      if (origin && origin !== 'null') return origin;
+
+      const referer = req.headers.get('referer');
+      if (referer) {
+        try {
+          return new URL(referer).origin;
+        } catch {
+          // ignore invalid referer
+        }
+      }
+
+      const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+      if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+        const proto = req.headers.get('x-forwarded-proto') || 'https';
+        return `${proto}://${host}`;
+      }
+
+      if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+      if (process.env.APP_URL) return process.env.APP_URL;
+      if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+
+      if (host) {
+        const proto = req.headers.get('x-forwarded-proto') || 'http';
+        return `${proto}://${host}`;
+      }
+
+      return req.nextUrl.origin || 'http://localhost:3000';
+    };
+
+    const appUrl = getAppBaseUrl(request);
     const resetUrl = `${appUrl}/reset-password?token=${rawToken}`;
 
     const emailSent = await sendEmail({

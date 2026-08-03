@@ -1,6 +1,7 @@
-interface YouTubeMeta {
+export interface YouTubeMeta {
   duration?: number;
   year?: number;
+  description?: string;
 }
 
 export interface ChannelVideo {
@@ -168,9 +169,31 @@ export async function fetchChannelVideos(channelId: string, maxResults: number):
   return videos.slice(0, maxResults);
 }
 
+
+export const COMMON_NARRATORS = [
+  "Mir", "Deep", "Somak", "Jojo", "Sayak", "Agni", "Pushpal",
+  "Anujoy", "Godhuli", "Sree", "Richard", "Papiya", "Sabyasachi",
+  "Jagannath", "Urmimala", "Roy", "Riya", "Parambrata", "Gargi",
+  "Chiranjeet", "Koushik"
+];
+
+export function extractNarrators(title: string, description: string): string {
+  const combined = `${title} ${description}`;
+  const matched: string[] = [];
+
+  for (const name of COMMON_NARRATORS) {
+    const reg = new RegExp(`\\b${name}\\b`, 'i');
+    if (reg.test(combined) && !matched.includes(name)) {
+      matched.push(name);
+    }
+  }
+
+  return matched.length > 0 ? matched.join(', ') : 'Unknown';
+}
+
 export async function fetchYouTubeMeta(videoId: string): Promise<YouTubeMeta> {
   const result = await fetchViaInnerTube(videoId);
-  if (result.duration || result.year) return result;
+  if (result.duration || result.year || result.description) return result;
   return fetchViaHtmlScrape(videoId);
 }
 
@@ -196,6 +219,11 @@ async function fetchViaInnerTube(videoId: string): Promise<YouTubeMeta> {
     if (lengthStr) {
       const secs = parseInt(lengthStr, 10);
       if (secs > 0) meta.duration = secs;
+    }
+
+    const desc = data?.videoDetails?.shortDescription;
+    if (desc) {
+      meta.description = desc;
     }
 
     const publishDate: string | undefined =
@@ -228,6 +256,11 @@ async function fetchViaHtmlScrape(videoId: string): Promise<YouTubeMeta> {
     if (lengthMatch) {
       const secs = parseInt(lengthMatch[1], 10);
       if (secs > 0) meta.duration = secs;
+    }
+
+    const descMatch = html.match(/"shortDescription"\s*:\s*"([^"]+)"/);
+    if (descMatch) {
+      meta.description = descMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
     }
 
     const dateMatch = html.match(/"datePublished"\s*:\s*"(\d{4})/);
