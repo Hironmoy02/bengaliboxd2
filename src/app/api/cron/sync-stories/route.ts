@@ -109,12 +109,14 @@ export async function GET(request: NextRequest) {
 
         let durationSec: number | undefined = entry.durationSeconds;
         let yearPublished: number | undefined;
+        let videoDesc = entry.description || '';
 
-        if (!durationSec || !yearPublished) {
+        if (!durationSec || !yearPublished || !videoDesc) {
           try {
             const meta = await fetchYouTubeMeta(entry.videoId);
             if (!durationSec && meta.duration) durationSec = meta.duration;
             if (!yearPublished && meta.year) yearPublished = meta.year;
+            if (!videoDesc && meta.description) videoDesc = meta.description;
           } catch { /* ignore */ }
         }
 
@@ -133,7 +135,7 @@ export async function GET(request: NextRequest) {
         for (const writerName of registeredWriters) {
           const escaped = writerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           const byReg = new RegExp(`\\bby\\s+${escaped}\\b`, 'i');
-          if (byReg.test(entry.title) || byReg.test(entry.description)) {
+          if (byReg.test(entry.title) || byReg.test(videoDesc)) {
             matchedWriter = writerName;
             break;
           }
@@ -141,7 +143,7 @@ export async function GET(request: NextRequest) {
 
         if (matchedWriter === 'Unknown') {
           const cleanTitleStr = entry.title.toLowerCase().replace(/[^a-z0-9\u0980-\u09ff]/g, '');
-          const cleanDescStr = entry.description.toLowerCase().replace(/[^a-z0-9\u0980-\u09ff]/g, '');
+          const cleanDescStr = videoDesc.toLowerCase().replace(/[^a-z0-9\u0980-\u09ff]/g, '');
 
           for (const writerName of registeredWriters) {
             const cleanWriter = writerName.toLowerCase().replace(/[^a-z0-9\u0980-\u09ff]/g, '');
@@ -157,7 +159,7 @@ export async function GET(request: NextRequest) {
         const matchedNarrators: string[] = [];
         for (const narratorName of COMMON_NARRATORS) {
           const reg = new RegExp(`\\b${narratorName}\\b`, 'i');
-          if (reg.test(entry.title) || reg.test(entry.description)) {
+          if (reg.test(entry.title) || reg.test(videoDesc)) {
             matchedNarrators.push(narratorName);
           }
         }
@@ -172,7 +174,7 @@ export async function GET(request: NextRequest) {
         let matchedGenre = 'Horror';
         for (const genre of GENRES) {
           const reg = new RegExp(`\\b${genre}\\b`, 'i');
-          if (reg.test(entry.title) || reg.test(entry.description)) {
+          if (reg.test(entry.title) || reg.test(videoDesc)) {
             matchedGenre = genre;
             break;
           }

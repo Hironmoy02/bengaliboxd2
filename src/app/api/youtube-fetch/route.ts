@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromSession } from '@/lib/auth';
 import { getYouTubeId } from '@/lib/youtube';
 import { matchYouTubeChannel } from '@/lib/constants';
-import { fetchYouTubeMeta } from '@/lib/youtube-meta';
+import { fetchYouTubeMeta, extractNarrators } from '@/lib/youtube-meta';
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,15 +47,21 @@ export async function GET(request: NextRequest) {
 
     let yearPublished: number | undefined;
     let duration: number | undefined;
+    let fetchedDescription: string | undefined;
+
     try {
       const meta = await fetchYouTubeMeta(videoId);
       if (meta.year) yearPublished = meta.year;
       if (meta.duration) duration = meta.duration;
+      if (meta.description) fetchedDescription = meta.description;
     } catch { /* ignore page fetch errors */ }
 
+    const title = data.title || '';
+    const description = fetchedDescription || `Uploaded by ${data.author_name || 'YouTube channel'}.`;
+
     // Fallback: Check if the video title contains a 4-digit year (between 2000 and current year)
-    if (!yearPublished && data.title) {
-      const yearMatch = data.title.match(/\b(20\d{2})\b/);
+    if (!yearPublished && title) {
+      const yearMatch = title.match(/\b(20\d{2})\b/);
       if (yearMatch) {
         const y = parseInt(yearMatch[1], 10);
         if (y >= 2000 && y <= new Date().getFullYear()) {
@@ -64,12 +70,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const autoNarrator = extractNarrators(title, description);
+
     return NextResponse.json({
       youtubeId: videoId,
-      title: data.title || '',
+      title,
       channel: data.author_name || '',
       thumbnailUrl: data.thumbnail_url || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-      description: `Uploaded by ${data.author_name || 'YouTube channel'}.`,
+      description,
+      narrator: autoNarrator !== 'Unknown' ? autoNarrator : '',
       yearPublished,
       duration,
     });

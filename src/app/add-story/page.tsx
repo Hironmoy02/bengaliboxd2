@@ -60,9 +60,13 @@ export default function AddStoryPage() {
       setThumbnailUrl(data.thumbnailUrl || '');
       if (data.yearPublished) setYearPublished(String(data.yearPublished));
       if (data.duration) setDuration(data.duration);
-      const t = data.title.toLowerCase();
-      const matchedNarrator = Object.entries(NARRATOR_KEYWORDS).find(([kw]) => t.includes(kw));
-      setNarrator(matchedNarrator ? matchedNarrator[1] : '');
+      if (data.narrator) {
+        setNarrator(data.narrator);
+      } else {
+        const t = data.title.toLowerCase();
+        const matchedNarrator = Object.entries(NARRATOR_KEYWORDS).find(([kw]) => t.includes(kw));
+        setNarrator(matchedNarrator ? matchedNarrator[1] : '');
+      }
       setSuccess('Successfully fetched YouTube story details!');
     } catch (err) { setError(getErrorMessage(err) || 'Failed to query YouTube API'); }
     finally { setIsFetchingYoutube(false); }
