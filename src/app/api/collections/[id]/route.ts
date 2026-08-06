@@ -23,9 +23,34 @@ export async function PUT(
       return NextResponse.json({ error: 'Collection not found' }, { status: 404 });
     }
 
-    if (name !== undefined) collection.name = name.trim();
-    if (description !== undefined) collection.description = description.trim();
-    if (gradient !== undefined) collection.gradient = gradient;
+    if (name !== undefined) {
+      const trimmedName = name.trim();
+      if (!trimmedName) {
+        return NextResponse.json({ error: 'Collection name cannot be empty' }, { status: 400 });
+      }
+      const slug = trimmedName
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      const slugExists = await Collection.findOne({ slug, _id: { $ne: id } }).lean();
+      if (slugExists) {
+        return NextResponse.json({ error: 'A collection with this name already exists' }, { status: 409 });
+      }
+      collection.name = trimmedName;
+      collection.slug = slug;
+    }
+    if (description !== undefined) {
+      collection.description = description.trim();
+    }
+    if (gradient !== undefined) {
+      const targetGradient = gradient.trim();
+      if (!targetGradient) {
+        return NextResponse.json({ error: 'Color gradient cannot be empty' }, { status: 400 });
+      }
+      collection.gradient = targetGradient;
+    }
 
     await collection.save();
     return NextResponse.json({ message: 'Collection updated', collection });

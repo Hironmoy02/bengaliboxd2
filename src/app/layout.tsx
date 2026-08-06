@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import StoreProvider from '@/store/StoreProvider';
 import ThemeProvider from '@/components/ThemeProvider';
+import BadgeToastProvider from '@/components/BadgeToastProvider';
 import Navbar from '@/components/Navbar';
 import './globals.css';
 
@@ -28,15 +29,17 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <StoreProvider>
           <ThemeProvider>
-            <Navbar />
-            <main style={{ flex: 1 }}>{children}</main>
-            <footer className="footer">
-              <div className="container">
-                <p className="footer-text">
-                  &copy; {new Date().getFullYear()} Bengaliboxd. A personalized home for Bengali audio story lovers.
-                </p>
-              </div>
-            </footer>
+            <BadgeToastProvider>
+              <Navbar />
+              <main style={{ flex: 1 }}>{children}</main>
+              <footer className="footer">
+                <div className="container">
+                  <p className="footer-text">
+                    &copy; {new Date().getFullYear()} Bengaliboxd. A personalized home for Bengali audio story lovers.
+                  </p>
+                </div>
+              </footer>
+            </BadgeToastProvider>
           </ThemeProvider>
         </StoreProvider>
       </body>

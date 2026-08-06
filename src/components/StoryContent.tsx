@@ -250,16 +250,16 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
   }, [story._id, user, story.youtubeId]);
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', px: 2, py: 5, minHeight: '90vh' }}>
-      <Button component={Link} href="/" variant="text" startIcon={<ArrowBackIcon />} sx={{ mb: 3, color: 'text.secondary' }}>
+    <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 1.5, sm: 2 }, py: { xs: 3, sm: 5 }, minHeight: '90vh' }}>
+      <Button component={Link} href="/" variant="text" startIcon={<ArrowBackIcon />} sx={{ mb: { xs: 2, sm: 3 }, color: 'text.secondary', fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
         Back to Lobby
       </Button>
 
-      <Stack direction={{ xs: 'column', lg: 'row' }} spacing={4}>
+      <Stack direction={{ xs: 'column', lg: 'row' }} spacing={{ xs: 3, lg: 4 }}>
         {/* Main Content */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           {/* Video */}
-          <Paper sx={{ borderRadius: 2, overflow: 'hidden', mb: 3, aspectRatio: '16/9' }}>
+          <Paper sx={{ borderRadius: 2, overflow: 'hidden', mb: { xs: 2, sm: 3 }, aspectRatio: '16/9' }}>
             <iframe
               ref={iframeRef}
               src={`https://www.youtube.com/embed/${story.youtubeId}?enablejsapi=1`}
@@ -277,11 +277,11 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
           </Stack>
           <Typography variant="h4" sx={{ fontWeight: 800, mb: 2, fontSize: { xs: '1.5rem', md: '2rem' } }}>{story.title}</Typography>
 
-          <Stack direction="row" spacing={3} sx={{ flexWrap: 'wrap', color: 'text.secondary', fontSize: '0.95rem', pb: 2, mb: 3, borderBottom: '1px solid', borderColor: 'divider' }}>
-            <Typography>Narrator: <strong style={{ color: 'var(--text-primary)' }}>{story.narrator}</strong></Typography>
-            {story.writer && <Typography>Writer: <strong style={{ color: 'var(--text-primary)' }}>{story.writer}</strong></Typography>}
-            {story.duration && <Typography>Duration: <strong style={{ color: 'var(--text-primary)' }}>{formatDuration(story.duration)}</strong></Typography>}
-            <Typography>
+          <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', color: 'text.secondary', fontSize: { xs: '0.8rem', sm: '0.9rem' }, pb: 2, mb: 3, borderBottom: '1px solid', borderColor: 'divider', gap: 0.5 }}>
+            <Typography sx={{ fontSize: 'inherit' }}>Narrator: <strong style={{ color: 'var(--text-primary)' }}>{story.narrator}</strong></Typography>
+            {story.writer && <Typography sx={{ fontSize: 'inherit' }}>Writer: <strong style={{ color: 'var(--text-primary)' }}>{story.writer}</strong></Typography>}
+            {story.duration && <Typography sx={{ fontSize: 'inherit' }}>Duration: <strong style={{ color: 'var(--text-primary)' }}>{formatDuration(story.duration)}</strong></Typography>}
+            <Typography sx={{ fontSize: 'inherit' }}>
               Source: <a href={story.youtubeUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-on-dark)', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 500, textDecoration: 'none' }}>
                 <YoutubeIcon size={14} /> YouTube Link
               </a>
@@ -289,7 +289,7 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
           </Stack>
 
           {story.tags && story.tags.length > 0 && (
-            <Stack direction="row" spacing={0.5} sx={{ mb: 3, flexWrap: 'wrap', gap: 0.5 }}>
+            <Stack direction="row" spacing={0.5} sx={{ mb: { xs: 2, sm: 3 }, flexWrap: 'wrap', gap: 0.5 }}>
               {story.tags.map((tag) => (
                 <Chip key={tag} label={tag} size="small" variant="outlined" sx={{ borderColor: 'divider' }} />
               ))}
@@ -297,15 +297,15 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
           )}
 
           <Box sx={{ mb: 4 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Synopsis</Typography>
-            <Typography sx={{ whiteSpace: 'pre-wrap', color: 'text.secondary', lineHeight: 1.7 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, fontSize: { xs: '1rem', sm: '1.15rem' } }}>Synopsis</Typography>
+            <Typography sx={{ whiteSpace: 'pre-wrap', color: 'text.secondary', lineHeight: 1.7, overflowWrap: 'break-word', wordBreak: 'break-word', fontSize: { xs: '0.85rem', sm: '0.95rem' } }}>
               {story.description || 'No detailed description available. Check the YouTube link for more info.'}
             </Typography>
           </Box>
 
           {/* Reviews */}
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 3, fontSize: { xs: '1.1rem', sm: '1.3rem' } }}>
               User Reviews ({pagination.total || reviews.length})
             </Typography>
 
@@ -317,16 +317,16 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
               <>
                 <Stack spacing={2}>
                   {reviews.map((rev) => (
-                    <Paper key={rev._id} sx={{ p: 2.5, background: 'action.hover', border: '1px solid', borderColor: 'divider' }}>
-                      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                    <Paper key={rev._id} sx={{ p: { xs: 2, sm: 2.5 }, background: 'action.hover', border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 1, gap: 0.5 }}>
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
                           <Avatar sx={{ width: 28, height: 28, bgcolor: 'primary.main', fontSize: 12 }}>
                             {rev.userId.username[0].toUpperCase()}
                           </Avatar>
                           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{rev.userId.username}</Typography>
                           <AppStarRating value={rev.ratingValue} readonly size={14} />
                           {rev.narrationRating && (
-                            <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+                            <Typography variant="caption" color="text.secondary">
                               Narr: {rev.narrationRating}
                             </Typography>
                           )}
@@ -336,12 +336,20 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
                             </Typography>
                           )}
                         </Stack>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
                           <CalendarTodayIcon sx={{ fontSize: 12 }} />
                           {new Date(rev.updatedAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' })}
                         </Typography>
                       </Stack>
-                      {rev.reviewText && <Typography variant="body2" color="text.secondary" sx={{ mt: 1, lineHeight: 1.6 }}>{rev.reviewText}</Typography>}
+                      {rev.reviewText && (
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ mt: 1, lineHeight: 1.6, overflowWrap: 'break-word', wordBreak: 'break-word' }}
+                        >
+                          {rev.reviewText}
+                        </Typography>
+                      )}
                     </Paper>
                   ))}
                 </Stack>
@@ -352,7 +360,7 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
         </Box>
 
         {/* Sidebar */}
-        <Stack spacing={3} sx={{ width: { lg: 340 }, flexShrink: 0 }}>
+        <Stack spacing={3} sx={{ width: { lg: 340 }, flexShrink: 0, minWidth: 0 }}>
           {/* Actions Panel */}
           {user && (
             <Paper sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
@@ -457,48 +465,58 @@ export default function StoryContent({ initialStory, initialReviews, initialPagi
           </Paper>
 
           {/* Rating Form */}
-          <Paper sx={{ p: 3, borderRadius: 2, border: '1px solid rgba(99,102,241,0.2)' }}>
+          <Paper sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2, border: '1px solid rgba(99,102,241,0.2)', overflow: 'hidden' }}>
             {user ? (
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Your Journal Entry</Typography>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Your Journal Entry</Typography>
                 {error && <AppAlert severity="error" message={error} onClose={() => setError('')} />}
                 {success && <AppAlert severity="success" message={success} onClose={() => setSuccess('')} />}
                 <form onSubmit={handleRatingSubmit}>
-                  <Box sx={{ textAlign: 'center', mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>How would you rate this story?</Typography>
-                    <AppStarRating value={userRating} onChange={setUserRating} size={32} showLabel />
-                  </Box>
-                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
-                    <Box sx={{ textAlign: 'center', flex: 1 }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Narration</Typography>
-                      <AppStarRating value={narrationRating} onChange={setNarrationRating} size={22} showLabel />
+                  {/* Main rating */}
+                  <Box sx={{ mb: 2.5 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>How would you rate this story?</Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                      <AppStarRating value={userRating} onChange={setUserRating} size={26} showLabel />
                     </Box>
-                    <Box sx={{ textAlign: 'center', flex: 1 }}>
+                  </Box>
+
+                  {/* Sub ratings */}
+                  <Stack spacing={1.5} sx={{ mb: 2.5 }}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Narration</Typography>
+                      <AppStarRating value={narrationRating} onChange={setNarrationRating} size={18} />
+                    </Box>
+                    <Box>
                       <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Atmosphere</Typography>
-                      <AppStarRating value={atmosphereRating} onChange={setAtmosphereRating} size={22} showLabel />
+                      <AppStarRating value={atmosphereRating} onChange={setAtmosphereRating} size={18} />
                     </Box>
                   </Stack>
+
+                  {/* Review text */}
                   <TextField
                     fullWidth
                     multiline
-                    rows={4}
+                    rows={3}
                     placeholder="Share your thoughts on the narration, music, sound design..."
                     value={reviewText}
                     onChange={(e) => setReviewText(e.target.value)}
-                    sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                    sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: 1.5, fontSize: '0.875rem' } }}
                   />
-                  <Button type="submit" variant="contained" fullWidth size="large" startIcon={<SendIcon />} disabled={isSubmitting}>
-                    {isSubmitting ? 'Logging review...' : 'Submit Rating'}
+
+                  <Button type="submit" variant="contained" fullWidth size="medium" startIcon={<SendIcon />} disabled={isSubmitting} sx={{ borderRadius: 1.5, textTransform: 'none', fontWeight: 600 }}>
+                    {isSubmitting ? 'Submitting...' : 'Submit Review'}
                   </Button>
                 </form>
               </Box>
             ) : (
-              <Box sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Have you listened to this?</Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              <Box sx={{ textAlign: 'center', py: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5 }}>Have you listened to this?</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.85rem' }}>
                   Log in to rate and review this audio story.
                 </Typography>
-                <Button component={Link} href="/login" variant="contained" fullWidth>Log In to Rate</Button>
+                <Button component={Link} href="/login" variant="contained" fullWidth size="medium" sx={{ borderRadius: 1.5, textTransform: 'none', fontWeight: 600 }}>
+                  Log In to Rate
+                </Button>
               </Box>
             )}
           </Paper>

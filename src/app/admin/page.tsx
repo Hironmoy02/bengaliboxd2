@@ -34,6 +34,32 @@ interface UserProfile { _id: string; username: string; email: string; role: stri
 interface TrafficStat { date: string; visitors: number; }
 interface AdminStats { totalUsers: number; adminUsers: number; approvedStories: number; pendingStories: number; totalReviews: number; }
 
+const COLOR_PALETTE = [
+  '#4f46e5', '#7c3aed', '#db2777', '#ec4899', '#f43f5e', '#ef4444',
+  '#f97316', '#ea580c', '#d97706', '#f59e0b', '#84cc16', '#22c55e',
+  '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#2563eb',
+  '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#f97316', '#b91c1c',
+  '#0f766e', '#9a3412', '#7f1d1d', '#dc2626', '#e11d48', '#0891b2',
+  '#7e22ce', '#475569', '#64748b', '#1d4ed8', '#059669', '#ea580c',
+];
+
+const DEFAULT_COLORS = { color1: '#4f46e5', color2: '#7c3aed', color3: '#db2777' };
+
+function generateTriColorGradient(c1: string, c2: string, c3: string): string {
+  return `linear-gradient(135deg, ${c1} 0%, ${c2} 50%, ${c3} 100%)`;
+}
+
+function parseGradientColors(gradient: string): { color1: string; color2: string; color3: string } {
+  const hexMatches = gradient.match(/#[0-9a-fA-F]{3,8}/g);
+  if (hexMatches && hexMatches.length >= 3) {
+    return { color1: hexMatches[0], color2: hexMatches[1], color3: hexMatches[2] };
+  }
+  if (hexMatches && hexMatches.length === 2) {
+    return { color1: hexMatches[0], color2: hexMatches[0], color3: hexMatches[1] };
+  }
+  return DEFAULT_COLORS;
+}
+
 function getErrorMessage(err: unknown): string { return err instanceof Error ? err.message : 'An error occurred'; }
 
 export default function AdminPage() {
@@ -66,6 +92,10 @@ export default function AdminPage() {
   const [pendingStories, setPendingStories] = useState<Story[]>([]);
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
   const [userSearch, setUserSearch] = useState('');
+  const filteredUsers = usersList.filter((u) => {
+    const q = userSearch.toLowerCase();
+    return !q || u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+  });
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingPending, setLoadingPending] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState(true);
@@ -109,12 +139,20 @@ export default function AdminPage() {
   const [loadingCollections, setLoadingCollections] = useState(true);
   const [collectionName, setCollectionName] = useState('');
   const [collectionDesc, setCollectionDesc] = useState('');
-  const [collectionGradient, setCollectionGradient] = useState('linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)');
+  const [collectionColor1, setCollectionColor1] = useState(DEFAULT_COLORS.color1);
+  const [collectionColor2, setCollectionColor2] = useState(DEFAULT_COLORS.color2);
+  const [collectionColor3, setCollectionColor3] = useState(DEFAULT_COLORS.color3);
   const [creatingCollection, setCreatingCollection] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<CollectionItem | null>(null);
   const [collectionStorySearch, setCollectionStorySearch] = useState('');
   const [collectionStories, setCollectionStories] = useState<CollectionStory[]>([]);
   const [loadingCollectionStories, setLoadingCollectionStories] = useState(false);
+  const [editColName, setEditColName] = useState('');
+  const [editColDesc, setEditColDesc] = useState('');
+  const [editColColor1, setEditColColor1] = useState(DEFAULT_COLORS.color1);
+  const [editColColor2, setEditColColor2] = useState(DEFAULT_COLORS.color2);
+  const [editColColor3, setEditColColor3] = useState(DEFAULT_COLORS.color3);
+  const [updatingCol, setUpdatingCol] = useState(false);
 
   const channelsList = [...CHANNELS];
   const genresList = [...GENRES];
@@ -190,14 +228,39 @@ export default function AdminPage() {
     if (!collectionName.trim()) return;
     setCreatingCollection(true);
     try {
-      const { data } = await api.post('/api/collections', { name: collectionName, description: collectionDesc, gradient: collectionGradient });
+      const gradient = generateTriColorGradient(collectionColor1, collectionColor2, collectionColor3);
+      const { data } = await api.post('/api/collections', { name: collectionName, description: collectionDesc, gradient });
       setSuccess(data.message || 'Collection created!');
       setCollectionName('');
       setCollectionDesc('');
-      setCollectionGradient('linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)');
+      setCollectionColor1(DEFAULT_COLORS.color1);
+      setCollectionColor2(DEFAULT_COLORS.color2);
+      setCollectionColor3(DEFAULT_COLORS.color3);
       fetchCollections();
     } catch (err) { setError(getErrorMessage(err) || 'Failed to create collection'); }
     finally { setCreatingCollection(false); }
+  };
+
+  const handleUpdateCollection = async () => {
+    if (!selectedCollection || !editColName.trim()) return;
+    setUpdatingCol(true);
+    setError('');
+    setSuccess('');
+    try {
+      const gradient = generateTriColorGradient(editColColor1, editColColor2, editColColor3);
+      const { data } = await api.put(`/api/collections/${selectedCollection._id}`, {
+        name: editColName,
+        description: editColDesc,
+        gradient,
+      });
+      setSuccess(data.message || 'Collection updated!');
+      setSelectedCollection(data.collection);
+      fetchCollections();
+    } catch (err) {
+      setError(getErrorMessage(err) || 'Failed to update collection');
+    } finally {
+      setUpdatingCol(false);
+    }
   };
 
   const handleDeleteCollection = async (collectionId: string) => {
@@ -534,7 +597,85 @@ export default function AdminPage() {
     finally { setSavingEdit(false); }
   };
 
-  const filteredUsers = usersList.filter((u) => u.username.toLowerCase().includes(userSearch.toLowerCase()) || u.email.toLowerCase().includes(userSearch.toLowerCase()));
+  const [activeColorPos, setActiveColorPos] = useState(0);
+
+  const renderColorPalette = (
+    c1: string, c2: string, c3: string,
+    onChange: (color1: string, color2: string, color3: string) => void
+  ) => {
+    const labels = ['Start', 'Mid', 'End'];
+    const currentColors = [c1, c2, c3];
+
+    return (
+      <Box sx={{ mb: 2 }}>
+        <Box
+          sx={{
+            width: '100%',
+            height: 36,
+            borderRadius: 1,
+            background: generateTriColorGradient(c1, c2, c3),
+            mb: 1.5,
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        />
+        <Stack direction="row" spacing={1} sx={{ mb: 1.5 }}>
+          {[0, 1, 2].map((pos) => (
+            <Box
+              key={pos}
+              onClick={() => setActiveColorPos(pos)}
+              sx={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 0.75,
+                py: 0.75,
+                borderRadius: 1,
+                cursor: 'pointer',
+                border: '2px solid',
+                borderColor: activeColorPos === pos ? 'primary.main' : 'divider',
+                bgcolor: activeColorPos === pos ? 'action.hover' : 'transparent',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Box sx={{ width: 18, height: 18, borderRadius: '50%', bgcolor: currentColors[pos], border: '1px solid', borderColor: 'divider', flexShrink: 0 }} />
+              <Typography variant="caption" sx={{ fontWeight: activeColorPos === pos ? 700 : 500, fontSize: '0.7rem' }}>
+                {labels[pos]}
+              </Typography>
+            </Box>
+          ))}
+        </Stack>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 0.5 }}>
+          {COLOR_PALETTE.map((hex) => {
+            const isSelected = currentColors[activeColorPos] === hex;
+            return (
+              <Box
+                key={hex}
+                onClick={() => {
+                  const newColors = [...currentColors];
+                  newColors[activeColorPos] = hex;
+                  onChange(newColors[0], newColors[1], newColors[2]);
+                }}
+                sx={{
+                  aspectRatio: '1',
+                  borderRadius: 0.5,
+                  bgcolor: hex,
+                  cursor: 'pointer',
+                  border: '2px solid',
+                  borderColor: isSelected ? 'primary.main' : 'transparent',
+                  outline: isSelected ? '2px solid rgba(255,94,43,0.4)' : 'none',
+                  outlineOffset: 0,
+                  transition: 'all 0.1s ease',
+                  '&:hover': { transform: 'scale(1.2)', zIndex: 1 },
+                }}
+              />
+            );
+          })}
+        </Box>
+      </Box>
+    );
+  };
 
   if (loading || !user) return <AppLoadingState message="Loading admin panel..." fullScreen />;
 
@@ -1130,7 +1271,7 @@ export default function AdminPage() {
             <Stack spacing={2}>
               <TextField fullWidth size="small" label="Collection Name" placeholder="e.g. Best of Feluda" value={collectionName} onChange={(e) => setCollectionName(e.target.value)} />
               <TextField fullWidth size="small" label="Description (optional)" placeholder="Short description..." value={collectionDesc} onChange={(e) => setCollectionDesc(e.target.value)} />
-              <TextField fullWidth size="small" label="Gradient CSS" placeholder="linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)" value={collectionGradient} onChange={(e) => setCollectionGradient(e.target.value)} />
+              {renderColorPalette(collectionColor1, collectionColor2, collectionColor3, (c1, c2, c3) => { setCollectionColor1(c1); setCollectionColor2(c2); setCollectionColor3(c3); })}
               <Button variant="contained" size="large" onClick={handleCreateCollection} disabled={creatingCollection || !collectionName.trim()} sx={{ maxWidth: 200 }}>
                 {creatingCollection ? 'Creating...' : 'Create Collection'}
               </Button>
@@ -1162,6 +1303,12 @@ export default function AdminPage() {
                       setSelectedCollection(col);
                       setCollectionStorySearch('');
                       fetchCollectionStories(col._id, '');
+                      setEditColName(col.name);
+                      setEditColDesc(col.description || '');
+                      const parsed = parseGradientColors(col.gradient);
+                      setEditColColor1(parsed.color1);
+                      setEditColColor2(parsed.color2);
+                      setEditColColor3(parsed.color3);
                     }}
                   >
                     <Box sx={{ width: 48, height: 48, borderRadius: 2, background: col.gradient, flexShrink: 0 }} />
@@ -1192,6 +1339,39 @@ export default function AdminPage() {
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>Manage: {selectedCollection.name}</Typography>
                 <Button size="small" onClick={() => setSelectedCollection(null)}>Close</Button>
               </Stack>
+              <Box sx={{ mb: 3, p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2, background: 'action.hover' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Edit Collection Settings</Typography>
+                <Stack spacing={2}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Collection Name"
+                    value={editColName}
+                    onChange={(e) => setEditColName(e.target.value)}
+                  />
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Description (optional)"
+                    placeholder="Short description..."
+                    value={editColDesc}
+                    onChange={(e) => setEditColDesc(e.target.value)}
+                  />
+                  {renderColorPalette(editColColor1, editColColor2, editColColor3, (c1, c2, c3) => { setEditColColor1(c1); setEditColColor2(c2); setEditColColor3(c3); })}
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={handleUpdateCollection}
+                    disabled={updatingCol || !editColName.trim()}
+                    sx={{ maxWidth: 150 }}
+                  >
+                    {updatingCol ? 'Saving...' : 'Save Settings'}
+                  </Button>
+                </Stack>
+              </Box>
+
+              <Divider sx={{ my: 3 }} />
+
               <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
                 <TextField
                   fullWidth
