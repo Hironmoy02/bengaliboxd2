@@ -51,11 +51,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'A collection with this name already exists' }, { status: 409 });
     }
 
+    let targetGradient = (gradient || '').trim();
+    if (!targetGradient) {
+      targetGradient = 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%)';
+    }
+
     const collection = await Collection.create({
       name: name.trim(),
       slug,
       description: description?.trim() || '',
-      gradient: gradient || 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+      gradient: targetGradient,
       storyIds: [],
     });
 

@@ -20,6 +20,20 @@ jest.mock('@/lib/hooks', () => ({
   useAppSelector: (selector: any) => selector({ auth: { user: null } }),
 }));
 
+jest.mock('@/components/ui', () => {
+  const actual = jest.requireActual('@/components/ui');
+  return {
+    ...actual,
+    AppStoryCard: ({ title }: { title: string }) => <div data-testid="story-card">{title}</div>,
+    AppPagination: ({ totalPages }: { totalPages: number }) => totalPages > 1 ? <nav aria-label="pagination" /> : null,
+    AppSortSelect: () => null,
+    AppYearPicker: () => null,
+    AppRatingDisplay: () => null,
+    AppLoadingState: ({ message }: { message: string }) => <div>{message}</div>,
+    AppEmptyState: ({ title }: { title: string }) => <div>{title}</div>,
+  };
+});
+
 const mockStories = [
   {
     _id: '1',
