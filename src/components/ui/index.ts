@@ -18,4 +18,6 @@ export { default as AppYearPicker } from './YearPicker';
 export { default as StreakFlame } from './StreakFlame';
 export { default as BadgeCard } from './BadgeCard';
 export { default as BadgeUnlockToast } from './BadgeUnlockToast';
+export { default as UserTourGuide } from './UserTourGuide';
+
 

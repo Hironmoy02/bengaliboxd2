@@ -26,8 +26,9 @@ export const loginUser = createAsyncThunk(
     try {
       const { data } = await api.post('/api/auth/login', { emailOrUsername, password });
       return data.user;
-    } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Login failed');
+    } catch (err: any) {
+      const message = err.response?.data?.error || err.message || 'Login failed';
+      return rejectWithValue(message);
     }
   }
 );
@@ -40,9 +41,13 @@ export const googleLoginUser = createAsyncThunk(
   ) => {
     try {
       const { data } = await api.post('/api/auth/google', payload);
+      if (data.user?.isNewUser && typeof window !== 'undefined') {
+        sessionStorage.setItem('bengaliboxd_just_signed_up', 'true');
+      }
       return data.user;
-    } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Google authentication failed');
+    } catch (err: any) {
+      const message = err.response?.data?.error || err.message || 'Google authentication failed';
+      return rejectWithValue(message);
     }
   }
 );
@@ -52,9 +57,13 @@ export const registerUser = createAsyncThunk(
   async ({ username, email, password, verificationToken }: { username: string; email: string; password: string; verificationToken: string }, { rejectWithValue }) => {
     try {
       const { data } = await api.post('/api/auth/register', { username, email, password, verificationToken });
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('bengaliboxd_just_signed_up', 'true');
+      }
       return data.user;
-    } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Registration failed');
+    } catch (err: any) {
+      const message = err.response?.data?.error || err.message || 'Registration failed';
+      return rejectWithValue(message);
     }
   }
 );

@@ -193,6 +193,7 @@ export default function HomeContent({ initialStories, initialPagination, initial
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3, alignItems: { sm: 'center' } }}>
             <TextField
               fullWidth
+              data-tour="home-search"
               placeholder="Search by title, author, narrator, genre, tags..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -217,7 +218,7 @@ export default function HomeContent({ initialStories, initialPagination, initial
           </Stack>
 
           {/* Genre + Writer Filters */}
-          <Stack direction="row" spacing={1.5} sx={{ mb: 3, flexWrap: 'wrap', gap: 1 }}>
+          <Stack direction="row" spacing={1.5} data-tour="home-genres" sx={{ mb: 3, flexWrap: 'wrap', gap: 1 }}>
             {genresList.map((g) => (
               <Chip key={g} label={g === 'All' ? 'All Genres' : g} size="small" variant={genre === g ? 'filled' : 'outlined'} color={genre === g ? 'primary' : 'default'} onClick={() => { setGenre(g); setCurrentPage(1); }}
                 sx={{ borderColor: genre === g ? undefined : 'divider', '&:hover': { borderColor: 'text.disabled' } }}

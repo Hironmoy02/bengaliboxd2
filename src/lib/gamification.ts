@@ -166,8 +166,125 @@ export async function processUserGamificationAction(
   };
 }
 
+export async function syncUserGamification(userId: string) {
+  await dbConnect();
+  const user = await User.findById(userId);
+  if (!user) return null;
+
+  // Initialize defaults if missing
+  if (!user.streak) {
+    user.streak = { current: 0, longest: 0, lastActiveDate: null };
+  }
+
+  const totalListens = await Listen.countDocuments({ userId });
+  const ratings = await Rating.find({ userId }).lean();
+  const storiesAddedCount = await Story.countDocuments({ addedBy: userId });
+  const likesCount = await Like.countDocuments({ userId });
+
+  let basePoints = 0;
+  basePoints += totalListens * 10;
+
+  let reviewsWithDetailedText = 0;
+  let ratingsWithReviewsCount = 0;
+  ratings.forEach((r) => {
+    basePoints += 15;
+    if (r.reviewText && r.reviewText.trim().length > 0) {
+      ratingsWithReviewsCount++;
+    }
+    if (r.reviewText && r.reviewText.trim().length >= 50) {
+      basePoints += 15;
+      reviewsWithDetailedText++;
+    }
+  });
+
+  basePoints += storiesAddedCount * 20;
+  basePoints += likesCount * 15;
+
+  // Map existing badges
+  const existingBadgesMap = new Map<string, Date>();
+  if (user.badges && Array.isArray(user.badges)) {
+    user.badges.forEach((b: { badgeId: string; unlockedAt: Date }) => {
+      existingBadgesMap.set(b.badgeId, b.unlockedAt || new Date());
+    });
+  }
+
+  const currentStreak = user.streak?.current || 0;
+
+  // Evaluate badge eligibility
+  for (const badge of BADGES) {
+    let shouldUnlock = false;
+
+    switch (badge.id) {
+      case 'first_listen':
+        if (totalListens >= 1) shouldUnlock = true;
+        break;
+      case 'listen_5':
+        if (totalListens >= 5) shouldUnlock = true;
+        break;
+      case 'listen_25':
+        if (totalListens >= 25) shouldUnlock = true;
+        break;
+      case 'wordsmith':
+        if (reviewsWithDetailedText >= 1) shouldUnlock = true;
+        break;
+      case 'critic_5':
+        if (ratingsWithReviewsCount >= 5) shouldUnlock = true;
+        break;
+      case 'streak_3':
+        if (currentStreak >= 3) shouldUnlock = true;
+        break;
+      case 'streak_7':
+        if (currentStreak >= 7) shouldUnlock = true;
+        break;
+      case 'streak_30':
+        if (currentStreak >= 30) shouldUnlock = true;
+        break;
+      default:
+        break;
+    }
+
+    if (shouldUnlock && !existingBadgesMap.has(badge.id)) {
+      existingBadgesMap.set(badge.id, new Date());
+    }
+  }
+
+  // Compute total badge point bonuses
+  let badgeBonusTotal = 0;
+  const updatedBadges: { badgeId: string; unlockedAt: Date }[] = [];
+  existingBadgesMap.forEach((unlockedAt, badgeId) => {
+    const badgeDef = BADGES.find((b) => b.id === badgeId);
+    if (badgeDef) {
+      badgeBonusTotal += badgeDef.pointsBonus;
+    }
+    updatedBadges.push({ badgeId, unlockedAt });
+  });
+
+  const finalCalculatedPoints = basePoints + badgeBonusTotal;
+
+  let needsSave = false;
+  if (typeof user.karmaPoints !== 'number' || user.karmaPoints < finalCalculatedPoints) {
+    user.karmaPoints = finalCalculatedPoints;
+    needsSave = true;
+  }
+
+  if (updatedBadges.length > (user.badges?.length || 0)) {
+    user.badges = updatedBadges as any;
+    needsSave = true;
+  }
+
+  if (needsSave) {
+    await user.save();
+  }
+
+  return user;
+}
+
 export async function getUserGamificationProfile(userId: string) {
   await dbConnect();
+
+  // Auto-sync gamification points & badges from actual user activity in DB
+  await syncUserGamification(userId);
+
   const user = await User.findById(userId).lean();
   if (!user) return null;
 
@@ -210,3 +327,4 @@ export async function getUserGamificationProfile(userId: string) {
     totalBadgesCount: BADGES.length,
   };
 }
+

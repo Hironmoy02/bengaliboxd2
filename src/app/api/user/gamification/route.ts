@@ -1,7 +1,7 @@
 import '@/lib/polyfill';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromSession } from '@/lib/auth';
-import { getUserGamificationProfile } from '@/lib/gamification';
+import { getUserGamificationProfile, syncUserGamification } from '@/lib/gamification';
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,3 +21,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to retrieve gamification details' }, { status: 500 });
   }
 }
+
+export async function POST(request: NextRequest) {
+  try {
+    const user = await getUserFromSession();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await syncUserGamification(user.id as string);
+    const gamificationProfile = await getUserGamificationProfile(user.id as string);
+
+    return NextResponse.json(gamificationProfile);
+  } catch (error: unknown) {
+    console.error('Sync gamification profile error:', error);
+    return NextResponse.json({ error: 'Failed to sync gamification details' }, { status: 500 });
+  }
+}
+

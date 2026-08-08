@@ -23,6 +23,7 @@ export default function RegisterPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [otpCooldown, setOtpCooldown] = useState(0);
   const [emailVerified, setEmailVerified] = useState(false);
+  const [devOtpCode, setDevOtpCode] = useState('');
 
   const dispatch = useAppDispatch();
   const { user, loading } = useAppSelector((s) => s.auth);
@@ -99,7 +100,7 @@ export default function RegisterPage() {
       setError('Please enter your email address');
       return;
     }
-    if (!/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/.test(email.trim())) {
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.trim())) {
       setError('Please enter a valid email address');
       return;
     }
@@ -118,6 +119,9 @@ export default function RegisterPage() {
       }
       setOtpSent(true);
       setOtpCooldown(60);
+      if (data.devOtp) {
+        setDevOtpCode(data.devOtp);
+      }
       setStep('otp');
     } catch {
       setError('Failed to send OTP. Please try again.');
@@ -183,6 +187,9 @@ export default function RegisterPage() {
       if (registerUser.rejected.match(result)) {
         setError((result.payload as string) || 'Registration failed');
       } else {
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('bengaliboxd_just_signed_up', 'true');
+        }
         router.push('/');
       }
     } catch {
@@ -192,7 +199,22 @@ export default function RegisterPage() {
     }
   };
 
-  if (loading || user) return <AppLoadingState message="Loading session..." fullScreen />;
+  const handleQuickGoogleLogin = async () => {
+    setIsSubmitting(true);
+    setError('');
+    try {
+      const result = await dispatch(googleLoginUser({ isMock: true, mockEmail: email.trim() || undefined }));
+      if (googleLoginUser.rejected.match(result)) {
+        setError((result.payload as string) || 'Google sign-in failed');
+      } else {
+        router.push('/');
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred during Google sign-in');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <>
@@ -221,6 +243,14 @@ export default function RegisterPage() {
                   Check your inbox and enter the 6-digit code below.
                 </Typography>
               </Box>
+
+              {devOtpCode && (
+                <Box sx={{ p: 1.5, background: 'rgba(255, 152, 0, 0.1)', borderRadius: 2, border: '1px solid rgba(255, 152, 0, 0.3)', textAlign: 'center' }}>
+                  <Typography variant="caption" color="warning.main" sx={{ fontWeight: 700, display: 'block' }}>
+                    [Dev Test Mode] Your OTP: <strong style={{ fontSize: '1.1rem', letterSpacing: 3, color: 'var(--accent, #ff5e2b)' }}>{devOtpCode}</strong>
+                  </Typography>
+                </Box>
+              )}
 
               <TextField
                 fullWidth
@@ -293,28 +323,43 @@ export default function RegisterPage() {
                 </Box>
               )}
 
-              {googleClientId ? (
-                <>
-                  <Divider sx={{ my: 1 }}>
-                    <Typography variant="caption" color="text.secondary">OR</Typography>
-                  </Divider>
-                  <div ref={googleBtnRef} style={{ width: '100%', display: 'flex', justifyContent: 'center' }} />
-                </>
-              ) : (
-                <>
-                  <Divider sx={{ my: 1 }}>
-                    <Typography variant="caption" color="text.secondary">OR</Typography>
-                  </Divider>
-                  <Box sx={{ p: 2, background: 'rgba(0,102,204,0.06)', borderRadius: 2, border: '1px solid rgba(0,102,204,0.15)' }}>
-                    <Typography variant="caption" color="primary.main" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
-                      Google OAuth Sandbox Mode
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.4 }}>
-                      Configure <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> for real Google sign-in.
-                    </Typography>
-                  </Box>
-                </>
+              <Divider sx={{ my: 1 }}>
+                <Typography variant="caption" color="text.secondary">OR</Typography>
+              </Divider>
+
+              {googleClientId && (
+                <div ref={googleBtnRef} style={{ width: '100%', display: 'flex', justifyContent: 'center' }} />
               )}
+
+              <Button
+                variant="outlined"
+                fullWidth
+                size="large"
+                onClick={handleQuickGoogleLogin}
+                disabled={isSubmitting}
+                startIcon={
+                  <svg width="18" height="18" viewBox="0 0 18 18">
+                    <path fill="#4285F4" d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2c1.7-1.57 2.68-3.88 2.68-6.62z"/>
+                    <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.53-1.78.9-3.12.9-2.38 0-4.41-1.57-5.13-3.74L.97 13.04C2.45 15.98 5.48 18 9 18z"/>
+                    <path fill="#FBBC05" d="M3.87 10.78c-.18-.53-.28-1.09-.28-1.78s.1-1.25.28-1.78L.97 4.96C.35 6.18 0 7.55 0 9s.35 2.82.97 4.04l2.9-2.26z"/>
+                    <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.46 3.44 1.34l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.45 2.02.97 4.96l2.9 2.26C4.59 5.05 6.62 3.58 9 3.58z"/>
+                  </svg>
+                }
+                sx={{
+                  borderRadius: '9999px',
+                  borderColor: 'divider',
+                  color: 'text.primary',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  py: 1,
+                  '&:hover': {
+                    borderColor: 'text.primary',
+                    bgcolor: 'action.hover',
+                  },
+                }}
+              >
+                {isSubmitting ? <CircularProgress size={20} /> : 'Continue with Google'}
+              </Button>
             </Stack>
           )}
 
@@ -350,6 +395,7 @@ export default function RegisterPage() {
           )}
 
           <Divider sx={{ my: 3 }} />
+
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', lineHeight: 1.4 }}>
             Already have an account?{' '}
             <Typography

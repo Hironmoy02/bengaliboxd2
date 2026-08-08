@@ -26,10 +26,15 @@ import MenuIcon from '@mui/icons-material/Menu';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import CompassIcon from '@mui/icons-material/Explore';
 import api from '@/lib/axios';
 import { StreakFlame } from '@/components/ui';
 
 export default function Navbar() {
+  const handleStartTour = () => {
+    window.dispatchEvent(new CustomEvent('startUserTour'));
+  };
+
   const pathname = usePathname();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((s) => s.auth);
@@ -179,6 +184,7 @@ export default function Navbar() {
                   key={link.href}
                   component={Link}
                   href={link.href}
+                  data-tour={link.href === '/explore' ? 'nav-explore' : link.href === '/add-story' ? 'nav-add-story' : undefined}
                   onClick={() => setMobileAnchor(null)}
                   selected={pathname === link.href}
                   sx={{
@@ -191,6 +197,16 @@ export default function Navbar() {
                   {link.label}
                 </MenuItem>
               ))}
+              <MenuItem
+                onClick={() => {
+                  setMobileAnchor(null);
+                  handleStartTour();
+                }}
+                sx={{ color: 'text.primary', fontSize: '0.875rem', letterSpacing: '-0.224px' }}
+              >
+                <CompassIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
+                Take Tour Guide
+              </MenuItem>
               <Divider sx={{ borderColor: 'divider' }} />
               {user ? (
                 <>
@@ -253,6 +269,7 @@ export default function Navbar() {
                 key={link.href}
                 component={Link}
                 href={link.href}
+                data-tour={link.href === '/explore' ? 'nav-explore' : link.href === '/add-story' ? 'nav-add-story' : undefined}
                 sx={{
                   color: pathname === link.href ? 'primary.main' : 'text.secondary',
                   fontWeight: 400,
@@ -270,6 +287,20 @@ export default function Navbar() {
               </Typography>
             ))}
 
+            {/* Tour Guide Button */}
+            <IconButton
+              onClick={handleStartTour}
+              title="Take Tour Guide"
+              size="small"
+              sx={{
+                color: 'text.secondary',
+                padding: '6px',
+                '&:hover': { color: 'primary.main' },
+              }}
+            >
+              <CompassIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+
             {/* Theme toggle */}
             <IconButton
               onClick={toggleTheme}
@@ -286,10 +317,13 @@ export default function Navbar() {
 
             {user ? (
               <>
-                <StreakFlame currentStreak={streak.current} longestStreak={streak.longest} size="small" />
+                <Box data-tour="nav-streak" sx={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <StreakFlame currentStreak={streak.current} longestStreak={streak.longest} size="small" />
+                </Box>
                 <Typography
                   component={Link}
                   href="/profile"
+                  data-tour="nav-profile"
                   sx={{
                     color: pathname === '/profile' ? 'primary.main' : 'text.secondary',
                     fontWeight: 500,
@@ -338,6 +372,7 @@ export default function Navbar() {
                 >
                   <LogoutIcon sx={{ fontSize: 16 }} />
                 </IconButton>
+
               </>
             ) : (
               <Box sx={{ display: 'flex', gap: 1 }}>
