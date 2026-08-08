@@ -178,32 +178,85 @@ export const COMMON_NARRATORS = [
 ];
 
 export const COMMON_WRITERS: { name: string; aliases: string[] }[] = [
-  { name: 'Rabindranath Tagore', aliases: ['Rabindranath Tagore', 'Rabindranath', 'Tagore', 'রবীন্দ্রনাথ ঠাকুর', 'রবীন্দ্রনাথ'] },
-  { name: 'Satyajit Ray', aliases: ['Satyajit Ray', 'Satyajit', 'Ray', 'সত্যজিৎ রায়', 'সত্যজিৎ'] },
-  { name: 'Sharadindu Bandyopadhyay', aliases: ['Sharadindu Bandyopadhyay', 'Saradindu', 'Sharadindu', 'শরদিন্দু বন্দ্যোপাধ্যায়', 'শরদিন্দু'] },
-  { name: 'Sukumar Ray', aliases: ['Sukumar Ray', 'Sukumar', 'সুকুমার রায়', 'সুকুমার'] },
-  { name: 'Bibhutibhushan Bandyopadhyay', aliases: ['Bibhutibhushan Bandyopadhyay', 'Bibhutibhushan', 'বিভূতিভূষণ বন্দ্যোপাধ্যায়', 'বিভূতিভূষণ'] },
+  { name: 'Rabindranath Tagore', aliases: ['Rabindranath Tagore', 'Rabindranath', 'রবীন্দ্রনাথ ঠাকুর', 'রবীন্দ্রনাথ'] },
+  { name: 'Satyajit Ray', aliases: ['Satyajit Ray', 'সত্যজিৎ রায়', 'সত্যজিৎ'] },
+  { name: 'Sharadindu Bandyopadhyay', aliases: ['Sharadindu Bandyopadhyay', 'Saradindu Bandyopadhyay', 'Sharadindu', 'শরদিন্দু বন্দ্যোপাধ্যায়', 'শরদিন্দু'] },
+  { name: 'Sukumar Ray', aliases: ['Sukumar Ray', 'সুকুমার রায়'] },
+  { name: 'Bibhutibhushan Bandyopadhyay', aliases: ['Bibhutibhushan Bandyopadhyay', 'Bibhutibhushan Bandopadhyay', 'Bibhutibhushan', 'বিভূতিভূষণ বন্দ্যোপাধ্যায়', 'বিভূতিভূষণ'] },
   { name: 'Tarashankar Bandyopadhyay', aliases: ['Tarashankar Bandyopadhyay', 'Tarashankar', 'তারাশঙ্কর বন্দ্যোপাধ্যায়', 'তারাশঙ্কর'] },
-  { name: 'Manik Bandyopadhyay', aliases: ['Manik Bandyopadhyay', 'Manik', 'মানিক বন্দ্যোপাধ্যায়', 'মানিক'] },
+  { name: 'Manik Bandyopadhyay', aliases: ['Manik Bandyopadhyay', 'Manik Bandopadhyay', 'মানিক বন্দ্যোপাধ্যায়'] },
   { name: 'Nihar Ranjan Gupta', aliases: ['Nihar Ranjan Gupta', 'Nihar Ranjan', 'নীহাররঞ্জন গুপ্ত', 'নীহার রঞ্জন'] },
   { name: 'Hemendra Kumar Roy', aliases: ['Hemendra Kumar Roy', 'Hemendra Kumar', 'হেমেন্দ্রকুমার রায়', 'হেমেন্দ্র কুমার'] },
-  { name: 'Humayun Ahmed', aliases: ['Humayun Ahmed', 'Humayun', 'হুমায়ূন আহমেদ', 'হুমায়ূন'] },
-  { name: 'Sirshendu Mukhopadhyay', aliases: ['Sirshendu Mukhopadhyay', 'Sirshendu', 'শীর্ষেন্দুমুখোপাধ্যায়', 'শীর্ষেন্দু'] },
-  { name: 'Sunil Gangopadhyay', aliases: ['Sunil Gangopadhyay', 'Sunil', 'সুনীল গঙ্গোপাধ্যায়', 'সুনীল'] },
-  { name: 'Samaresh Majumdar', aliases: ['Samaresh Majumdar', 'Samaresh', 'সমরেশ মজুমদার', 'সমরেশ'] },
-  { name: 'Sanjib Chattopadhyay', aliases: ['Sanjib Chattopadhyay', 'Sanjib', 'সঞ্জীব চট্টোপাধ্যায়', 'সঞ্জীব'] },
+  { name: 'Humayun Ahmed', aliases: ['Humayun Ahmed', 'হুমায়ূন আহমেদ', 'হুমায়ূন'] },
+  { name: 'Sirshendu Mukhopadhyay', aliases: ['Sirshendu Mukhopadhyay', 'Shirshendu Mukhopadhyay', 'Sirshendu', 'Shirshendu', 'শীর্ষেন্দুমুখোপাধ্যায়', 'শীর্ষেন্দু'] },
+  { name: 'Sunil Gangopadhyay', aliases: ['Sunil Gangopadhyay', 'সুনীল গঙ্গোপাধ্যায়'] },
+  { name: 'Samaresh Majumdar', aliases: ['Samaresh Majumdar', 'সমরেশ মজুমদার'] },
+  { name: 'Sanjib Chattopadhyay', aliases: ['Sanjib Chattopadhyay', 'সঞ্জীব চট্টোপাধ্যায়'] },
   { name: 'Bimal Mitra', aliases: ['Bimal Mitra', 'বিমল মিত্র'] },
   { name: 'Ashapurna Devi', aliases: ['Ashapurna Devi', 'আশাপূর্ণা দেবী'] },
   { name: 'Leela Majumdar', aliases: ['Leela Majumdar', 'লীলা মজুমদার'] },
   { name: 'Upendrakishore Roy Chowdhury', aliases: ['Upendrakishore Roy Chowdhury', 'Upendrakishore', 'উপেন্দ্রকিশোর'] },
-  { name: 'Premendra Mitra', aliases: ['Premendra Mitra', 'Premendra', 'প্রেমেন্দ্র মিত্র', 'প্রেমেন্দ্র'] },
-  { name: 'Narayan Gangopadhyay', aliases: ['Narayan Gangopadhyay', 'Narayan', 'নারায়ণ গঙ্গোপাধ্যায়', 'নারায়ণ'] },
+  { name: 'Premendra Mitra', aliases: ['Premendra Mitra', 'প্রেমেন্দ্র মিত্র'] },
+  { name: 'Narayan Gangopadhyay', aliases: ['Narayan Gangopadhyay', 'নারায়ণ গঙ্গোপাধ্যায়'] },
   { name: 'Shibram Chakraborty', aliases: ['Shibram Chakraborty', 'Shibram', 'শিবরাম চক্রবর্তী', 'শিবরাম'] },
-  { name: 'Suchitra Bhattacharya', aliases: ['Suchitra Bhattacharya', 'Suchitra', 'সুচিত্রা ভট্টাচার্য', 'সুচিত্রা'] },
+  { name: 'Suchitra Bhattacharya', aliases: ['Suchitra Bhattacharya', 'সুচিত্রা ভট্টাচার্য'] },
   { name: 'Abanindranath Tagore', aliases: ['Abanindranath Tagore', 'Abanindranath', 'অবনীন্দ্রনাথ'] },
   { name: 'Swapan Kumar', aliases: ['Swapan Kumar', 'স্বপন কুমার'] },
   { name: 'Adrish Bardhan', aliases: ['Adrish Bardhan', 'অদ্রীশ বর্ধন'] },
   { name: 'Syed Mustafa Siraj', aliases: ['Syed Mustafa Siraj', 'Mustafa Siraj', 'সৈয়দ মুস্তফা সিরাজ'] },
+  { name: 'Victor Hugo', aliases: ['Victor Hugo', 'ভিক্টর হুগো'] },
+  { name: 'Alexandre Dumas', aliases: ['Alexandre Dumas', 'অ্যালেকজান্ডার দ্যুমা'] },
+  { name: 'Arthur Conan Doyle', aliases: ['Arthur Conan Doyle', 'Conan Doyle', 'আর্থার কোনান ডয়েল'] },
+  { name: 'Edgar Allan Poe', aliases: ['Edgar Allan Poe', 'এডগার অ্যালান পো'] },
+  { name: 'Bram Stoker', aliases: ['Bram Stoker', 'ব্রাম স্টোকার'] },
+  { name: 'L. Frank Baum', aliases: ['L. Frank Baum', 'Frank Baum'] },
+  { name: 'Robert Louis Stevenson', aliases: ['Robert Louis Stevenson', 'রবার্ট লুইস স্টিভেন্সন'] },
+  { name: 'Jules Verne', aliases: ['Jules Verne', 'জুল ভার্ন'] },
+  { name: 'H. G. Wells', aliases: ['H. G. Wells', 'এইচ জি ওয়েলস'] },
+  { name: 'Agatha Christie', aliases: ['Agatha Christie', 'অ্যাকাথা ক্রিস্টি'] },
+  { name: 'Oscar Wilde', aliases: ['Oscar Wilde', 'অস্কার ওয়াইল্ড'] },
+  { name: 'Mary Shelley', aliases: ['Mary Shelley', 'মেরি শেলি'] },
+  { name: 'Sarat Chandra Chattopadhyay', aliases: ['Sarat Chandra Chattopadhyay', 'Saratchandra Chattopadhyay', 'Sarat Chandra', 'Saratchandra', 'শরৎচন্দ্র চট্টোপাধ্যায়', 'শরৎচন্দ্র বন্দ্যোপাধ্যায়', 'শরৎচন্দ্র'] },
+  { name: 'Mukundaram Chakrabarti', aliases: ['Mukundaram Chakrabarti', 'Kabikankan Mukundaram', 'Kavikankan Mukundaram', 'মুকুন্দরাম', 'কবিকঙ্কণ মুকুন্দরাম', 'চণ্ডীমঙ্গল'] },
+  { name: 'Avik Sarkar', aliases: ['Avik Sarkar', 'অভিীক সরকার', 'অভীক সরকার'] },
+  { name: 'Abhigyan Ganguly', aliases: ['Abhigyan Ganguly', 'অভিজ্ঞান গাঙ্গুলী', 'অভিজ্ঞান গঙ্গোপাধ্যায়'] },
+  { name: 'Tathagata Bandopadhyay', aliases: ['Tathagata Bandopadhyay', 'Tathagata Banerjee', 'তথাগত বন্দ্যোপাধ্যায়'] },
+  { name: 'Rudyard Kipling', aliases: ['Rudyard Kipling', 'রুডইয়ার্ড কিপলিং'] },
+  { name: 'Prabhat Kumar Mukhopadhyay', aliases: ['Prabhat Kumar Mukhopadhyay', 'Prabhat Kumar', 'প্রভাতকুমার মুখোপাধ্যায়', 'প্রভাত কুমার'] },
+  { name: 'Ajeyo Ray', aliases: ['Ajeyo Ray', 'অজেয় রায়'] },
+  { name: 'Shamik Dasgupta', aliases: ['Shamik Dasgupta', 'Ayantika Shamik', 'শ্যামীক দাসগুপ্ত'] },
+  { name: 'Hindol Sarkar', aliases: ['Hindol Sarkar', 'হিন্দোল সরকার'] },
+  { name: 'Buddhadeb Guha', aliases: ['Buddhadeb Guha', 'বুদ্ধদেব গুহ'] },
+  { name: 'Subodh Ghosh', aliases: ['Subodh Ghosh', 'সুবোধ ঘোষ'] },
+  { name: 'Kaushik Ray', aliases: ['Kaushik Ray', 'কৌশিক রায়'] },
+  { name: 'Sayak Aman', aliases: ['Sayak Aman', 'সায়ন্তন আমান', 'সায়ক আমান'] },
+  { name: 'Dipanwita Roy', aliases: ['Dipanwita Roy', 'দীপান্বিতা রায়'] },
+  { name: 'Manoj Sen', aliases: ['Manoj Sen', 'মনোজ সেন'] },
+  { name: 'Panchkori Dey', aliases: ['Panchkori Dey', 'পাঁচকড়ি দে'] },
+  { name: 'Ishwar Chandra Vidyasagar', aliases: ['Ishwar Chandra Vidyasagar', 'Ishwar Chandra', 'Vidyasagar', 'ঈশ্বরচন্দ্র বিদ্যাসাগর', 'বিদ্যাসাগর'] },
+  { name: 'Moti Nandi', aliases: ['Moti Nandi', 'মতি নন্দী'] },
+  { name: 'Dakshinaranjan Mitra Majumder', aliases: ['Dakshinaranjan Mitra Majumder', 'Dakshinaranjan', 'দক্ষিণারঞ্জন মিত্র মজুমদার', 'ঠাকুরমার ঝুলি'] },
+  { name: 'Bankimchandra Chattopadhyay', aliases: ['Bankimchandra Chattopadhyay', 'Bankimchandra', 'Bankim Chandra', 'বঙ্কিমচন্দ্র চট্টোপাধ্যায়', 'বঙ্কিমচন্দ্র'] },
+  { name: 'Narayan Sanyal', aliases: ['Narayan Sanyal', 'নারায়ণ সান্যাল'] },
+  { name: 'William Shakespeare', aliases: ['William Shakespeare', 'Shakespeare', 'শোলাই স্পিয়ার', 'শেেক্সপীয়ার'] },
+  { name: 'Troilokyanath Mukhopadhyay', aliases: ['Troilokyanath Mukhopadhyay', 'Troilokyanath', 'ত্রৈলোক্যনাথ মুখোপাধ্যায়', 'ত্রৈলোক্যনাথ'] },
+  { name: 'H. P. Lovecraft', aliases: ['H.P. Lovecraft', 'H. P. Lovecraft', 'Lovecraft'] },
+  { name: 'Buddhadeb Basu', aliases: ['Buddhadeb Basu', 'বুদ্ধদেব বসু'] },
+  { name: 'Rupam Islam', aliases: ['Rupam Islam', 'রূপম ইসলাম'] },
+  { name: 'Chitradeep Chakraborty', aliases: ['Chitradeep Chakraborty', 'চিত্রদীপ চক্রবর্তী'] },
+  { name: 'Souvik Chakraborty', aliases: ['Souvik Chakraborty', 'সৌভিক চক্রবর্তী'] },
+  { name: 'Amrita Koner', aliases: ['Amrita Koner', 'অমৃতা কোনার'] },
+  { name: 'Abhik Arjun Dutta', aliases: ['Abhik Arjun Dutta', 'Ashik Arjun Dutta', 'অভীক অর্জুন দত্ত'] },
+  { name: 'Suparna Chatterjee', aliases: ['Suparna Chatterjee', 'সুপর্ণা চট্টোপাধ্যায়'] },
+  { name: 'John Buchan', aliases: ['John Buchan', 'জন বুকান'] },
+  { name: 'Rohan Roy', aliases: ['Rohan Roy', 'রোহন রায়'] },
+  { name: 'Ranadip Nandy', aliases: ['Ranadip Nandy', 'রণদীপ নন্দী'] },
+  { name: 'Piya Sarkar', aliases: ['Piya Sarkar', 'পিয়া সরকার'] },
+  { name: 'Dr. Anindita De', aliases: ['Dr. Anindita De', 'Anindita De', 'অনিন্দিতা দে'] },
+  { name: 'Asita Sen', aliases: ['Asita Sen', 'অসিতা সেন'] },
+  { name: 'Deep Ghosh', aliases: ['Deep Ghosh', 'দীপ ঘোষ'] },
+  { name: 'Hindol Nandy', aliases: ['Hindol Nandy', 'হিন্দোল নন্দী'] },
+  { name: 'Arabian Nights Folk Tale', aliases: ['Arabian Nights', 'Alibaba', 'আরব্য রজনী'] },
 ];
 
 export function extractNarrators(title: string, description: string, channelName: string = ''): string {
@@ -244,12 +297,22 @@ export function extractNarrators(title: string, description: string, channelName
   return 'Mir';
 }
 
+export const CHARACTER_WRITER_MAP: { pattern: RegExp; writer: string }[] = [
+  { pattern: /\b(?:feluda|shonku|professor shonku|tarini khuro|tarinikhuro|banku babu|bipin chowdhury)\b/i, writer: 'Satyajit Ray' },
+  { pattern: /\b(?:byomkesh|satyanweshi)\b/i, writer: 'Sharadindu Bandyopadhyay' },
+  { pattern: /\b(?:kakababu)\b/i, writer: 'Sunil Gangopadhyay' },
+  { pattern: /\b(?:tenida|pyalaram)\b/i, writer: 'Narayan Gangopadhyay' },
+  { pattern: /\b(?:ghanada)\b/i, writer: 'Premendra Mitra' },
+  { pattern: /\b(?:mitin mashi)\b/i, writer: 'Suchitra Bhattacharya' },
+  { pattern: /\b(?:kiriti|mohan samanta)\b/i, writer: 'Nihar Ranjan Gupta' },
+];
+
 export function extractWriters(title: string, description: string, channelName: string = ''): string {
   const combined = `${title} ${description}`;
   // Strip possessive 's (e.g. Tagore's -> Tagore) for regex matching
   const cleanedText = combined.replace(/'s\b/gi, '');
 
-  // 1. Search famous Bengali writers first (highest priority)
+  // 1. Search famous Bengali & World authors in title + description first (exact name match)
   for (const w of COMMON_WRITERS) {
     for (const alias of w.aliases) {
       const reg = new RegExp(`\\b${alias}\\b`, 'i');
@@ -259,16 +322,31 @@ export function extractWriters(title: string, description: string, channelName: 
     }
   }
 
-  // 2. Explicit label match e.g. "Written by: ..." or "Author: ..."
-  const writerMatch = combined.match(/(?:written\s+by|author|story\s+by|by|রচয়িতা|লেখক|মূল\s*গল্প)\s*[:|-]?\s*([A-Za-z\s\u0980-\u09ff]+)/i);
+  // 2. Search iconic character series (e.g. Feluda -> Satyajit Ray, Byomkesh -> Sharadindu)
+  for (const item of CHARACTER_WRITER_MAP) {
+    if (item.pattern.test(cleanedText)) {
+      return item.writer;
+    }
+  }
+
+  // 3. Explicit label match e.g. "Written by: ...", "Story by: ...", "Author: ...", "by:"
+  const writerMatch = combined.match(/(?:written\s+by|author|story\s+by|original\s+story\s+by|by\s*:|রচয়িতা|লেখক|মূল\s*গল্প)\s*[:|-]?\s*([A-Za-z\s\u0980-\u09ff]+)/i);
   if (writerMatch?.[1]) {
     const candidate = writerMatch[1].trim().split(/\n|\r|,|;|\./)[0].trim();
-    if (candidate.length >= 3 && candidate.length <= 40 && !/sunday|suspense|audio|mirchi|present|radio/i.test(candidate)) {
+    if (candidate.length >= 3 && candidate.length <= 40 && !/sunday|suspense|audio|mirchi|present|radio|gmt|mir|episode|part/i.test(candidate)) {
+      for (const w of COMMON_WRITERS) {
+        for (const alias of w.aliases) {
+          const reg = new RegExp(`\\b${alias}\\b`, 'i');
+          if (reg.test(candidate)) {
+            return w.name;
+          }
+        }
+      }
       return candidate;
     }
   }
 
-  // 3. Check if compilation / non-stop episode
+  // 4. Check if compilation / non-stop episode
   if (
     /non\s*stop|compilation|collection|24\s*hrs|special\s*episode|mega\s*episode|top\s*\d+/i.test(title) ||
     /non\s*stop|compilation|collection|24\s*hrs/i.test(description)

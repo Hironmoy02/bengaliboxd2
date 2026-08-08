@@ -6,6 +6,8 @@ import { fetchYouTubeMeta, fetchChannelVideos, extractNarrators, extractWriters 
 import { toSearchable } from '@/lib/transliterate';
 import { YOUTUBE_THUMBNAIL } from '@/lib/constants';
 
+import { smartCleanTitle } from '@/lib/title-cleaner';
+
 export const dynamic = 'force-dynamic';
 
 const CHANNELS_SYNC = [
@@ -25,44 +27,7 @@ const MIN_DURATION_SECONDS = 1200;
 const MAX_VIDEOS_PER_CHANNEL = 200;
 
 function cleanTitle(title: string, channelName: string, writer: string, narratorsMatched: string[]): string {
-  let cleaned = title;
-
-  const noise = [
-    channelName,
-    "Sunday Suspense",
-    "SundaySuspense",
-    "Goppo Mirer Thek",
-    "Mirchi Bangla",
-    "Friday Classics",
-    "FridayClassics",
-    "Classics",
-    "Audio Story",
-    "Bengali Audio Story",
-    "Psychological Horror Thriller",
-    "#GoppoMirerThek",
-    "Full Story",
-  ];
-
-  for (const n of noise) {
-    const reg = new RegExp(`\\b${n}\\b|${n}`, "gi");
-    cleaned = cleaned.replace(reg, "");
-  }
-
-  if (writer) {
-    const reg = new RegExp(`\\bby\\s+${writer}\\b|\\b${writer}\\b|${writer}`, "gi");
-    cleaned = cleaned.replace(reg, "");
-  }
-
-  for (const n of narratorsMatched) {
-    const reg = new RegExp(`\\b${n}\\b`, "gi");
-    cleaned = cleaned.replace(reg, "");
-  }
-
-  cleaned = cleaned.replace(/\|/g, " ");
-  cleaned = cleaned.replace(/^[-\s:|]+|[-\s:|]+$/g, "");
-  cleaned = cleaned.replace(/\s+/g, " ");
-
-  return cleaned.trim();
+  return smartCleanTitle(title, writer);
 }
 
 export async function GET(request: NextRequest) {
@@ -164,6 +129,7 @@ export async function GET(request: NextRequest) {
           duration: durationSec,
           tags: [],
           approved: false,
+          source: 'youtube_sync',
           averageRating: 0,
           ratingsCount: 0,
         });
