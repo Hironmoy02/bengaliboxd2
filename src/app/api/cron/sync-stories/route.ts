@@ -131,17 +131,7 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        let matchedWriter = 'Unknown';
-        for (const writerName of registeredWriters) {
-          const escaped = writerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const byReg = new RegExp(`\\bby\\s+${escaped}\\b`, 'i');
-          if (byReg.test(entry.title) || byReg.test(videoDesc)) {
-            matchedWriter = writerName;
-            break;
-          }
-        }
-
-        let matchedWriter = extractWriters(entry.title, videoDesc, chanConfig.name);
+        const matchedWriter = extractWriters(entry.title, videoDesc, chanConfig.name);
         const finalNarrators = extractNarrators(entry.title, videoDesc, chanConfig.name);
 
         const cleanStoryTitle = cleanTitle(entry.title, chanConfig.name, matchedWriter, [finalNarrators]);

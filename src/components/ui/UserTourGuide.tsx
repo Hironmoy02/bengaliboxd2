@@ -221,7 +221,7 @@ export default function UserTourGuide() {
             px: 2,
           }}
         >
-          <Fade in duration={400}>
+          <Fade in timeout={400}>
             <Paper
               elevation={24}
               sx={{
