@@ -80,6 +80,11 @@ const StorySchema = new Schema(
       type: Boolean,
       default: false,
     },
+    source: {
+      type: String,
+      enum: ['excel', 'youtube_sync', 'manual'],
+      default: 'youtube_sync',
+    },
   },
   { timestamps: true }
 );

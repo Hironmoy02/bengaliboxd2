@@ -1,0 +1,115 @@
+/**
+ * Utility to clean raw YouTube titles into short, elegant, proper story titles.
+ */
+
+export function smartCleanTitle(rawTitle: string, writer: string = '', description: string = ''): string {
+  if (!rawTitle) return '';
+
+  let t = rawTitle;
+
+  // 1. Decode HTML entities
+  t = t.replace(/&amp;/g, '&')
+       .replace(/&quot;/g, '"')
+       .replace(/&#39;/g, "'")
+       .replace(/&lt;/g, '<')
+       .replace(/&gt;/g, '>');
+
+  // 2. Remove Hashtags & Episode Suffixes
+  t = t.replace(/#\w+/g, '');
+  t = t.replace(/\bEP\s*\d+\b/gi, '');
+  t = t.replace(/\bEpisode\s*\d+\b/gi, '');
+  t = t.replace(/\bSeason\s*\d+\b/gi, '');
+
+  // 3. Remove common channel/brand/category labels
+  const noisePatterns = [
+    /\bSunday\s*Suspense\s*Classics\b/gi,
+    /\bSunday\s*Suspense\s*Originals\b/gi,
+    /\bSunday\s*Suspense\b/gi,
+    /\bSundaySuspense\b/gi,
+    /\bGoppo\s*Mir\s*er\s*Thek\b/gi,
+    /\bGoppoMirerThek\b/gi,
+    /\bGMT\s*Originals\b/gi,
+    /\bGMT\s*Shorts\b/gi,
+    /\bGMTShorts\b/gi,
+    /\bGMT\b/gi,
+    /\bMirchi\s*Bangla\s*Originals\b/gi,
+    /\bMirchi\s*Bangla\b/gi,
+    /\bFriday\s*Classics\b/gi,
+    /\bFridayClassics\b/gi,
+    /\bWorld\s*Classics\b/gi,
+    /\bBangla\s*Audio\s*Story\b/gi,
+    /\bBengali\s*Audio\s*Story\b/gi,
+    /\bBengali\s*Audio\s*Drama\b/gi,
+    /\bBangla\s*Crime\s*Thriller\s*Story\b/gi,
+    /\bBangla\s*Crime\s*Thriller\b/gi,
+    /\bAudio\s*Drama\s*Originals\b/gi,
+    /\bAudio\s*Drama\b/gi,
+    /\bAudio\s*Jukebox\b/gi,
+    /\bAudio\s*Story\b/gi,
+    /\bGhost\s*Stories\b/gi,
+    /\bCrime\s*Stories\b/gi,
+    /\bFull\s*Story\b/gi,
+    /\bMaha\s*Episode\b/gi,
+    /\bHaar\s*Heem\s*Horror\b/gi,
+    /\bChanakya\s*Series\b/gi,
+    /\bClassics\b/gi,
+    /\bOriginals\b/gi,
+    /\bArabian\s*Nights\b/gi
+  ];
+
+  for (const p of noisePatterns) {
+    t = t.replace(p, '');
+  }
+
+  // 4. Split by '|' or ',' and filter out segments that only contain cast, author, or noise
+  if (t.includes('|')) {
+    const segments = t.split('|').map(s => s.trim()).filter(Boolean);
+    const cleanSegments = segments.filter(seg => {
+      if (/^(?:Mir|Deep|Somak|Godhuli|Papiya|Roy|Agni|Pushpal|Anujoy|Sree|Richard|Sudip|Kaizar|Buddhadev|Sankari|Rounak|Shovan|Rituparna|Maitrayee|Shakya|Aikayan|Anirban Bhattacharya|Pradyut Chatterjea|Srijan Chatterjee)$/i.test(seg)) {
+        return false;
+      }
+      if (/^(?:Sunday Suspense|Goppo Mirer Thek|Mirchi Bangla|Friday Classics|World Classics|GMT|Audio Story)$/i.test(seg)) {
+        return false;
+      }
+      return true;
+    });
+
+    if (cleanSegments.length > 0) {
+      t = cleanSegments[0]; // Primary title segment
+    }
+  }
+
+  // 5. Remove "By [Writer]" or "By [Author]"
+  t = t.replace(/\bby\s+[A-Za-z\s\u0980-\u09ff]+/gi, '');
+
+  // 6. Remove trailing artist / cast / author names
+  const crewNames = [
+    'Anirban Bhattacharya', 'Pradyut Chatterjea', 'Srijan Chatterjee', 'Ayantika Shamik',
+    'Sudip Kaizar Sumit', 'Rituparna Rounak Maitrayee', 'Shovan Dipankar', 'Shovan Rounak Shakya',
+    'Afsar Ali Shovan Arpan Dipam', 'Shovan', 'Rounak', 'Shakya', 'Dipankar', 'Maitrayee',
+    'Rituparna', 'Afsar Ali', 'Arpan', 'Dipam', 'Sudip', 'Kaizar', 'Sumit', 'Aikayan', 'Sudipta',
+    'Victor Hugo World', 'Victor Hugo'
+  ];
+
+  for (const c of crewNames) {
+    const reg = new RegExp(`\\b${c}\\b`, 'gi');
+    t = t.replace(reg, '');
+  }
+
+  if (writer) {
+    const escWriter = writer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    t = t.replace(new RegExp(`\\b${escWriter}\\b`, 'gi'), '');
+  }
+
+  // 7. Clean up parenthetical noise (keep useful ones like "(নিষ্কৃতি)" or "(উত্তরবঙ্গ সরগরম)")
+  t = t.replace(/\((?:Friday Classics|World Classics|Mirchi Bangla|Goppo Mirer Thek|Sunday Suspense|Banglay Biswasera)\)/gi, '');
+  t = t.replace(/\(\s*\)/g, ''); // Empty parentheses
+
+  // 8. Clean up extra symbols & whitespace
+  t = t.replace(/\|/g, ' ');
+  t = t.replace(/[-:_,\s]+$/g, '');
+  t = t.replace(/^[-:_,\s]+/g, '');
+  t = t.replace(/\s+/g, ' ').trim();
+
+  return t;
+}
