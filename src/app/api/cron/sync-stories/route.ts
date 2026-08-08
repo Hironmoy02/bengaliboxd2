@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Story from '@/models/Story';
 import Writer from '@/models/Writer';
-import { fetchYouTubeMeta, fetchChannelVideos } from '@/lib/youtube-meta';
+import { fetchYouTubeMeta, fetchChannelVideos, extractNarrators, extractWriters } from '@/lib/youtube-meta';
 import { toSearchable } from '@/lib/transliterate';
 import { YOUTUBE_THUMBNAIL } from '@/lib/constants';
 
@@ -141,31 +141,10 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        if (matchedWriter === 'Unknown') {
-          const cleanTitleStr = entry.title.toLowerCase().replace(/[^a-z0-9\u0980-\u09ff]/g, '');
-          const cleanDescStr = videoDesc.toLowerCase().replace(/[^a-z0-9\u0980-\u09ff]/g, '');
+        let matchedWriter = extractWriters(entry.title, videoDesc, chanConfig.name);
+        const finalNarrators = extractNarrators(entry.title, videoDesc, chanConfig.name);
 
-          for (const writerName of registeredWriters) {
-            const cleanWriter = writerName.toLowerCase().replace(/[^a-z0-9\u0980-\u09ff]/g, '');
-            if (cleanWriter.length < 4) continue;
-
-            if (cleanTitleStr.includes(cleanWriter) || cleanDescStr.includes(cleanWriter)) {
-              matchedWriter = writerName;
-              break;
-            }
-          }
-        }
-
-        const matchedNarrators: string[] = [];
-        for (const narratorName of COMMON_NARRATORS) {
-          const reg = new RegExp(`\\b${narratorName}\\b`, 'i');
-          if (reg.test(entry.title) || reg.test(videoDesc)) {
-            matchedNarrators.push(narratorName);
-          }
-        }
-        const finalNarrators = matchedNarrators.length > 0 ? matchedNarrators.join(', ') : 'Unknown';
-
-        const cleanStoryTitle = cleanTitle(entry.title, chanConfig.name, matchedWriter, matchedNarrators);
+        const cleanStoryTitle = cleanTitle(entry.title, chanConfig.name, matchedWriter, [finalNarrators]);
         if (!cleanStoryTitle) {
           channelReport.skipped.push(`${entry.title} (could not generate a clean title)`);
           continue;

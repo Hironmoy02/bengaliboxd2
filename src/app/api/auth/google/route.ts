@@ -56,6 +56,7 @@ export async function POST(request: Request) {
 
     // Find user by email
     let user = await User.findOne({ email });
+    const userExists = Boolean(user);
 
     if (!user) {
       // If user doesn't exist, register them
@@ -115,6 +116,7 @@ export async function POST(request: Request) {
         username: user.username,
         email: user.email,
         role: user.role,
+        isNewUser: !userExists,
       },
     });
 

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Story from '@/models/Story';
 import Writer from '@/models/Writer';
-import { fetchYouTubeMeta, extractNarrators } from '@/lib/youtube-meta';
+import { fetchYouTubeMeta, extractNarrators, extractWriters } from '@/lib/youtube-meta';
 import { getUserFromSession } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
@@ -27,9 +27,6 @@ export async function POST(request: NextRequest) {
       ],
     });
 
-    const registeredWritersDocs = await Writer.find({}).select('name').lean();
-    const registeredWriters = registeredWritersDocs.map((w: { name: string }) => w.name.trim()).filter(Boolean);
-
     let updatedCount = 0;
 
     for (const story of storiesToFix) {
@@ -46,26 +43,11 @@ export async function POST(request: NextRequest) {
         /* ignore fetch errors */
       }
 
-      const detectedNarrator = extractNarrators(story.title || '', videoDesc);
-      let detectedWriter = story.writer;
-
-      if (!detectedWriter || detectedWriter === 'Unknown') {
-        const cleanTitleStr = (story.title || '').toLowerCase().replace(/[^a-z0-9\u0980-\u09ff]/g, '');
-        const cleanDescStr = videoDesc.toLowerCase().replace(/[^a-z0-9\u0980-\u09ff]/g, '');
-
-        for (const writerName of registeredWriters) {
-          const cleanWriter = writerName.toLowerCase().replace(/[^a-z0-9\u0980-\u09ff]/g, '');
-          if (cleanWriter.length < 4) continue;
-
-          if (cleanTitleStr.includes(cleanWriter) || cleanDescStr.includes(cleanWriter)) {
-            detectedWriter = writerName;
-            break;
-          }
-        }
-      }
+      const detectedNarrator = extractNarrators(story.title || '', videoDesc, story.channel || '');
+      const detectedWriter = extractWriters(story.title || '', videoDesc, story.channel || '');
 
       const updates: Record<string, unknown> = {};
-      if (detectedNarrator && detectedNarrator !== 'Unknown') {
+      if (detectedNarrator && detectedNarrator !== story.narrator) {
         updates.narrator = detectedNarrator;
       }
       if (detectedWriter && detectedWriter !== story.writer) {

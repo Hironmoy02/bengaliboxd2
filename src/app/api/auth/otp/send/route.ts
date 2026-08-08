@@ -6,7 +6,7 @@ import EmailOTP, { generateOTP } from '@/models/EmailOTP';
 import { sendEmail } from '@/lib/email';
 
 const RATE_LIMIT_WINDOW = 60 * 1000;
-const MAX_REQUESTS_PER_WINDOW = 3;
+const MAX_REQUESTS_PER_WINDOW = process.env.NODE_ENV !== 'production' ? 50 : 3;
 const OTP_EXPIRY_MINUTES = 10;
 
 const requestLog = new Map<string, number[]>();
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    if (!/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/.test(normalizedEmail)) {
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(normalizedEmail)) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
@@ -77,7 +77,10 @@ export async function POST(request: Request) {
       console.warn(`[DEV MODE] OTP for ${normalizedEmail}: ${otp}`);
     }
 
-    return NextResponse.json({ message: 'OTP sent successfully' });
+    return NextResponse.json({
+      message: 'OTP sent successfully',
+      devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined,
+    });
   } catch (error: unknown) {
     console.error('OTP send error:', error);
     return NextResponse.json({ error: 'Failed to send OTP' }, { status: 500 });

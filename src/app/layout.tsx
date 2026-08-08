@@ -3,6 +3,8 @@ import StoreProvider from '@/store/StoreProvider';
 import ThemeProvider from '@/components/ThemeProvider';
 import BadgeToastProvider from '@/components/BadgeToastProvider';
 import Navbar from '@/components/Navbar';
+import FooterTourButton from '@/components/FooterTourButton';
+import { UserTourGuide } from '@/components/ui';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -30,13 +32,15 @@ export default function RootLayout({
         <StoreProvider>
           <ThemeProvider>
             <BadgeToastProvider>
+              <UserTourGuide />
               <Navbar />
               <main style={{ flex: 1 }}>{children}</main>
               <footer className="footer">
-                <div className="container">
-                  <p className="footer-text">
+                <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  <p className="footer-text" style={{ margin: 0 }}>
                     &copy; {new Date().getFullYear()} Bengaliboxd. A personalized home for Bengali audio story lovers.
                   </p>
+                  <FooterTourButton />
                 </div>
               </footer>
             </BadgeToastProvider>

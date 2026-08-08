@@ -8,8 +8,14 @@ import { checkRateLimit } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
   try {
-    await dbConnect();
-    const { emailOrUsername, password } = await request.json();
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid request payload' }, { status: 400 });
+    }
+
+    const { emailOrUsername, password } = body;
 
     if (!emailOrUsername || !password) {
       return NextResponse.json(
@@ -17,6 +23,8 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    await dbConnect();
 
     const input = emailOrUsername.trim().toLowerCase();
     const rl = checkRateLimit(`login:${input}`);

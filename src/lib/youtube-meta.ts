@@ -174,13 +174,56 @@ export const COMMON_NARRATORS = [
   "Mir", "Deep", "Somak", "Jojo", "Sayak", "Agni", "Pushpal",
   "Anujoy", "Godhuli", "Sree", "Richard", "Papiya", "Sabyasachi",
   "Jagannath", "Urmimala", "Roy", "Riya", "Parambrata", "Gargi",
-  "Chiranjeet", "Koushik"
+  "Chiranjeet", "Koushik", "Subhodip", "Shubhadeep", "Bhaswar", "Pradip"
 ];
 
-export function extractNarrators(title: string, description: string): string {
-  const combined = `${title} ${description}`;
-  const matched: string[] = [];
+export const COMMON_WRITERS: { name: string; aliases: string[] }[] = [
+  { name: 'Rabindranath Tagore', aliases: ['Rabindranath Tagore', 'Rabindranath', 'Tagore', 'রবীন্দ্রনাথ ঠাকুর', 'রবীন্দ্রনাথ'] },
+  { name: 'Satyajit Ray', aliases: ['Satyajit Ray', 'Satyajit', 'Ray', 'সত্যজিৎ রায়', 'সত্যজিৎ'] },
+  { name: 'Sharadindu Bandyopadhyay', aliases: ['Sharadindu Bandyopadhyay', 'Saradindu', 'Sharadindu', 'শরদিন্দু বন্দ্যোপাধ্যায়', 'শরদিন্দু'] },
+  { name: 'Sukumar Ray', aliases: ['Sukumar Ray', 'Sukumar', 'সুকুমার রায়', 'সুকুমার'] },
+  { name: 'Bibhutibhushan Bandyopadhyay', aliases: ['Bibhutibhushan Bandyopadhyay', 'Bibhutibhushan', 'বিভূতিভূষণ বন্দ্যোপাধ্যায়', 'বিভূতিভূষণ'] },
+  { name: 'Tarashankar Bandyopadhyay', aliases: ['Tarashankar Bandyopadhyay', 'Tarashankar', 'তারাশঙ্কর বন্দ্যোপাধ্যায়', 'তারাশঙ্কর'] },
+  { name: 'Manik Bandyopadhyay', aliases: ['Manik Bandyopadhyay', 'Manik', 'মানিক বন্দ্যোপাধ্যায়', 'মানিক'] },
+  { name: 'Nihar Ranjan Gupta', aliases: ['Nihar Ranjan Gupta', 'Nihar Ranjan', 'নীহাররঞ্জন গুপ্ত', 'নীহার রঞ্জন'] },
+  { name: 'Hemendra Kumar Roy', aliases: ['Hemendra Kumar Roy', 'Hemendra Kumar', 'হেমেন্দ্রকুমার রায়', 'হেমেন্দ্র কুমার'] },
+  { name: 'Humayun Ahmed', aliases: ['Humayun Ahmed', 'Humayun', 'হুমায়ূন আহমেদ', 'হুমায়ূন'] },
+  { name: 'Sirshendu Mukhopadhyay', aliases: ['Sirshendu Mukhopadhyay', 'Sirshendu', 'শীর্ষেন্দুমুখোপাধ্যায়', 'শীর্ষেন্দু'] },
+  { name: 'Sunil Gangopadhyay', aliases: ['Sunil Gangopadhyay', 'Sunil', 'সুনীল গঙ্গোপাধ্যায়', 'সুনীল'] },
+  { name: 'Samaresh Majumdar', aliases: ['Samaresh Majumdar', 'Samaresh', 'সমরেশ মজুমদার', 'সমরেশ'] },
+  { name: 'Sanjib Chattopadhyay', aliases: ['Sanjib Chattopadhyay', 'Sanjib', 'সঞ্জীব চট্টোপাধ্যায়', 'সঞ্জীব'] },
+  { name: 'Bimal Mitra', aliases: ['Bimal Mitra', 'বিমল মিত্র'] },
+  { name: 'Ashapurna Devi', aliases: ['Ashapurna Devi', 'আশাপূর্ণা দেবী'] },
+  { name: 'Leela Majumdar', aliases: ['Leela Majumdar', 'লীলা মজুমদার'] },
+  { name: 'Upendrakishore Roy Chowdhury', aliases: ['Upendrakishore Roy Chowdhury', 'Upendrakishore', 'উপেন্দ্রকিশোর'] },
+  { name: 'Premendra Mitra', aliases: ['Premendra Mitra', 'Premendra', 'প্রেমেন্দ্র মিত্র', 'প্রেমেন্দ্র'] },
+  { name: 'Narayan Gangopadhyay', aliases: ['Narayan Gangopadhyay', 'Narayan', 'নারায়ণ গঙ্গোপাধ্যায়', 'নারায়ণ'] },
+  { name: 'Shibram Chakraborty', aliases: ['Shibram Chakraborty', 'Shibram', 'শিবরাম চক্রবর্তী', 'শিবরাম'] },
+  { name: 'Suchitra Bhattacharya', aliases: ['Suchitra Bhattacharya', 'Suchitra', 'সুচিত্রা ভট্টাচার্য', 'সুচিত্রা'] },
+  { name: 'Abanindranath Tagore', aliases: ['Abanindranath Tagore', 'Abanindranath', 'অবনীন্দ্রনাথ'] },
+  { name: 'Swapan Kumar', aliases: ['Swapan Kumar', 'স্বপন কুমার'] },
+  { name: 'Adrish Bardhan', aliases: ['Adrish Bardhan', 'অদ্রীশ বর্ধন'] },
+  { name: 'Syed Mustafa Siraj', aliases: ['Syed Mustafa Siraj', 'Mustafa Siraj', 'সৈয়দ মুস্তফা সিরাজ'] },
+];
 
+export function extractNarrators(title: string, description: string, channelName: string = ''): string {
+  const combined = `${title} ${description}`;
+
+  // 1. Match explicit Narrator line e.g. "Narrator Deep Kaizar Basu" or "Narrator: Deep"
+  const explicitNarratorMatch = combined.match(/(?:narrator|narrated\s+by|voice(?: artist)?|pathak|গল্প\s*পাঠ|কণ্ঠ|পাঠ)\s*[:|-]?\s*([^\n\r,.;]+)/i);
+  if (explicitNarratorMatch?.[1]) {
+    const candidate = explicitNarratorMatch[1].trim();
+    if (
+      candidate.length >= 3 &&
+      candidate.length <= 40 &&
+      !/script|audio|sunday|suspense|mirchi|presents|radio|episode|part|classics|special/i.test(candidate)
+    ) {
+      return candidate;
+    }
+  }
+
+  // 2. Search for common narrator names in title + description
+  const matched: string[] = [];
   for (const name of COMMON_NARRATORS) {
     const reg = new RegExp(`\\b${name}\\b`, 'i');
     if (reg.test(combined) && !matched.includes(name)) {
@@ -188,7 +231,52 @@ export function extractNarrators(title: string, description: string): string {
     }
   }
 
-  return matched.length > 0 ? matched.join(', ') : 'Unknown';
+  if (matched.length > 0) {
+    return matched.join(', ');
+  }
+
+  // 3. Fallback to channel default
+  const cleanChan = channelName.toLowerCase();
+  if (cleanChan.includes('mir') || cleanChan.includes('sunday suspense')) {
+    return 'Mir';
+  }
+
+  return 'Mir';
+}
+
+export function extractWriters(title: string, description: string, channelName: string = ''): string {
+  const combined = `${title} ${description}`;
+  // Strip possessive 's (e.g. Tagore's -> Tagore) for regex matching
+  const cleanedText = combined.replace(/'s\b/gi, '');
+
+  // 1. Search famous Bengali writers first (highest priority)
+  for (const w of COMMON_WRITERS) {
+    for (const alias of w.aliases) {
+      const reg = new RegExp(`\\b${alias}\\b`, 'i');
+      if (reg.test(cleanedText)) {
+        return w.name;
+      }
+    }
+  }
+
+  // 2. Explicit label match e.g. "Written by: ..." or "Author: ..."
+  const writerMatch = combined.match(/(?:written\s+by|author|story\s+by|by|রচয়িতা|লেখক|মূল\s*গল্প)\s*[:|-]?\s*([A-Za-z\s\u0980-\u09ff]+)/i);
+  if (writerMatch?.[1]) {
+    const candidate = writerMatch[1].trim().split(/\n|\r|,|;|\./)[0].trim();
+    if (candidate.length >= 3 && candidate.length <= 40 && !/sunday|suspense|audio|mirchi|present|radio/i.test(candidate)) {
+      return candidate;
+    }
+  }
+
+  // 3. Check if compilation / non-stop episode
+  if (
+    /non\s*stop|compilation|collection|24\s*hrs|special\s*episode|mega\s*episode|top\s*\d+/i.test(title) ||
+    /non\s*stop|compilation|collection|24\s*hrs/i.test(description)
+  ) {
+    return 'Various Writers';
+  }
+
+  return 'Various Writers';
 }
 
 export async function fetchYouTubeMeta(videoId: string): Promise<YouTubeMeta> {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromSession } from '@/lib/auth';
 import { getYouTubeId } from '@/lib/youtube';
 import { matchYouTubeChannel } from '@/lib/constants';
-import { fetchYouTubeMeta, extractNarrators } from '@/lib/youtube-meta';
+import { fetchYouTubeMeta, extractNarrators, extractWriters } from '@/lib/youtube-meta';
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,15 +70,17 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const autoNarrator = extractNarrators(title, description);
+    const autoNarrator = extractNarrators(title, description, matchedChannel);
+    const autoWriter = extractWriters(title, description, matchedChannel);
 
     return NextResponse.json({
       youtubeId: videoId,
       title,
-      channel: data.author_name || '',
+      channel: data.author_name || matchedChannel,
       thumbnailUrl: data.thumbnail_url || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
       description,
-      narrator: autoNarrator !== 'Unknown' ? autoNarrator : '',
+      narrator: autoNarrator,
+      writer: autoWriter,
       yearPublished,
       duration,
     });

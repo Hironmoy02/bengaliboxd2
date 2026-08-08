@@ -467,7 +467,17 @@ export default function ProfilePage() {
                   label={`${gamificationProfile.karmaPoints || 0} রসগোল্লা`}
                   size="small"
                   variant="outlined"
-                  sx={{ fontWeight: 700, fontSize: '0.75rem' }}
+                  onClick={() => {
+                    api.post('/api/user/gamification').then(({ data }) => {
+                      setGamificationProfile(data);
+                      window.dispatchEvent(new CustomEvent('gamificationUpdated', { detail: data }));
+                    }).catch(() => {});
+                  }}
+                  title="Your total earned Rosgolla points"
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: '0.75rem',
+                  }}
                 />
                 <StreakFlame
                   currentStreak={gamificationProfile.streak?.current || 0}
