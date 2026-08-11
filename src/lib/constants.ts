@@ -60,9 +60,9 @@ export const YOUTUBE_THUMBNAIL = (id: string, quality: 'hq' | 'maxres' = 'hq') =
 
 export const SUGGESTED_TAGS = [
   'Village', 'Urban', 'Detective', 'Ghost', 'Psychological', 'Supernatural', 'Mythological',
-  'Social', 'Emotional', 'Suspense', 'Twist End', 'Period', 'Thriller',
-  'Children', 'Romance', 'Satire', 'Folklore', 'Noir', 'Dark', 'Historical',
-  'Train', 'Night', 'Rain', 'Lonely', 'Revenge', 'Mystery',
+  'Emotional', 'Suspense', 'Twist End', 'Thriller', 'Children', 'Romance', 'Satire',
+  'Folklore', 'Dark', 'Historical', 'Train', 'Night', 'Rain', 'Lonely', 'Revenge', 'Mystery',
+  'Vampire', 'Black Magic', 'Comedy', 'Adult (18+)', 'Medieval', 'Betrayal', 'LGBTQ',
 ] as const;
 
 export function formatDuration(totalSeconds: number): string {
