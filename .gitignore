@@ -40,5 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# excel exports
+*.xlsx
+*.csv
+
 # temp folders
 bengaliboxd-style-temp/

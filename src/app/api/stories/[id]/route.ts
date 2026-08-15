@@ -61,7 +61,16 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (body.channel !== undefined) updates.channel = String(body.channel).trim();
     if (body.narrator !== undefined) updates.narrator = String(body.narrator).trim();
     if (body.genre !== undefined) updates.genre = String(body.genre).trim();
-    if (body.writer !== undefined) updates.writer = String(body.writer).trim();
+    if (body.writer !== undefined) {
+      const newWriter = String(body.writer).trim();
+      updates.writer = newWriter;
+      if (newWriter && newWriter !== 'Unknown' && newWriter !== 'Various Writers') {
+        const existingWriter = await Writer.findOne({ name: { $regex: `^${newWriter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } });
+        if (!existingWriter) {
+          await Writer.create({ name: newWriter });
+        }
+      }
+    }
     if (body.description !== undefined) updates.description = String(body.description).trim();
     if (body.thumbnailUrl !== undefined) updates.thumbnailUrl = String(body.thumbnailUrl).trim();
     if (body.approved !== undefined) updates.approved = Boolean(body.approved);
