@@ -182,7 +182,7 @@ export const COMMON_WRITERS: { name: string; aliases: string[] }[] = [
   { name: 'Satyajit Ray', aliases: ['Satyajit Ray', 'সত্যজিৎ রায়', 'সত্যজিৎ'] },
   { name: 'Sharadindu Bandyopadhyay', aliases: ['Sharadindu Bandyopadhyay', 'Saradindu Bandyopadhyay', 'Sharadindu', 'শরদিন্দু বন্দ্যোপাধ্যায়', 'শরদিন্দু'] },
   { name: 'Sukumar Ray', aliases: ['Sukumar Ray', 'সুকুমার রায়'] },
-  { name: 'Bibhutibhushan Bandyopadhyay', aliases: ['Bibhutibhushan Bandyopadhyay', 'Bibhutibhushan Bandopadhyay', 'Bibhutibhushan', 'বিভূতিভূষণ বন্দ্যোপাধ্যায়', 'বিভূতিভূষণ'] },
+  { name: 'Bibhutibhushan Bandyopadhyay', aliases: ['Bibhutibhushan Bandyopadhyay', 'Bibhutibhushan Bandopadhyay', 'Bibhutibhusan Bandopadhyay', 'Bibhutibhusan Bandyopadhyay', 'Bibhutibhushan', 'Bibhutibhusan', 'বিভূতিভূষণ বন্দ্যোপাধ্যায়', 'বিভূতিভূষণ'] },
   { name: 'Tarashankar Bandyopadhyay', aliases: ['Tarashankar Bandyopadhyay', 'Tarashankar', 'তারাশঙ্কর বন্দ্যোপাধ্যায়', 'তারাশঙ্কর'] },
   { name: 'Manik Bandyopadhyay', aliases: ['Manik Bandyopadhyay', 'Manik Bandopadhyay', 'মানিক বন্দ্যোপাধ্যায়'] },
   { name: 'Nihar Ranjan Gupta', aliases: ['Nihar Ranjan Gupta', 'Nihar Ranjan', 'নীহাররঞ্জন গুপ্ত', 'নীহার রঞ্জন'] },
@@ -359,8 +359,15 @@ export function extractWriters(title: string, description: string, channelName: 
 
 export async function fetchYouTubeMeta(videoId: string): Promise<YouTubeMeta> {
   const result = await fetchViaInnerTube(videoId);
-  if (result.duration || result.year || result.description) return result;
-  return fetchViaHtmlScrape(videoId);
+  if (result.duration && result.year && result.description) return result;
+  
+  // Fallback to HTML scrape if any core field (especially year) is missing
+  const htmlMeta = await fetchViaHtmlScrape(videoId);
+  return {
+    duration: result.duration || htmlMeta.duration,
+    description: result.description || htmlMeta.description,
+    year: result.year || htmlMeta.year,
+  };
 }
 
 async function fetchViaInnerTube(videoId: string): Promise<YouTubeMeta> {
@@ -394,7 +401,9 @@ async function fetchViaInnerTube(videoId: string): Promise<YouTubeMeta> {
 
     const publishDate: string | undefined =
       data?.microformat?.playerMicroformatRenderer?.publishDate ||
-      data?.microformat?.playerMicroformatRenderer?.uploadDate;
+      data?.microformat?.playerMicroformatRenderer?.uploadDate ||
+      data?.videoDetails?.publishDate ||
+      data?.videoDetails?.uploadDate;
     if (publishDate) {
       const y = parseInt(publishDate.slice(0, 4), 10);
       if (y >= 1900 && y <= 2100) meta.year = y;
@@ -429,16 +438,14 @@ async function fetchViaHtmlScrape(videoId: string): Promise<YouTubeMeta> {
       meta.description = descMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
     }
 
-    const dateMatch = html.match(/"datePublished"\s*:\s*"(\d{4})/);
+    const dateMatch =
+      html.match(/"(?:datePublished|uploadDate|publishDate)"\s*:\s*"(\d{4})/i) ||
+      html.match(/itemprop="(?:datePublished|uploadDate)"\s+content="(\d{4})/i) ||
+      html.match(/content="(\d{4})-\d{2}-\d{2}"\s+itemprop="(?:datePublished|uploadDate)"/i);
+
     if (dateMatch) {
       const y = parseInt(dateMatch[1], 10);
       if (y >= 1900 && y <= 2100) meta.year = y;
-    } else {
-      const uploadMatch = html.match(/"uploadDate"\s*:\s*"(\d{4})/);
-      if (uploadMatch) {
-        const y = parseInt(uploadMatch[1], 10);
-        if (y >= 1900 && y <= 2100) meta.year = y;
-      }
     }
 
     return meta;

@@ -1,3 +1,5 @@
+import { COMMON_WRITERS } from '@/lib/youtube-meta';
+
 /**
  * Utility to clean raw YouTube titles into short, elegant, proper story titles.
  */
@@ -28,12 +30,20 @@ export function smartCleanTitle(rawTitle: string, writer: string = '', descripti
     /\bSundaySuspense\b/gi,
     /\bGoppo\s*Mir\s*er\s*Thek\b/gi,
     /\bGoppoMirerThek\b/gi,
+    /\bGoppo\s*Mirer\s*Thek\b/gi,
     /\bGMT\s*Originals\b/gi,
     /\bGMT\s*Shorts\b/gi,
     /\bGMTShorts\b/gi,
     /\bGMT\b/gi,
+    /\bMidnight\s*Horror\s*Station\b/gi,
+    /\bMidnightHorrorStation\b/gi,
+    /\bMHS\b/gi,
+    /\bKahon\b/gi,
     /\bMirchi\s*Bangla\s*Originals\b/gi,
     /\bMirchi\s*Bangla\b/gi,
+    /\bMirchi\s*Bang\b/gi,
+    /\bMirchi\b/gi,
+    /\bRadio\s*Mirchi\b/gi,
     /\bFriday\s*Classics\b/gi,
     /\bFridayClassics\b/gi,
     /\bWorld\s*Classics\b/gi,
@@ -61,23 +71,47 @@ export function smartCleanTitle(rawTitle: string, writer: string = '', descripti
     t = t.replace(p, '');
   }
 
-  // 4. Split by '|' or ',' and filter out segments that only contain cast, author, or noise
+  // Helper to check if a segment matches any writer name or alias
+  const isWriterSegment = (seg: string): boolean => {
+    const sTrimmed = seg.trim().toLowerCase();
+    if (!sTrimmed) return false;
+    if (writer && sTrimmed.includes(writer.toLowerCase())) return true;
+    for (const w of COMMON_WRITERS) {
+      for (const alias of w.aliases) {
+        if (sTrimmed === alias.toLowerCase() || sTrimmed.includes(alias.toLowerCase())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  // 4. Split by '|' or ',' and filter out segments that only contain cast, author, channel, series prefix, or noise
   if (t.includes('|')) {
     const segments = t.split('|').map(s => s.trim()).filter(Boolean);
     const cleanSegments = segments.filter(seg => {
-      if (/^(?:Mir|Deep|Somak|Godhuli|Papiya|Roy|Agni|Pushpal|Anujoy|Sree|Richard|Sudip|Kaizar|Buddhadev|Sankari|Rounak|Shovan|Rituparna|Maitrayee|Shakya|Aikayan|Anirban Bhattacharya|Pradyut Chatterjea|Srijan Chatterjee)$/i.test(seg)) {
+      if (/^(?:Feluda|Tarini Khuro|Tarinikhuro|Sherlock Holmes|Byomkesh Bakshi|ব্যোমকেশ বক্সী|Daroga)$/i.test(seg)) {
         return false;
       }
-      if (/^(?:Sunday Suspense|Goppo Mirer Thek|Mirchi Bangla|Friday Classics|World Classics|GMT|Audio Story)$/i.test(seg)) {
+      if (/^(?:Mir|Deep|Somak|Godhuli|Papiya|Roy|Agni|Pushpal|Anujoy|Sree|Richard|Sudip|Kaizar|Buddhadev|Sankari|Rounak|Shovan|Rituparna|Maitrayee|Shakya|Aikayan|Anirban Bhattacharya|Pradyut Chatterjea|Srijan Chatterjee|Complete Story)$/i.test(seg)) {
+        return false;
+      }
+      if (/^(?:Sunday Suspense|Goppo Mirer Thek|Goppo Mir er Thek|Mirchi Bangla|Mirchi Bang|Mirchi|Midnight Horror Station|Kahon|Friday Classics|World Classics|GMT|Audio Story)$/i.test(seg)) {
+        return false;
+      }
+      if (isWriterSegment(seg)) {
         return false;
       }
       return true;
     });
 
     if (cleanSegments.length > 0) {
-      t = cleanSegments[0]; // Primary title segment
+      t = cleanSegments[0]; // Take primary story name
     }
   }
+
+  // 4b. Strip series prefix names e.g. "Feluda - ", "Tarini Khuro - ", "Sherlock Holmes - ", "Byomkesh Bakshi - "
+  t = t.replace(/^(?:Feluda|Tarini\s*Khuro|Tarinikhuro|Sherlock\s*Holmes|Byomkesh\s*Bakshi|ব্যোমকেশ\s*বক্সী|Daroga)\s*[-–—:]\s*/gi, '');
 
   // 5. Remove "By [Writer]" or "By [Author]"
   t = t.replace(/\bby\s+[A-Za-z\s\u0980-\u09ff]+/gi, '');
@@ -105,10 +139,10 @@ export function smartCleanTitle(rawTitle: string, writer: string = '', descripti
   t = t.replace(/\((?:Friday Classics|World Classics|Mirchi Bangla|Goppo Mirer Thek|Sunday Suspense|Banglay Biswasera)\)/gi, '');
   t = t.replace(/\(\s*\)/g, ''); // Empty parentheses
 
-  // 8. Clean up extra symbols & whitespace
+  // 8. Clean up extra symbols, dashes, & whitespace
   t = t.replace(/\|/g, ' ');
-  t = t.replace(/[-:_,\s]+$/g, '');
-  t = t.replace(/^[-:_,\s]+/g, '');
+  t = t.replace(/[-–—:_,\s]+$/g, '');
+  t = t.replace(/^[-–—:_,\s]+/g, '');
   t = t.replace(/\s+/g, ' ').trim();
 
   return t;

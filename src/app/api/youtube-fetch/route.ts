@@ -3,6 +3,7 @@ import { getUserFromSession } from '@/lib/auth';
 import { getYouTubeId } from '@/lib/youtube';
 import { matchYouTubeChannel } from '@/lib/constants';
 import { fetchYouTubeMeta, extractNarrators, extractWriters } from '@/lib/youtube-meta';
+import { smartCleanTitle } from '@/lib/title-cleaner';
 
 export async function GET(request: NextRequest) {
   try {
@@ -56,12 +57,12 @@ export async function GET(request: NextRequest) {
       if (meta.description) fetchedDescription = meta.description;
     } catch { /* ignore page fetch errors */ }
 
-    const title = data.title || '';
+    const rawTitle = data.title || '';
     const description = fetchedDescription || `Uploaded by ${data.author_name || 'YouTube channel'}.`;
 
     // Fallback: Check if the video title contains a 4-digit year (between 2000 and current year)
-    if (!yearPublished && title) {
-      const yearMatch = title.match(/\b(20\d{2})\b/);
+    if (!yearPublished && rawTitle) {
+      const yearMatch = rawTitle.match(/\b(20\d{2})\b/);
       if (yearMatch) {
         const y = parseInt(yearMatch[1], 10);
         if (y >= 2000 && y <= new Date().getFullYear()) {
@@ -70,12 +71,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const autoNarrator = extractNarrators(title, description, matchedChannel);
-    const autoWriter = extractWriters(title, description, matchedChannel);
+    const autoNarrator = extractNarrators(rawTitle, description, matchedChannel);
+    const autoWriter = extractWriters(rawTitle, description, matchedChannel);
+    const cleanedTitle = smartCleanTitle(rawTitle, autoWriter, description) || rawTitle;
 
     return NextResponse.json({
       youtubeId: videoId,
-      title,
+      title: cleanedTitle,
+      rawTitle,
       channel: data.author_name || matchedChannel,
       thumbnailUrl: data.thumbnail_url || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
       description,

@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
           youtubeUrl: `https://www.youtube.com/watch?v=${entry.videoId}`,
           youtubeId: entry.videoId,
           thumbnailUrl: YOUTUBE_THUMBNAIL(entry.videoId),
-          description: entry.description.slice(0, 500) || '',
+          description: videoDesc.slice(0, 1000) || '',
           narrator: finalNarrators,
           genre: matchedGenre,
           writer: matchedWriter,
