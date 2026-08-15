@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import XLSX from 'xlsx';
 
-const envPath = 'f:/demo project/.env.local';
+const envPath = path.join(process.cwd(), '.env.local');
 if (fs.existsSync(envPath)) {
   const envConfig = fs.readFileSync(envPath, 'utf8');
   for (const line of envConfig.split('\n')) {
@@ -19,8 +19,8 @@ if (fs.existsSync(envPath)) {
 }
 
 async function exportChannel(channelRegex: RegExp, filename: string) {
-  const { default: dbConnect } = await import('file:///f:/demo%20project/src/lib/dbConnect.ts');
-  const { default: Story } = await import('file:///f:/demo%20project/src/models/Story.ts');
+  const { default: dbConnect } = await import('../src/lib/dbConnect');
+  const { default: Story } = await import('../src/models/Story');
 
   await dbConnect();
 
@@ -37,18 +37,17 @@ async function exportChannel(channelRegex: RegExp, filename: string) {
     header: ['Title', 'Writer', 'Narrator', 'YouTube URL']
   });
 
-  // Adjust column widths automatically
   worksheet['!cols'] = [
-    { wch: 45 }, // Title
-    { wch: 30 }, // Writer
-    { wch: 30 }, // Narrator
-    { wch: 50 }  // YouTube URL
+    { wch: 45 },
+    { wch: 30 },
+    { wch: 30 },
+    { wch: 50 }
   ];
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Stories');
 
-  const outPath = path.join('f:/demo project', filename);
+  const outPath = path.join(process.cwd(), filename);
   XLSX.writeFile(workbook, outPath);
   console.log(`Exported ${rows.length} stories to file: ${outPath}`);
 }

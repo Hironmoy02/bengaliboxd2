@@ -2,6 +2,7 @@ import '@/lib/polyfill';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Story from '@/models/Story';
+import Writer from '@/models/Writer';
 import { getUserFromSession } from '@/lib/auth';
 import { getYouTubeId } from '@/lib/youtube';
 
