@@ -8,6 +8,7 @@ import Settings from '@/models/Settings';
 import { getUserFromSession } from '@/lib/auth';
 import { getYouTubeId } from '@/lib/youtube';
 import { fetchYouTubeMeta } from '@/lib/youtube-meta';
+import { smartCleanTitle } from '@/lib/title-cleaner';
 import { DEFAULT_GENRE, DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT, YOUTUBE_THUMBNAIL, CHANNELS } from '@/lib/constants';
 import { toSearchable } from '@/lib/transliterate';
 
@@ -277,9 +278,10 @@ export async function POST(request: NextRequest) {
     }
 
     const approved = user.role === 'admin';
+    const finalTitle = smartCleanTitle(title.trim(), writer ? writer.trim() : '', description ? description.trim() : '') || title.trim();
 
     const newStory = await Story.create({
-      title: title.trim(),
+      title: finalTitle,
       channel: channel.trim(),
       youtubeUrl: youtubeUrl.trim(),
       youtubeId,
@@ -288,7 +290,7 @@ export async function POST(request: NextRequest) {
       narrator: narrator.trim(),
       genre: genre || DEFAULT_GENRE,
       writer: writer ? writer.trim() : '',
-      titleSearch: toSearchable(title.trim()),
+      titleSearch: toSearchable(finalTitle),
       yearPublished: finalYearPublished,
       duration: finalDuration,
       tags: Array.isArray(tags) ? tags.filter((t: string) => typeof t === 'string' && t.trim()).map((t: string) => t.trim()).slice(0, 10) : [],
