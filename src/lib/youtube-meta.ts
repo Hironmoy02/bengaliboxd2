@@ -223,7 +223,7 @@ export const COMMON_WRITERS: { name: string; aliases: string[] }[] = [
   { name: 'Tathagata Bandopadhyay', aliases: ['Tathagata Bandopadhyay', 'Tathagata Banerjee', 'তথাগত বন্দ্যোপাধ্যায়'] },
   { name: 'Rudyard Kipling', aliases: ['Rudyard Kipling', 'রুডইয়ার্ড কিপলিং'] },
   { name: 'Prabhat Kumar Mukhopadhyay', aliases: ['Prabhat Kumar Mukhopadhyay', 'Prabhat Kumar', 'প্রভাতকুমার মুখোপাধ্যায়', 'প্রভাত কুমার'] },
-  { name: 'Ajeyo Ray', aliases: ['Ajeyo Ray', 'অজেয় রায়'] },
+  { name: 'Ajeyo Ray', aliases: ['Ajeyo Ray', 'Ajay Ray', 'Ajoy Ray', 'অজেয় রায়'] },
   { name: 'Shamik Dasgupta', aliases: ['Shamik Dasgupta', 'Ayantika Shamik', 'শ্যামীক দাসগুপ্ত'] },
   { name: 'Hindol Sarkar', aliases: ['Hindol Sarkar', 'হিন্দোল সরকার'] },
   { name: 'Buddhadeb Guha', aliases: ['Buddhadeb Guha', 'বুদ্ধদেব গুহ'] },

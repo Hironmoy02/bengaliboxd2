@@ -124,6 +124,19 @@ function buildTheme(mode: 'light' | 'dark') {
         },
       },
       MuiAutocomplete: {
+        defaultProps: {
+          slotProps: {
+            popper: {
+              placement: 'bottom-start',
+              modifiers: [
+                {
+                  name: 'flip',
+                  enabled: false,
+                },
+              ],
+            },
+          },
+        },
         styleOverrides: {
           paper: {
             borderRadius: 11,

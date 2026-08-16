@@ -136,28 +136,53 @@ export default function HomeContent({ initialStories, initialPagination, initial
   return (
     <div>
       {/* Hero Section */}
-      <Box sx={{ background: 'linear-gradient(135deg, rgba(255,94,43,0.08) 0%, rgba(167,139,250,0.06) 100%)', py: { xs: 6, md: 10 }, borderBottom: '1px solid', borderColor: 'divider' }}>
-        <div className="container">
+      <Box sx={{ background: 'linear-gradient(135deg, rgba(255,94,43,0.08) 0%, rgba(167,139,250,0.06) 100%)', py: { xs: 4, md: 5 }, borderBottom: '1px solid', borderColor: 'divider', minHeight: { xs: 520, md: 350 }, display: 'flex', alignItems: 'center' }}>
+        <div className="container" style={{ width: '100%' }}>
           {featuredStory ? (
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 3, md: 5 }} sx={{ alignItems: 'center' }}>
-              <Paper sx={{ width: { xs: '100%', md: 340 }, height: { xs: 180, sm: 220, md: 260 }, borderRadius: 3, overflow: 'hidden', position: 'relative', flexShrink: 0, order: { xs: 0, md: 1 } }}>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 3, md: 5 }} sx={{ alignItems: 'center', minHeight: { md: 260 } }}>
+              <Paper sx={{ width: { xs: '100%', md: 360 }, height: { xs: 200, sm: 240, md: 260 }, borderRadius: 3, overflow: 'hidden', position: 'relative', flexShrink: 0, order: { xs: 0, md: 1 } }}>
                 <Fade in={true} timeout={500} key={`img-${featuredStory._id}`}>
                   <img src={featuredStory.thumbnailUrl || `https://img.youtube.com/vi/${featuredStory.youtubeId}/maxresdefault.jpg`} alt={featuredStory.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 </Fade>
               </Paper>
-              <Box sx={{ flex: 1, minHeight: 200, width: '100%', order: { xs: 1, md: 0 } }}>
+              <Box sx={{ flex: 1, minHeight: { md: 260 }, display: 'flex', flexDirection: 'column', justifyContent: 'center', width: '100%', order: { xs: 1, md: 0 } }}>
                 <Fade in={true} timeout={500} key={featuredStory._id}>
                   <div>
-                    <Chip icon={<AutoAwesomeIcon sx={{ fontSize: 14 }} />} label="Spotlight Story" color="primary" size="small" sx={{ mb: 2 }} />
-                    <Typography variant="h3" sx={{ fontWeight: 800, fontSize: { xs: '1.5rem', sm: '1.8rem', md: '2.8rem' }, lineHeight: 1.15, mb: 2 }}>
+                    <Chip icon={<AutoAwesomeIcon sx={{ fontSize: 14 }} />} label="Spotlight Story" color="primary" size="small" sx={{ mb: 1.5 }} />
+                    <Typography
+                      variant="h3"
+                      sx={{
+                        fontWeight: 800,
+                        fontSize: { xs: '1.4rem', sm: '1.7rem', md: '2.2rem' },
+                        lineHeight: 1.25,
+                        mb: 1.5,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        height: { md: '3.4rem' },
+                      }}
+                    >
                       {featuredStory.title}
                     </Typography>
-                    <Typography sx={{ color: 'text.secondary', mb: 3, lineHeight: 1.6, fontSize: { xs: '0.875rem', md: '1rem' } }}>
+                    <Typography
+                      sx={{
+                        color: 'text.secondary',
+                        mb: 2,
+                        lineHeight: 1.5,
+                        fontSize: { xs: '0.875rem', md: '0.95rem' },
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        height: { md: '2.85rem' },
+                      }}
+                    >
                       Narrated by <strong style={{ color: 'var(--text-primary)' }}>{featuredStory.narrator}</strong> on{' '}
                       <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{featuredStory.channel}</span>.
-                      {featuredStory.description && ` ${featuredStory.description.slice(0, 180)}...`}
+                      {featuredStory.description && ` ${featuredStory.description}`}
                     </Typography>
-                    <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
+                    <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1, minHeight: { md: 32 } }}>
                       <AppRatingDisplay rating={featuredStory.averageRating} count={featuredStory.ratingsCount} size={16} />
                       <Chip label={featuredStory.genre} size="small" variant="outlined" />
                       {featuredStory.writer && <Typography variant="body2" color="text.secondary">Written by {featuredStory.writer}</Typography>}
@@ -170,14 +195,14 @@ export default function HomeContent({ initialStories, initialPagination, initial
               </Box>
             </Stack>
           ) : (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Box sx={{ textAlign: 'center', py: 4, minHeight: 260, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Typography variant="h3" sx={{ fontWeight: 800, fontSize: { xs: '1.8rem', md: '2.8rem' }, mb: 2 }}>
                 The Bengali Audio Story Journal
               </Typography>
               <Typography color="text.secondary" sx={{ maxWidth: 600, mx: 'auto', mb: 3 }}>
                 A community-driven platform to search, rate, and review Bengali audio stories.
               </Typography>
-              <Button component={Link} href="/admin" variant="contained" size="large" startIcon={<AddCircleOutlinedIcon />}>
+              <Button component={Link} href="/admin" variant="contained" size="large" startIcon={<AddCircleOutlinedIcon />} sx={{ mx: 'auto' }}>
                 Add Your First Story
               </Button>
             </Box>
@@ -255,7 +280,16 @@ export default function HomeContent({ initialStories, initialPagination, initial
                       maxHeight: 250,
                     }
                   }
-                }
+                },
+                popper: {
+                  placement: 'bottom-start',
+                  modifiers: [
+                    {
+                      name: 'flip',
+                      enabled: false,
+                    },
+                  ],
+                },
               }}
               sx={{ width: { xs: '100%', sm: 220 } }}
               renderInput={(params) => <TextField {...params} placeholder="All Writers" />}
