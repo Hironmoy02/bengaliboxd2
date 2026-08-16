@@ -13,14 +13,13 @@ export interface ChannelVideo {
 }
 
 const INNERTUBE_CLIENT = {
-  clientName: 'WEB',
-  clientVersion: '2.20250601.00.00',
+  clientName: 'MWEB',
+  clientVersion: '2.20240101.01.00',
 };
 
 const INNERTUBE_HEADERS = {
   'Content-Type': 'application/json',
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Cookie': 'CONSENT=YES+cb.20210328-17-p0.en+FX+999',
+  'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
 };
 
 const VIDEOS_TAB_PARAMS = 'EgZ2aWRlb3PyBgQKAjoA';
@@ -278,8 +277,7 @@ export function extractNarrators(title: string, description: string, channelName
   // 2. Search for common narrator names in title + description
   const matched: string[] = [];
   for (const name of COMMON_NARRATORS) {
-    const reg = new RegExp(`\\b${name}\\b`, 'i');
-    if (reg.test(combined) && !matched.includes(name)) {
+    if (matchAlias(name, combined) && !matched.includes(name)) {
       matched.push(name);
     }
   }
@@ -307,6 +305,16 @@ export const CHARACTER_WRITER_MAP: { pattern: RegExp; writer: string }[] = [
   { pattern: /\b(?:kiriti|mohan samanta)\b/i, writer: 'Nihar Ranjan Gupta' },
 ];
 
+export function matchAlias(alias: string, text: string): boolean {
+  const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (/[\u0980-\u09FF]/.test(alias)) {
+    const reg = new RegExp(`(?:^|[^\\p{L}\\p{N}])${escaped}(?=[^\\p{L}\\p{N}]|$)`, 'iu');
+    return reg.test(text);
+  }
+  const reg = new RegExp(`\\b${escaped}\\b`, 'i');
+  return reg.test(text);
+}
+
 export function extractWriters(title: string, description: string, channelName: string = ''): string {
   const combined = `${title} ${description}`;
   // Strip possessive 's (e.g. Tagore's -> Tagore) for regex matching
@@ -315,8 +323,7 @@ export function extractWriters(title: string, description: string, channelName: 
   // 1. Search famous Bengali & World authors in title + description first (exact name match)
   for (const w of COMMON_WRITERS) {
     for (const alias of w.aliases) {
-      const reg = new RegExp(`\\b${alias}\\b`, 'i');
-      if (reg.test(cleanedText)) {
+      if (matchAlias(alias, cleanedText)) {
         return w.name;
       }
     }
@@ -336,8 +343,7 @@ export function extractWriters(title: string, description: string, channelName: 
     if (candidate.length >= 3 && candidate.length <= 40 && !/sunday|suspense|audio|mirchi|present|radio|gmt|mir|episode|part/i.test(candidate)) {
       for (const w of COMMON_WRITERS) {
         for (const alias of w.aliases) {
-          const reg = new RegExp(`\\b${alias}\\b`, 'i');
-          if (reg.test(candidate)) {
+          if (matchAlias(alias, candidate)) {
             return w.name;
           }
         }
