@@ -382,11 +382,10 @@ async function fetchViaInnerTube(videoId: string): Promise<YouTubeMeta> {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json', 
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Cookie': 'CONSENT=YES+cb.20210328-17-p0.en+FX+999'
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
       },
       body: JSON.stringify({
-        context: { client: { clientName: 'WEB', clientVersion: '2.20250601.00.00' } },
+        context: { client: { clientName: 'MWEB', clientVersion: '2.20240101.01.00' } },
         videoId,
       }),
     });
@@ -425,25 +424,48 @@ async function fetchViaHtmlScrape(videoId: string): Promise<YouTubeMeta> {
   try {
     const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
       headers: { 
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Cookie': 'CONSENT=YES+cb.20210328-17-p0.en+FX+999'
+        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+        'Accept-Language': 'en-US,en;q=0.9',
       },
     });
     if (!res.ok) return {};
     const html = await res.text();
     const meta: YouTubeMeta = {};
 
+    // 1. Length/Duration
     const lengthMatch = html.match(/"lengthSeconds"\s*:\s*"(\d+)"/);
     if (lengthMatch) {
       const secs = parseInt(lengthMatch[1], 10);
       if (secs > 0) meta.duration = secs;
     }
 
-    const descMatch = html.match(/"shortDescription"\s*:\s*"([^"]+)"/);
-    if (descMatch) {
-      meta.description = descMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+    if (!meta.duration) {
+      const isoDurationMatch = html.match(/itemprop="duration"\s+content="PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?"/i);
+      if (isoDurationMatch) {
+        const h = parseInt(isoDurationMatch[1] || '0', 10);
+        const m = parseInt(isoDurationMatch[2] || '0', 10);
+        const s = parseInt(isoDurationMatch[3] || '0', 10);
+        const totalSecs = h * 3600 + m * 60 + s;
+        if (totalSecs > 0) meta.duration = totalSecs;
+      }
     }
 
+    // 2. Short Description
+    const descMatch =
+      html.match(/"shortDescription"\s*:\s*"([^"]+)"/) ||
+      html.match(/name="description"\s+content="([^"]+)"/i) ||
+      html.match(/property="og:description"\s+content="([^"]+)"/i);
+
+    if (descMatch?.[1]) {
+      meta.description = descMatch[1]
+        .replace(/\\n/g, '\n')
+        .replace(/\\"/g, '"')
+        .replace(/\\u0026/g, '&')
+        .replace(/u0026/g, '&')
+        .replace(/\\/g, '');
+    }
+
+    // 3. Year / Publish Date
     const dateMatch =
       html.match(/"(?:datePublished|uploadDate|publishDate)"\s*:\s*"(\d{4})/i) ||
       html.match(/itemprop="(?:datePublished|uploadDate)"\s+content="(\d{4})/i) ||
