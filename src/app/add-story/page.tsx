@@ -60,6 +60,7 @@ export default function AddStoryPage() {
       setThumbnailUrl(data.thumbnailUrl || '');
       if (data.yearPublished) setYearPublished(String(data.yearPublished));
       if (data.duration) setDuration(data.duration);
+      if (data.writer) setWriter(data.writer);
       if (data.narrator) {
         setNarrator(data.narrator);
       } else {
@@ -147,6 +148,17 @@ export default function AddStoryPage() {
                   if (data.writer) setWriters((prev) => [...prev, data.writer].sort((a, b) => a.name.localeCompare(b.name)));
                 } catch { /* already exists */ }
               }
+            }}
+            slotProps={{
+              popper: {
+                placement: 'bottom-start',
+                modifiers: [
+                  {
+                    name: 'flip',
+                    enabled: false,
+                  },
+                ],
+              },
             }}
             renderInput={(params) => <TextField {...params} label="Writer / Author" placeholder="Type to search or add new writer..." fullWidth />}
             fullWidth

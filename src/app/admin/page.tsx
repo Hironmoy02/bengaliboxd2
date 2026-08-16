@@ -349,6 +349,7 @@ export default function AdminPage() {
       setThumbnailUrl(data.thumbnailUrl || '');
       if (data.yearPublished) setYearPublished(String(data.yearPublished));
       if (data.duration) setDuration(data.duration);
+      if (data.writer) setWriter(data.writer);
       if (data.narrator) {
         setNarrator(data.narrator);
       } else {

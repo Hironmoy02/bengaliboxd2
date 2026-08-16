@@ -27,6 +27,17 @@ export default function AppSortSelect({ value, onChange, options = defaultOption
       isOptionEqualToValue={(option, optValue) => option.value === optValue.value}
       disableClearable
       size="small"
+      slotProps={{
+        popper: {
+          placement: 'bottom-start',
+          modifiers: [
+            {
+              name: 'flip',
+              enabled: false,
+            },
+          ],
+        },
+      }}
       sx={{ minWidth: 150, ...sx }}
       renderInput={(params) => <TextField {...params} placeholder="Sort by" />}
     />
