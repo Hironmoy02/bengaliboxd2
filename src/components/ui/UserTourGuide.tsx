@@ -19,7 +19,11 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import CompassIcon from '@mui/icons-material/Explore';
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
-
+import LoginIcon from '@mui/icons-material/Login';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import Link from 'next/link';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
 
 import { usePathname } from 'next/navigation';
 
@@ -68,24 +72,32 @@ const TOUR_STORAGE_KEY = 'bengaliboxd_tour_status';
 export default function UserTourGuide() {
   const theme = useTheme();
   const pathname = usePathname();
+  const { user, loading } = useSelector((state: RootState) => state.auth);
+
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
 
-  // Trigger tour welcome modal when a new user signs up (checks on route change)
+  // Trigger tour welcome modal when a new user signs up OR on first visit for unauthenticated guests
   useEffect(() => {
     try {
       const justSignedUp = sessionStorage.getItem('bengaliboxd_just_signed_up');
+      const tourStatus = localStorage.getItem(TOUR_STORAGE_KEY);
+
       if (justSignedUp === 'true') {
         sessionStorage.removeItem('bengaliboxd_just_signed_up');
         const timer = setTimeout(() => setShowWelcomeModal(true), 500);
+        return () => clearTimeout(timer);
+      } else if (!user && !loading && !tourStatus) {
+        // Auto-show prompt for first-time unauthenticated guests
+        const timer = setTimeout(() => setShowWelcomeModal(true), 800);
         return () => clearTimeout(timer);
       }
     } catch {
       // Storage access disabled or SSR
     }
-  }, [pathname]);
+  }, [pathname, user, loading]);
 
   // Listen for manual or instant signup trigger events
   useEffect(() => {
@@ -97,12 +109,12 @@ export default function UserTourGuide() {
     return () => window.removeEventListener('newSignupTourTrigger', handleNewSignup);
   }, []);
 
-  // Listen for manual trigger event (e.g. from Navbar menu)
+  // Listen for manual trigger event (e.g. from Navbar menu or Footer button)
   useEffect(() => {
     const handleManualStart = () => {
-      setShowWelcomeModal(false);
+      setShowWelcomeModal(true);
+      setIsActive(false);
       setCurrentStepIndex(0);
-      setIsActive(true);
     };
 
     window.addEventListener('startUserTour', handleManualStart);
@@ -206,6 +218,8 @@ export default function UserTourGuide() {
 
   // Render Welcome Modal
   if (showWelcomeModal) {
+    const isGuest = !user;
+
     return (
       <Portal>
         <Box
@@ -276,40 +290,110 @@ export default function UserTourGuide() {
                   <CompassIcon sx={{ fontSize: 32 }} />
                 </Box>
                 <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.5px' }}>
-                  Welcome to BengaliBoxd! 👋
+                  {isGuest ? 'Welcome to BengaliBoxd! 🎧' : 'Welcome to BengaliBoxd! 👋'}
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-                  Your ultimate destination for Bengali audio stories & podcasts
+                  {isGuest
+                    ? 'Your home for Bengali audio stories & thriller podcasts'
+                    : 'Your ultimate destination for Bengali audio stories & podcasts'}
                 </Typography>
               </Box>
 
               {/* Body Content */}
               <Box sx={{ p: 3, textAlign: 'center' }}>
                 <Typography variant="body1" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6 }}>
-                  Would you like a quick 1-minute guided tour to discover how to find stories, earn daily streak points, and unlock badges?
+                  {isGuest
+                    ? 'Sign in or create a free account to track daily listening streaks, save bookmarks, write reviews, and earn badges!'
+                    : 'Would you like a quick 1-minute guided tour to discover how to find stories, earn daily streak points, and unlock badges?'}
                 </Typography>
 
                 <Stack spacing={1.5}>
-                  <Button
-                    variant="contained"
-                    size="large"
-                    fullWidth
-                    onClick={handleStartTour}
-                    startIcon={<AutoAwesomeIcon />}
-                    sx={{
-                      py: 1.2,
-                      fontSize: '0.95rem',
-                      fontWeight: 700,
-                      borderRadius: 3,
-                      background: 'linear-gradient(135deg, #ff5e2b 0%, #e0481d 100%)',
-                      boxShadow: '0 4px 14px rgba(255,94,43,0.35)',
-                      '&:hover': {
-                        background: 'linear-gradient(135deg, #e0481d 0%, #c43209 100%)',
-                      },
-                    }}
-                  >
-                    Take Interactive Tour
-                  </Button>
+                  {isGuest ? (
+                    <>
+                      <Button
+                        component={Link}
+                        href="/login"
+                        variant="contained"
+                        size="large"
+                        fullWidth
+                        onClick={handleSkip}
+                        startIcon={<LoginIcon />}
+                        sx={{
+                          py: 1.2,
+                          fontSize: '0.95rem',
+                          fontWeight: 700,
+                          borderRadius: 3,
+                          background: 'linear-gradient(135deg, #ff5e2b 0%, #e0481d 100%)',
+                          boxShadow: '0 4px 14px rgba(255,94,43,0.35)',
+                          '&:hover': {
+                            background: 'linear-gradient(135deg, #e0481d 0%, #c43209 100%)',
+                          },
+                        }}
+                      >
+                        Sign In to Your Account
+                      </Button>
+
+                      <Button
+                        component={Link}
+                        href="/register"
+                        variant="outlined"
+                        size="large"
+                        fullWidth
+                        onClick={handleSkip}
+                        startIcon={<PersonAddIcon />}
+                        sx={{
+                          py: 1.1,
+                          fontSize: '0.9rem',
+                          fontWeight: 700,
+                          borderRadius: 3,
+                          borderColor: '#ff5e2b',
+                          color: '#ff5e2b',
+                          '&:hover': {
+                            borderColor: '#e0481d',
+                            bgcolor: 'rgba(255,94,43,0.08)',
+                          },
+                        }}
+                      >
+                        Create Free Account
+                      </Button>
+
+                      <Button
+                        variant="text"
+                        size="medium"
+                        fullWidth
+                        onClick={handleStartTour}
+                        startIcon={<AutoAwesomeIcon />}
+                        sx={{
+                          color: 'text.primary',
+                          fontWeight: 600,
+                          borderRadius: 3,
+                        }}
+                      >
+                        Take Tour as Guest
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      variant="contained"
+                      size="large"
+                      fullWidth
+                      onClick={handleStartTour}
+                      startIcon={<AutoAwesomeIcon />}
+                      sx={{
+                        py: 1.2,
+                        fontSize: '0.95rem',
+                        fontWeight: 700,
+                        borderRadius: 3,
+                        background: 'linear-gradient(135deg, #ff5e2b 0%, #e0481d 100%)',
+                        boxShadow: '0 4px 14px rgba(255,94,43,0.35)',
+                        '&:hover': {
+                          background: 'linear-gradient(135deg, #e0481d 0%, #c43209 100%)',
+                        },
+                      }}
+                    >
+                      Take Interactive Tour
+                    </Button>
+                  )}
 
                   <Button
                     variant="text"
@@ -323,7 +407,7 @@ export default function UserTourGuide() {
                       '&:hover': { color: 'text.primary', bgcolor: 'action.hover' },
                     }}
                   >
-                    Skip for Now
+                    {isGuest ? 'Skip for Now / Explore as Guest' : 'Skip for Now'}
                   </Button>
                 </Stack>
               </Box>

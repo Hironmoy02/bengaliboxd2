@@ -6,6 +6,7 @@ import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
 import { signJWT } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { processUserGamificationAction } from '@/lib/gamification';
 
 export async function POST(request: Request) {
   try {
@@ -98,6 +99,9 @@ export async function POST(request: Request) {
         favoriteStories: [],
       });
     }
+
+    // Record daily login streak
+    await processUserGamificationAction(user._id.toString(), 'LOGIN');
 
     // Sign JWT session token
     const jwtPayload = {

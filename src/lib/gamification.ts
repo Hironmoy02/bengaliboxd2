@@ -20,7 +20,7 @@ function isYesterday(lastDateStr: string, currentDateStr: string): boolean {
 
 export async function processUserGamificationAction(
   userId: string,
-  actionType: 'LISTEN' | 'REVIEW' | 'LIKE_RECEIVED' | 'STORY_ADDED' | 'FULL_LISTEN',
+  actionType: 'LISTEN' | 'REVIEW' | 'LIKE_RECEIVED' | 'STORY_ADDED' | 'FULL_LISTEN' | 'LOGIN',
   context?: {
     storyId?: string;
     reviewLength?: number;
@@ -47,11 +47,11 @@ export async function processUserGamificationAction(
   const todayStr = getUtcDateString();
   const lastActiveStr = user.streak.lastActiveDate;
 
-  // 1. Update Streak for activity actions (LISTEN, REVIEW, or FULL_LISTEN)
-  if (actionType === 'LISTEN' || actionType === 'REVIEW' || actionType === 'FULL_LISTEN') {
+  // 1. Update Streak for activity/login actions (LISTEN, REVIEW, FULL_LISTEN, or LOGIN)
+  if (actionType === 'LISTEN' || actionType === 'REVIEW' || actionType === 'FULL_LISTEN' || actionType === 'LOGIN') {
     if (!lastActiveStr) {
       user.streak.current = 1;
-      user.streak.longest = 1;
+      user.streak.longest = Math.max(1, user.streak.longest || 0);
       user.streak.lastActiveDate = todayStr;
     } else if (lastActiveStr === todayStr) {
       // Same day activity, streak stays unchanged
@@ -82,6 +82,7 @@ export async function processUserGamificationAction(
     }
   } else if (actionType === 'LIKE_RECEIVED') basePoints = 15;
   else if (actionType === 'STORY_ADDED') basePoints = 20;
+  else if (actionType === 'LOGIN') basePoints = 5;
 
   user.karmaPoints += basePoints;
 
@@ -176,6 +177,17 @@ export async function syncUserGamification(userId: string) {
     user.streak = { current: 0, longest: 0, lastActiveDate: null };
   }
 
+  let needsSave = false;
+  const todayStr = getUtcDateString();
+
+  // Reset current streak if stale (last active date is older than yesterday)
+  if (user.streak?.lastActiveDate && user.streak.lastActiveDate !== todayStr && !isYesterday(user.streak.lastActiveDate, todayStr)) {
+    if (user.streak.current > 0) {
+      user.streak.current = 0;
+      needsSave = true;
+    }
+  }
+
   const totalListens = await Listen.countDocuments({ userId });
   const ratings = await Rating.find({ userId }).lean();
   const storiesAddedCount = await Story.countDocuments({ addedBy: userId });
@@ -261,7 +273,6 @@ export async function syncUserGamification(userId: string) {
 
   const finalCalculatedPoints = basePoints + badgeBonusTotal;
 
-  let needsSave = false;
   if (typeof user.karmaPoints !== 'number' || user.karmaPoints < finalCalculatedPoints) {
     user.karmaPoints = finalCalculatedPoints;
     needsSave = true;
@@ -281,6 +292,9 @@ export async function syncUserGamification(userId: string) {
 
 export async function getUserGamificationProfile(userId: string) {
   await dbConnect();
+
+  // Process daily login streak when accessing profile/gamification info
+  await processUserGamificationAction(userId, 'LOGIN');
 
   // Auto-sync gamification points & badges from actual user activity in DB
   await syncUserGamification(userId);
