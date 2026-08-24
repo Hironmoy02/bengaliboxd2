@@ -84,6 +84,23 @@ function extractVideoFromRenderer(renderer: Record<string, unknown>): ChannelVid
   return { videoId, title, published, description, durationSeconds };
 }
 
+function extractVideoFromContextRenderer(vwc: Record<string, unknown>): ChannelVideo | null {
+  const videoId = (vwc.videoId as string) || ((vwc.navigationEndpoint as Record<string, unknown>)?.watchEndpoint as Record<string, unknown>)?.videoId as string;
+  if (!videoId) return null;
+
+  const headlineRuns = (vwc.headline as Record<string, unknown>)?.runs as { text: string }[] | undefined;
+  const title = headlineRuns?.[0]?.text || '';
+
+  const pubRuns = (vwc.publishedTimeText as Record<string, unknown>)?.runs as { text: string }[] | undefined;
+  const published = pubRuns?.[0]?.text || '';
+
+  const lengthRuns = ((vwc.lengthText as Record<string, unknown>)?.runs as { text: string }[]) || [];
+  const lengthStr = lengthRuns.map((r) => r.text).join('');
+  const durationSeconds = parseDurationString(lengthStr);
+
+  return { videoId, title, published, description: '', durationSeconds };
+}
+
 export async function fetchChannelVideos(channelId: string, maxResults: number): Promise<ChannelVideo[]> {
   const videos: ChannelVideo[] = [];
   let continuationToken: string | undefined;
@@ -120,21 +137,36 @@ export async function fetchChannelVideos(channelId: string, maxResults: number):
           if (append) items.push(...append);
         }
       } else {
-        const tabs = ((data.contents as Record<string, unknown>)?.twoColumnBrowseResultsRenderer as Record<string, unknown>)?.tabs as Record<string, unknown>[] | undefined;
+        const contents = data.contents as Record<string, unknown> | undefined;
+        const tabs = ((contents?.singleColumnBrowseResultsRenderer as Record<string, unknown>)?.tabs as Record<string, unknown>[] | undefined) ||
+                     ((contents?.twoColumnBrowseResultsRenderer as Record<string, unknown>)?.tabs as Record<string, unknown>[] | undefined);
         if (tabs) {
           for (const tab of tabs) {
-            const tabTitle = (tab.tabRenderer as Record<string, unknown>)?.title;
-            if (tabTitle !== 'Videos') continue;
-            const richGrid = ((tab.tabRenderer as Record<string, unknown>)?.content as Record<string, unknown>)?.richGridRenderer as Record<string, unknown> | undefined;
-            const contents = richGrid?.contents as Record<string, unknown>[] | undefined;
-            if (contents) items.push(...contents);
+            const tabRenderer = tab.tabRenderer as Record<string, unknown> | undefined;
+            const tabTitle = tabRenderer?.title;
+            const isSelected = tabRenderer?.selected;
+            if (tabTitle !== 'Videos' && !isSelected) continue;
+
+            const richGrid = (tabRenderer?.content as Record<string, unknown>)?.richGridRenderer as Record<string, unknown> | undefined;
+            const gridContents = richGrid?.contents as Record<string, unknown>[] | undefined;
+            if (gridContents) items.push(...gridContents);
           }
         }
       }
 
       for (const item of items) {
+        // Check for continuation token item
+        const contItem = (item.continuationItemRenderer || ((item.richItemRenderer as Record<string, unknown>)?.content as Record<string, unknown>)?.continuationItemRenderer) as Record<string, unknown> | undefined;
+        if (contItem) {
+          const contEndpoint = contItem.continuationEndpoint as Record<string, unknown> | undefined;
+          const contCommand = contEndpoint?.continuationCommand as Record<string, unknown> | undefined;
+          if (contCommand?.token) {
+            newContinuation = contCommand.token as string;
+          }
+        }
+
         const richItem = item.richItemRenderer as Record<string, unknown> | undefined;
-        const content = richItem?.content as Record<string, unknown> | undefined;
+        const content = (richItem?.content || item.content || item) as Record<string, unknown> | undefined;
         if (!content) continue;
 
         let video: ChannelVideo | null = null;
@@ -142,21 +174,13 @@ export async function fetchChannelVideos(channelId: string, maxResults: number):
         const lockup = content.lockupViewModel as Record<string, unknown> | undefined;
         if (lockup) {
           video = extractVideoFromLockup(lockup);
-        } else {
-          const videoRenderer = content.videoRenderer as Record<string, unknown> | undefined;
-          if (videoRenderer) {
-            video = extractVideoFromRenderer(videoRenderer);
-          }
+        } else if (content.videoRenderer) {
+          video = extractVideoFromRenderer(content.videoRenderer as Record<string, unknown>);
+        } else if (content.videoWithContextRenderer) {
+          video = extractVideoFromContextRenderer(content.videoWithContextRenderer as Record<string, unknown>);
         }
 
         if (video) videos.push(video);
-
-        const contItem = item.continuationItemRenderer as Record<string, unknown> | undefined;
-        const contEndpoint = contItem?.continuationEndpoint as Record<string, unknown> | undefined;
-        const contCommand = contEndpoint?.continuationCommand as Record<string, unknown> | undefined;
-        if (contCommand?.token) {
-          newContinuation = contCommand.token as string;
-        }
       }
 
       continuationToken = newContinuation;

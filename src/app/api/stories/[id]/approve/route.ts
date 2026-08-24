@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import dbConnect from '@/lib/dbConnect';
 import Story from '@/models/Story';
+import BlockedVideo from '@/models/BlockedVideo';
 import { getUserFromSession } from '@/lib/auth';
 
 // POST: Approve a pending story
@@ -87,6 +88,15 @@ export async function DELETE(
 
     if (!story) {
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });
+    }
+
+    // Block this youtubeId so the cron sync never re-imports it
+    if (story.youtubeId) {
+      await BlockedVideo.updateOne(
+        { youtubeId: story.youtubeId },
+        { $set: { youtubeId: story.youtubeId, reason: 'admin_rejected' } },
+        { upsert: true }
+      );
     }
 
     if (story.writer && story.writer.trim()) {

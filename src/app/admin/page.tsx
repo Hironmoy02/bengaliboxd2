@@ -6,7 +6,7 @@ import { useAppSelector } from '@/lib/hooks';
 import api from '@/lib/axios';
 import {
   Box, Typography, Button, Paper, Stack, TextField, Tab, Tabs, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, Avatar, Chip, IconButton, Switch,
+  TableContainer, TableHead, TableRow, Avatar, Chip, IconButton, Switch, Checkbox,
   Divider, Card, CardContent, InputAdornment,
   Autocomplete, useMediaQuery, useTheme,
 } from '@mui/material';
@@ -117,6 +117,9 @@ export default function AdminPage() {
   const [editingPendingStory, setEditingPendingStory] = useState<Story | null>(null);
   const [pendingEditForm, setPendingEditForm] = useState({ title: '', channel: '', narrator: '', genre: '', writer: '', description: '', thumbnailUrl: '', yearPublished: '', youtubeUrl: '', duration: 0, tags: [] as string[] });
   const [savingPendingEdit, setSavingPendingEdit] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkInProgress, setBulkInProgress] = useState(false);
 
   interface FeedbackItem { _id: string; userId: { username: string; email: string }; category: string; message: string; status: string; createdAt: string; }
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
@@ -170,10 +173,29 @@ export default function AdminPage() {
   const fetchPendingStories = async () => {
     if (!user || user.role !== 'admin') return;
     setLoadingPending(true);
-    try { const { data } = await api.get('/api/stories', { params: { status: 'pending' } }); setPendingStories(data.stories || []); }
+    try { const { data } = await api.get('/api/stories', { params: { status: 'pending', limit: 100 } }); setPendingStories(data.stories || []); }
     catch { console.error('Failed to load pending stories'); }
     finally { setLoadingPending(false); }
   };
+
+  const handleTriggerSync = async () => {
+    setIsSyncing(true);
+    try {
+      const { data } = await api.get('/api/cron/sync-stories', {
+        timeout: 180000, // 3 minutes — sync fetches YouTube metadata for ~200 videos
+      });
+      setSuccess(data.message || 'Story sync completed.');
+      fetchPendingStories();
+      fetchStats();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } }; message?: string })
+        ?.response?.data?.error || (err as { message?: string })?.message || 'Failed to run story sync.';
+      setError(`Sync failed: ${msg}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
 
   const fetchUsers = async () => {
     if (!user || user.role !== 'admin') return;
@@ -408,6 +430,56 @@ export default function AdminPage() {
         catch (err) { setError(getErrorMessage(err) || 'Failed to delete story'); }
         finally { setActionInProgress(null); setConfirmModal((p) => ({ ...p, open: false })); }
       }
+    });
+  };
+
+  const toggleSelect = (id: string) =>
+    setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+
+  const toggleSelectAll = () =>
+    setSelectedIds(pendingStories.length > 0 && selectedIds.size === pendingStories.length
+      ? new Set()
+      : new Set(pendingStories.map((s) => s._id)));
+
+  const handleBulkApprove = () => {
+    if (selectedIds.size === 0) return;
+    setConfirmModal({
+      open: true,
+      title: `Approve ${selectedIds.size} Stories`,
+      message: `Publish ${selectedIds.size} selected stories to the public lobby?`,
+      severity: 'warning',
+      action: async () => {
+        setBulkInProgress(true);
+        try {
+          const { data } = await api.post('/api/stories/bulk-action', { action: 'approve', ids: [...selectedIds] });
+          setSuccess(data.message);
+          setSelectedIds(new Set());
+          fetchPendingStories();
+          fetchStats();
+        } catch (err) { setError(getErrorMessage(err) || 'Bulk approve failed'); }
+        finally { setBulkInProgress(false); setConfirmModal((p) => ({ ...p, open: false })); }
+      },
+    });
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedIds.size === 0) return;
+    setConfirmModal({
+      open: true,
+      title: `Delete ${selectedIds.size} Stories`,
+      message: `Permanently delete ${selectedIds.size} selected stories? They will not come back on future syncs.`,
+      severity: 'error',
+      action: async () => {
+        setBulkInProgress(true);
+        try {
+          const { data } = await api.post('/api/stories/bulk-action', { action: 'delete', ids: [...selectedIds] });
+          setSuccess(data.message);
+          setSelectedIds(new Set());
+          fetchPendingStories();
+          fetchStats();
+        } catch (err) { setError(getErrorMessage(err) || 'Bulk delete failed'); }
+        finally { setBulkInProgress(false); setConfirmModal((p) => ({ ...p, open: false })); }
+      },
     });
   };
 
@@ -741,9 +813,100 @@ export default function AdminPage() {
 
       {/* Tab 1: Approvals */}
       {isAdmin && activeTab === 1 && (
-        loadingPending ? <AppLoadingState message="Loading pending stories..." /> : pendingStories.length === 0 ? (
-          <AppEmptyState title="All clear!" message="No pending story submissions waiting for approval." />
-        ) : (
+        <Stack spacing={3}>
+          {/* Header bar */}
+          <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Stack direction="row" sx={{ alignItems: 'center' }} spacing={1.5}>
+              <Checkbox
+                checked={pendingStories.length > 0 && selectedIds.size === pendingStories.length}
+                indeterminate={selectedIds.size > 0 && selectedIds.size < pendingStories.length}
+                onChange={toggleSelectAll}
+                disabled={loadingPending || pendingStories.length === 0}
+                size="small"
+                sx={{ p: 0.5 }}
+              />
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Pending Approvals ({pendingStories.length})
+                  {selectedIds.size > 0 && (
+                    <Typography component="span" variant="body2" color="primary.main" sx={{ ml: 1, fontWeight: 600 }}>
+                      — {selectedIds.size} selected
+                    </Typography>
+                  )}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">Review and approve auto-fetched and user-submitted stories.</Typography>
+              </Box>
+            </Stack>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={handleTriggerSync}
+              disabled={isSyncing}
+              startIcon={isSyncing ? <RefreshIcon className="spin-animation" /> : <RefreshIcon />}
+              sx={{ whiteSpace: 'nowrap' }}
+            >
+              {isSyncing ? 'Syncing YouTube...' : 'Sync Channel Stories Now'}
+            </Button>
+          </Paper>
+
+          {/* Bulk action bar — slides in when any stories are selected */}
+          {selectedIds.size > 0 && (
+            <Paper sx={{
+              p: 1.5,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              flexWrap: 'wrap',
+              border: '1px solid',
+              borderColor: 'primary.main',
+              bgcolor: 'primary.main',
+              background: 'linear-gradient(90deg, rgba(25,118,210,0.15) 0%, rgba(25,118,210,0.05) 100%)',
+              borderRadius: 2,
+              position: 'sticky',
+              top: 72,
+              zIndex: 10,
+            }}>
+              <Typography variant="body2" sx={{ fontWeight: 700, flex: 1, color: 'primary.main' }}>
+                {selectedIds.size} {selectedIds.size === 1 ? 'story' : 'stories'} selected
+              </Typography>
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setSelectedIds(new Set())}
+                  sx={{ borderColor: 'divider', color: 'text.secondary' }}
+                >
+                  Deselect All
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  color="success"
+                  startIcon={<CheckIcon />}
+                  onClick={handleBulkApprove}
+                  disabled={bulkInProgress}
+                  sx={{ fontWeight: 700 }}
+                >
+                  Approve {selectedIds.size}
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  color="error"
+                  startIcon={<DeleteOutlinedIcon />}
+                  onClick={handleBulkDelete}
+                  disabled={bulkInProgress}
+                  sx={{ fontWeight: 700 }}
+                >
+                  Delete {selectedIds.size}
+                </Button>
+              </Stack>
+            </Paper>
+          )}
+
+          {loadingPending ? <AppLoadingState message="Loading pending stories..." /> : pendingStories.length === 0 ? (
+            <AppEmptyState title="All clear!" message="No pending story submissions waiting for approval." />
+          ) : (
           <Stack spacing={3}>
             {editingPendingStory && (
               <Paper sx={{ p: 3, border: '1px solid rgba(255,94,43,0.2)' }}>
@@ -798,42 +961,71 @@ export default function AdminPage() {
             )}
 
             <Stack spacing={2}>
-              {pendingStories.map((story) => (
-                <Paper key={story._id} sx={{ p: { xs: 1.5, sm: 2 }, display: 'flex', gap: { xs: 1.5, sm: 2 }, alignItems: { xs: 'flex-start', sm: 'center' }, flexWrap: 'wrap', border: '1px solid', borderColor: 'divider' }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={YOUTUBE_THUMBNAIL(story.youtubeId)} alt="" style={{ width: isMobile ? 120 : 160, aspectRatio: '16/9', objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
-                  <Box sx={{ flex: 1, minWidth: isMobile ? 'calc(100% - 140px)' : 200 }}>
-                    <Chip label={story.channel} size="small" color="primary" variant="outlined" sx={{ mb: 0.5 }} />
-                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{story.title}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Narrator: {story.narrator} &bull; Genre: {story.genre}{story.writer && <>&bull; Writer: {story.writer}</>}
-                    </Typography>
-                    {story.duration ? (
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                        Duration: <strong>{formatDuration(story.duration)}</strong>
+              {pendingStories.map((story) => {
+                const isSelected = selectedIds.has(story._id);
+                return (
+                  <Paper
+                    key={story._id}
+                    onClick={() => toggleSelect(story._id)}
+                    sx={{
+                      p: { xs: 1.5, sm: 2 },
+                      display: 'flex',
+                      gap: { xs: 1.5, sm: 2 },
+                      alignItems: { xs: 'flex-start', sm: 'center' },
+                      flexWrap: 'wrap',
+                      border: '1px solid',
+                      borderColor: isSelected ? 'primary.main' : 'divider',
+                      bgcolor: isSelected ? 'rgba(25,118,210,0.06)' : 'background.paper',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      '&:hover': { borderColor: 'primary.light', bgcolor: isSelected ? 'rgba(25,118,210,0.09)' : 'action.hover' },
+                    }}
+                  >
+                    {/* Checkbox */}
+                    <Checkbox
+                      checked={isSelected}
+                      onChange={(e) => { e.stopPropagation(); toggleSelect(story._id); }}
+                      onClick={(e) => e.stopPropagation()}
+                      size="small"
+                      sx={{ p: 0.5, flexShrink: 0, alignSelf: 'center' }}
+                    />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={YOUTUBE_THUMBNAIL(story.youtubeId)} alt="" style={{ width: isMobile ? 100 : 140, aspectRatio: '16/9', objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
+                    <Box sx={{ flex: 1, minWidth: isMobile ? 'calc(100% - 140px)' : 200 }}>
+                      <Chip label={story.channel} size="small" color="primary" variant="outlined" sx={{ mb: 0.5 }} />
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{story.title}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Narrator: {story.narrator} &bull; Genre: {story.genre}{story.writer && <>&bull; Writer: {story.writer}</>}
                       </Typography>
-                    ) : null}
-                    {story.youtubeUrl && <Button size="small" href={story.youtubeUrl} target="_blank" startIcon={<OpenInNewIcon sx={{ fontSize: 12 }} />} sx={{ mt: 0.5, textTransform: 'none' }}>
-                      Play on YouTube
-                    </Button>}
-                  </Box>
-                  <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
-                    <Button variant="outlined" size="small" startIcon={<EditOutlinedIcon sx={{ fontSize: 14 }} />} onClick={() => handleEditPendingStory(story)} disabled={actionInProgress !== null || editingPendingStory !== null} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                      Edit
-                    </Button>
-                    <Button variant="contained" size="small" startIcon={<CheckIcon />} onClick={() => handleApproveStory(story._id)} disabled={actionInProgress !== null} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                      {actionInProgress === story._id ? 'Working...' : 'Approve'}
-                    </Button>
-                    <IconButton color="error" size="small" onClick={() => handleRejectStory(story._id)} disabled={actionInProgress !== null}>
-                      <DeleteOutlinedIcon fontSize="small" />
-                    </IconButton>
-                  </Stack>
-                </Paper>
-              ))}
+                      {story.duration ? (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                          Duration: <strong>{formatDuration(story.duration)}</strong>
+                        </Typography>
+                      ) : null}
+                      {story.youtubeUrl && <Button size="small" href={story.youtubeUrl} target="_blank" startIcon={<OpenInNewIcon sx={{ fontSize: 12 }} />} sx={{ mt: 0.5, textTransform: 'none' }} onClick={(e) => e.stopPropagation()}>
+                        Play on YouTube
+                      </Button>}
+                    </Box>
+                    <Stack direction="row" spacing={1} sx={{ flexShrink: 0, opacity: selectedIds.size > 0 ? 0.35 : 1, pointerEvents: selectedIds.size > 0 ? 'none' : 'auto', transition: 'opacity 0.2s ease' }} onClick={(e) => e.stopPropagation()}>
+                      <Button variant="outlined" size="small" startIcon={<EditOutlinedIcon sx={{ fontSize: 14 }} />} onClick={(e) => { e.stopPropagation(); handleEditPendingStory(story); }} disabled={actionInProgress !== null || editingPendingStory !== null || selectedIds.size > 0} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                        Edit
+                      </Button>
+                      <Button variant="contained" size="small" startIcon={<CheckIcon />} onClick={(e) => { e.stopPropagation(); handleApproveStory(story._id); }} disabled={actionInProgress !== null || selectedIds.size > 0} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                        {actionInProgress === story._id ? 'Working...' : 'Approve'}
+                      </Button>
+                      <IconButton color="error" size="small" onClick={(e) => { e.stopPropagation(); handleRejectStory(story._id); }} disabled={actionInProgress !== null || selectedIds.size > 0}>
+                        <DeleteOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </Stack>
+                  </Paper>
+                );
+              })}
             </Stack>
           </Stack>
-        )
+          )}
+        </Stack>
       )}
+
 
       {/* Tab 2: Users */}
       {isAdmin && activeTab === 2 && (

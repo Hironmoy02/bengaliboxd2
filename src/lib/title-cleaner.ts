@@ -89,11 +89,26 @@ export function smartCleanTitle(rawTitle: string, writer: string = '', descripti
   // 4. Split by '|' or ',' and filter out segments that only contain cast, author, channel, series prefix, or noise
   if (t.includes('|')) {
     const segments = t.split('|').map(s => s.trim()).filter(Boolean);
+
+    // First pass: if the very first segment is "Story Name By Writer", extract just the story name part.
+    // e.g. "Puimacha By Bibhutibhushan Bandopadhyay" → "Puimacha"
+    // e.g. "Dena Paona By Rabindranath Tagore" → "Dena Paona"
+    const byWriterMatch = segments[0]?.match(/^(.+?)\s+[Bb]y\s+[A-Za-z\s\u0980-\u09ff]+$/);
+    if (byWriterMatch) {
+      // Replace the first segment with just the story-name portion
+      segments[0] = byWriterMatch[1].trim();
+    }
+
     const cleanSegments = segments.filter(seg => {
       if (/^(?:Feluda|Tarini Khuro|Tarinikhuro|Sherlock Holmes|Byomkesh Bakshi|ব্যোমকেশ বক্সী|Daroga)$/i.test(seg)) {
         return false;
       }
+      // Single or compound narrator/cast-only segments
       if (/^(?:Mir|Deep|Somak|Godhuli|Papiya|Roy|Agni|Pushpal|Anujoy|Sree|Richard|Sudip|Kaizar|Buddhadev|Sankari|Rounak|Shovan|Rituparna|Maitrayee|Shakya|Aikayan|Anirban Bhattacharya|Pradyut Chatterjea|Srijan Chatterjee|Complete Story)$/i.test(seg)) {
+        return false;
+      }
+      // Compound narrator segments like "Deep Kaizar Basu", "Mir Afsar Ali"
+      if (/^(?:Mir\s+Afsar\s+Ali|Deep\s+Kaizar(?:\s+Basu)?|Godhuli\s+\w+|Papiya\s+\w+|Somak\s+\w+|Sudip\s+Kaizar|Shovan\s+\w+|Rounak\s+\w+)$/i.test(seg)) {
         return false;
       }
       if (/^(?:Sunday Suspense|Goppo Mirer Thek|Goppo Mir er Thek|Mirchi Bangla|Mirchi Bang|Mirchi|Midnight Horror Station|Kahon|Friday Classics|World Classics|GMT|Audio Story)$/i.test(seg)) {
@@ -109,6 +124,7 @@ export function smartCleanTitle(rawTitle: string, writer: string = '', descripti
       t = cleanSegments[0]; // Take primary story name
     }
   }
+
 
   // 4b. Strip series prefix names e.g. "Feluda - ", "Tarini Khuro - ", "Sherlock Holmes - ", "Byomkesh Bakshi - "
   t = t.replace(/^(?:Feluda|Tarini\s*Khuro|Tarinikhuro|Sherlock\s*Holmes|Byomkesh\s*Bakshi|ব্যোমকেশ\s*বক্সী|Daroga)\s*[-–—:]\s*/gi, '');
