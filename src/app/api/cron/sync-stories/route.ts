@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Story from '@/models/Story';
 import Writer from '@/models/Writer';
+import BlockedVideo from '@/models/BlockedVideo';
 import { fetchYouTubeMeta, fetchChannelVideos, extractNarrators, extractWriters } from '@/lib/youtube-meta';
 import { toSearchable } from '@/lib/transliterate';
 import { YOUTUBE_THUMBNAIL } from '@/lib/constants';
@@ -13,17 +14,23 @@ export const dynamic = 'force-dynamic';
 const CHANNELS_SYNC = [
   {
     name: 'Sunday Suspense',
+    // This is the Mirchi Bangla YouTube channel. They publish many programs
+    // (Crime Katha, audio serials, etc.) — we ONLY want videos whose title
+    // explicitly contains "Sunday Suspense".
     channelId: 'UCmzj6hXrPZ_AwIZ8lgo-HuQ',
+    titleFilter: /sunday\s*suspense/i,
   },
   {
     name: 'Goppo Mirer Thek',
+    // All uploads from this dedicated channel are Goppo Mirer Thek stories.
     channelId: 'UCkvRE7QapbwT97rFj40u1Dw',
+    titleFilter: null, // no filter — accept all videos
   },
 ];
 
 const COMMON_NARRATORS = ["Mir", "Deep", "Somak", "Jojo", "Sayak", "Agni", "Pushpal", "Anujoy", "Godhuli", "Sree", "Richard", "Papiya", "Sabyasachi"];
 const GENRES = ["Horror", "Mystery", "Thriller", "Drama", "Comedy", "Classic", "Adventure"];
-const MIN_DURATION_SECONDS = 1200;
+const MIN_DURATION_SECONDS = 300; // 5 minutes minimum (allow short stories and multi-part episodes)
 const MAX_VIDEOS_PER_CHANNEL = 200;
 
 function cleanTitle(title: string, channelName: string, writer: string, narratorsMatched: string[]): string {
@@ -66,6 +73,20 @@ export async function GET(request: NextRequest) {
       };
 
       for (const entry of entries) {
+        // --- Title filter: for Sunday Suspense we only want videos that
+        //     explicitly say "Sunday Suspense" in the raw YouTube title.
+        if (chanConfig.titleFilter && !chanConfig.titleFilter.test(entry.title)) {
+          channelReport.skipped.push(`${entry.title} (title doesn't match channel filter)`);
+          continue;
+        }
+
+        // --- Blocklist check: skip videos the admin has previously rejected
+        const isBlocked = await BlockedVideo.exists({ youtubeId: entry.videoId });
+        if (isBlocked) {
+          channelReport.skipped.push(`${entry.title} (admin rejected — blocked)`);
+          continue;
+        }
+
         const exists = await Story.findOne({ youtubeId: entry.videoId }).lean();
         if (exists) {
           channelReport.skipped.push(`${entry.title} (already in DB)`);
@@ -92,17 +113,19 @@ export async function GET(request: NextRequest) {
 
         if (!durationSec || durationSec < MIN_DURATION_SECONDS) {
           const displayDuration = durationSec ? `${Math.floor(durationSec / 60)}m` : 'unknown';
-          channelReport.skipped.push(`${entry.title} (duration ${displayDuration} < 20 min)`);
+          channelReport.skipped.push(`${entry.title} (duration ${displayDuration} < 5 min)`);
           continue;
         }
 
         const matchedWriter = extractWriters(entry.title, videoDesc, chanConfig.name);
         const finalNarrators = extractNarrators(entry.title, videoDesc, chanConfig.name);
 
-        const cleanStoryTitle = cleanTitle(entry.title, chanConfig.name, matchedWriter, [finalNarrators]);
+        let cleanStoryTitle = cleanTitle(entry.title, chanConfig.name, matchedWriter, [finalNarrators]);
         if (!cleanStoryTitle) {
-          channelReport.skipped.push(`${entry.title} (could not generate a clean title)`);
-          continue;
+          cleanStoryTitle = entry.title
+            .replace(/Sunday\s*Suspense|Goppo\s*Mirer\s*Thek|Mirchi\s*Bangla/gi, '')
+            .replace(/^[\s|\-:]+/, '')
+            .trim() || entry.title;
         }
 
         let matchedGenre = 'Horror';
