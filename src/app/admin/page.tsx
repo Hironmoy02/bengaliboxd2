@@ -118,6 +118,7 @@ export default function AdminPage() {
   const [pendingEditForm, setPendingEditForm] = useState({ title: '', channel: '', narrator: '', genre: '', writer: '', description: '', thumbnailUrl: '', yearPublished: '', youtubeUrl: '', duration: 0, tags: [] as string[] });
   const [savingPendingEdit, setSavingPendingEdit] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncReport, setSyncReport] = useState<{ channel: string; fetched: number; imported: { title: string; youtubeId: string; writer: string; narrators: string; duration: string }[]; skipped: string[] }[] | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkInProgress, setBulkInProgress] = useState(false);
 
@@ -180,11 +181,13 @@ export default function AdminPage() {
 
   const handleTriggerSync = async () => {
     setIsSyncing(true);
+    setSyncReport(null);
     try {
       const { data } = await api.get('/api/cron/sync-stories', {
         timeout: 180000, // 3 minutes — sync fetches YouTube metadata for ~200 videos
       });
       setSuccess(data.message || 'Story sync completed.');
+      if (data.report) setSyncReport(data.report);
       fetchPendingStories();
       fetchStats();
     } catch (err: unknown) {
@@ -848,6 +851,55 @@ export default function AdminPage() {
               {isSyncing ? 'Syncing YouTube...' : 'Sync Channel Stories Now'}
             </Button>
           </Paper>
+
+          {/* Sync report — shown after a manual sync */}
+          {syncReport && (
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <RefreshIcon fontSize="small" color="primary" />
+                Last Sync Report
+                <Button size="small" sx={{ ml: 'auto', minWidth: 0 }} onClick={() => setSyncReport(null)}>Dismiss</Button>
+              </Typography>
+              <Stack spacing={2}>
+                {syncReport.map((ch) => (
+                  <Box key={ch.channel}>
+                    <Stack direction="row" sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 0.5 }}>
+                      <YouTubeIcon fontSize="small" color="error" />
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>{ch.channel}</Typography>
+                      <Chip label={`${ch.fetched} fetched`} size="small" variant="outlined" />
+                      <Chip label={`${ch.imported.length} imported`} size="small" color="success" sx={{ opacity: ch.imported.length > 0 ? 1 : 0.4 }} />
+                      <Chip label={`${ch.skipped.length} skipped`} size="small" color="warning" sx={{ opacity: ch.skipped.length > 0 ? 1 : 0.4 }} />
+                    </Stack>
+                    {ch.imported.length > 0 && (
+                      <Box sx={{ pl: 2, mb: 1 }}>
+                        <Typography variant="caption" color="success.main" sx={{ fontWeight: 600 }}>Newly imported:</Typography>
+                        {ch.imported.map((v) => (
+                          <Typography key={v.youtubeId} variant="caption" component="div" sx={{ color: 'text.secondary', pl: 1 }}>
+                            • <a href={`https://youtu.be/${v.youtubeId}`} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>{v.title}</a>
+                            {' '}<span style={{ opacity: 0.6 }}>({v.writer} · {v.duration})</span>
+                          </Typography>
+                        ))}
+                      </Box>
+                    )}
+                    {ch.skipped.length > 0 && (
+                      <details style={{ paddingLeft: 16 }}>
+                        <summary style={{ cursor: 'pointer', fontSize: '0.72rem', color: 'gray' }}>
+                          Show {ch.skipped.length} skipped videos
+                        </summary>
+                        <Box sx={{ maxHeight: 160, overflowY: 'auto', mt: 0.5 }}>
+                          {ch.skipped.map((s, i) => (
+                            <Typography key={i} variant="caption" component="div" sx={{ color: 'text.disabled', pl: 1 }}>
+                              • {s}
+                            </Typography>
+                          ))}
+                        </Box>
+                      </details>
+                    )}
+                  </Box>
+                ))}
+              </Stack>
+            </Paper>
+          )}
 
           {/* Bulk action bar — slides in when any stories are selected */}
           {selectedIds.size > 0 && (

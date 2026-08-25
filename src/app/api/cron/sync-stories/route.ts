@@ -14,15 +14,14 @@ export const dynamic = 'force-dynamic';
 const CHANNELS_SYNC = [
   {
     name: 'Sunday Suspense',
-    // This is the Mirchi Bangla YouTube channel. They publish many programs
-    // (Crime Katha, audio serials, etc.) — we ONLY want videos whose title
-    // explicitly contains "Sunday Suspense".
+    // Mirchi Bangla publishes many shows (Crime Katha, serials, etc.).
+    // We ONLY want videos whose title explicitly contains "Sunday Suspense".
     channelId: 'UCmzj6hXrPZ_AwIZ8lgo-HuQ',
     titleFilter: /sunday\s*suspense/i,
   },
   {
     name: 'Goppo Mirer Thek',
-    // All uploads from this dedicated channel are Goppo Mirer Thek stories.
+    // Dedicated channel — every video is a Goppo Mirer Thek story.
     channelId: 'UCkvRE7QapbwT97rFj40u1Dw',
     titleFilter: null, // no filter — accept all videos
   },
@@ -97,22 +96,47 @@ export async function GET(request: NextRequest) {
         let yearPublished: number | undefined;
         let videoDesc = entry.description || '';
 
-        if (!durationSec || !yearPublished || !videoDesc) {
-          try {
-            const meta = await fetchYouTubeMeta(entry.videoId);
-            if (!durationSec && meta.duration) durationSec = meta.duration;
-            if (!yearPublished && meta.year) yearPublished = meta.year;
-            if (!videoDesc && meta.description) videoDesc = meta.description;
-          } catch { /* ignore */ }
-        }
+        // Always fetch full metadata from the InnerTube player API —
+        // the channel-page scraper often omits duration/year for brand-new videos.
+        try {
+          const meta = await fetchYouTubeMeta(entry.videoId);
+          if (!durationSec && meta.duration) durationSec = meta.duration;
+          if (!yearPublished && meta.year) yearPublished = meta.year;
+          if (!videoDesc && meta.description) videoDesc = meta.description;
+        } catch { /* ignore individual video fetch errors */ }
 
-        if (!yearPublished && entry.published) {
-          const y = parseInt(entry.published.slice(0, 4), 10);
-          if (y >= 1900 && y <= 2100) yearPublished = y;
+        // Parse year from the channel-page published field as a fallback.
+        // YouTube returns a relative string ("2 days ago", "3 months ago", etc.)
+        // rather than an ISO date, so we convert it to an approximate year.
+        if (!yearPublished) {
+          const pub = entry.published || '';
+          // Try ISO/year-first format first (e.g. "2024-08-23" or "2024")
+          const isoMatch = pub.match(/^(\d{4})/);
+          if (isoMatch) {
+            const y = parseInt(isoMatch[1], 10);
+            if (y >= 1900 && y <= 2100) yearPublished = y;
+          } else {
+            // Handle "N days ago", "N weeks ago", "N months ago", "N years ago"
+            const relMatch = pub.match(/(\d+)\s*(day|week|month|year)/i);
+            const now = new Date();
+            if (relMatch) {
+              const num = parseInt(relMatch[1], 10);
+              const unit = relMatch[2].toLowerCase();
+              const approx = new Date(now);
+              if (unit.startsWith('day'))   approx.setDate(now.getDate() - num);
+              else if (unit.startsWith('week'))  approx.setDate(now.getDate() - num * 7);
+              else if (unit.startsWith('month')) approx.setMonth(now.getMonth() - num);
+              else if (unit.startsWith('year'))  approx.setFullYear(now.getFullYear() - num);
+              yearPublished = approx.getFullYear();
+            } else if (pub) {
+              // Unknown format — fall back to current year for any non-empty published string
+              yearPublished = now.getFullYear();
+            }
+          }
         }
 
         if (!durationSec || durationSec < MIN_DURATION_SECONDS) {
-          const displayDuration = durationSec ? `${Math.floor(durationSec / 60)}m` : 'unknown';
+          const displayDuration = durationSec ? `${Math.floor(durationSec / 60)}m ${durationSec % 60}s` : 'unknown';
           channelReport.skipped.push(`${entry.title} (duration ${displayDuration} < 5 min)`);
           continue;
         }
