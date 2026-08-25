@@ -92,33 +92,30 @@ export function smartCleanTitle(rawTitle: string, writer: string = '', descripti
 
     // First pass: if the very first segment is "Story Name By Writer", extract just the story name part.
     // e.g. "Puimacha By Bibhutibhushan Bandopadhyay" → "Puimacha"
-    // e.g. "Dena Paona By Rabindranath Tagore" → "Dena Paona"
     const byWriterMatch = segments[0]?.match(/^(.+?)\s+[Bb]y\s+[A-Za-z\s\u0980-\u09ff]+$/);
     if (byWriterMatch) {
-      // Replace the first segment with just the story-name portion
       segments[0] = byWriterMatch[1].trim();
     }
 
-    const cleanSegments = segments.filter(seg => {
-      if (/^(?:Feluda|Tarini Khuro|Tarinikhuro|Sherlock Holmes|Byomkesh Bakshi|ব্যোমকেশ বক্সী|Daroga)$/i.test(seg)) {
-        return false;
-      }
-      // Single or compound narrator/cast-only segments
-      if (/^(?:Mir|Deep|Somak|Godhuli|Papiya|Roy|Agni|Pushpal|Anujoy|Sree|Richard|Sudip|Kaizar|Buddhadev|Sankari|Rounak|Shovan|Rituparna|Maitrayee|Shakya|Aikayan|Anirban Bhattacharya|Pradyut Chatterjea|Srijan Chatterjee|Complete Story)$/i.test(seg)) {
-        return false;
-      }
-      // Compound narrator segments like "Deep Kaizar Basu", "Mir Afsar Ali"
-      if (/^(?:Mir\s+Afsar\s+Ali|Deep\s+Kaizar(?:\s+Basu)?|Godhuli\s+\w+|Papiya\s+\w+|Somak\s+\w+|Sudip\s+Kaizar|Shovan\s+\w+|Rounak\s+\w+)$/i.test(seg)) {
-        return false;
-      }
-      if (/^(?:Sunday Suspense|Goppo Mirer Thek|Goppo Mir er Thek|Mirchi Bangla|Mirchi Bang|Mirchi|Midnight Horror Station|Kahon|Friday Classics|World Classics|GMT|Audio Story)$/i.test(seg)) {
-        return false;
-      }
-      if (isWriterSegment(seg)) {
-        return false;
-      }
-      return true;
-    });
+    // Series name patterns — segments that are just the series identifier.
+    // When we encounter one, we should SKIP it but preserve the next non-noise segment.
+    const SERIES_ONLY_RE = /^(?:Feluda|Tarini\s*Khuro|Tarinikhuro|Sherlock\s*Holmes|Byomkesh\s*Bakshi|ব্যোমকেশ\s*বক্সী|Daroga)$/i;
+
+    // Cast/narrator-only segments to silently drop
+    const CAST_ONLY_RE = /^(?:Mir|Deep|Somak|Godhuli|Papiya|Roy|Agni|Pushpal|Anujoy|Sree|Richard|Sudip|Kaizar|Buddhadev|Sankari|Rounak|Shovan|Rituparna|Maitrayee|Shakya|Aikayan|Anirban Bhattacharya|Pradyut Chatterjea|Srijan Chatterjee|Complete Story)$/i;
+    const CAST_COMPOUND_RE = /^(?:Mir\s+Afsar\s+Ali|Deep\s+Kaizar(?:\s+Basu)?|Godhuli\s+\w+|Papiya\s+\w+|Somak\s+\w+|Sudip\s+Kaizar|Shovan\s+\w+|Rounak\s+\w+)$/i;
+    const CHANNEL_RE = /^(?:Sunday Suspense|Goppo Mirer Thek|Goppo Mir er Thek|Mirchi Bangla|Mirchi Bang|Mirchi|Midnight Horror Station|Kahon|Friday Classics|World Classics|GMT|Audio Story)$/i;
+
+    // Build clean segment list: skip series/cast/channel labels but keep story names that follow them
+    const cleanSegments: string[] = [];
+    for (const seg of segments) {
+      if (SERIES_ONLY_RE.test(seg)) continue;   // series label — drop, keep going
+      if (CAST_ONLY_RE.test(seg)) continue;     // narrator name — drop
+      if (CAST_COMPOUND_RE.test(seg)) continue; // compound narrator — drop
+      if (CHANNEL_RE.test(seg)) continue;       // channel brand — drop
+      if (isWriterSegment(seg)) continue;       // writer name — drop
+      cleanSegments.push(seg);
+    }
 
     if (cleanSegments.length > 0) {
       t = cleanSegments[0]; // Take primary story name
