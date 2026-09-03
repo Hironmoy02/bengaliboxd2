@@ -23,39 +23,84 @@ export interface LevelTier {
 export const LEVEL_TIERS: LevelTier[] = [
   {
     level: 1,
-    nameEn: 'Novice Listener',
-    nameBn: 'শ্রোতার আরম্ভ',
+    nameEn: 'House Tully',
+    nameBn: 'হাউস টুলি',
     minPoints: 0,
-    maxPoints: 99,
-    icon: '🥉',
-    color: '#cd7f32',
+    maxPoints: 249,
+    icon: '🐟',
+    color: '#3b82f6', // Tully blue — Riverlands, leaping trout
   },
   {
     level: 2,
-    nameEn: 'Story Enthusiast',
-    nameBn: 'গল্প রসিক',
-    minPoints: 100,
+    nameEn: 'House Arryn',
+    nameBn: 'হাউস অ্যারিন',
+    minPoints: 250,
     maxPoints: 499,
-    icon: '🥈',
-    color: '#c0c0c0',
+    icon: '🦅',
+    color: '#7dd3fc', // Arryn sky blue — Vale of Arryn, soaring falcon
   },
   {
     level: 3,
-    nameEn: 'Connoisseur',
-    nameBn: 'কথা কবিদর',
+    nameEn: 'House Martell',
+    nameBn: 'হাউস মার্টেল',
     minPoints: 500,
-    maxPoints: 1499,
-    icon: '🥇',
-    color: '#ffd700',
+    maxPoints: 749,
+    icon: '☀️',
+    color: '#fb923c', // Martell orange — Dorne, sun pierced by spear
   },
   {
     level: 4,
-    nameEn: 'Master Listener',
-    nameBn: 'মহা শ্রোতা',
+    nameEn: 'House Greyjoy',
+    nameBn: 'হাউস গ্রেজয়',
+    minPoints: 750,
+    maxPoints: 999,
+    icon: '🦑',
+    color: '#a3a3a3', // Greyjoy iron grey — Iron Islands, golden kraken
+  },
+  {
+    level: 5,
+    nameEn: 'House Tyrell',
+    nameBn: 'হাউস টাইরেল',
+    minPoints: 1000,
+    maxPoints: 1249,
+    icon: '🌹',
+    color: '#4ade80', // Tyrell green — the Reach, golden rose
+  },
+  {
+    level: 6,
+    nameEn: 'House Lannister',
+    nameBn: 'হাউস ল্যানিস্টার',
+    minPoints: 1250,
+    maxPoints: 1499,
+    icon: '🦁',
+    color: '#fbbf24', // Lannister gold — Casterly Rock, lion
+  },
+  {
+    level: 7,
+    nameEn: 'House Baratheon',
+    nameBn: 'হাউস ব্যারাথিয়ন',
     minPoints: 1500,
+    maxPoints: 1749,
+    icon: '🦌',
+    color: '#f59e0b', // Baratheon storm gold — Storm's End, crowned stag
+  },
+  {
+    level: 8,
+    nameEn: 'House Stark',
+    nameBn: 'হাউস স্টার্ক',
+    minPoints: 1750,
+    maxPoints: 1999,
+    icon: '🐺',
+    color: '#94a3b8', // Stark grey — Winterfell, direwolf
+  },
+  {
+    level: 9,
+    nameEn: 'House Targaryen',
+    nameBn: 'হাউস টার্গারিয়েন',
+    minPoints: 2000,
     maxPoints: Infinity,
-    icon: '💎',
-    color: '#00e5ff',
+    icon: '🐉',
+    color: '#ef4444', // Targaryen red — Dragonstone, three-headed dragon
   },
 ];
 

@@ -451,7 +451,7 @@ export default function ProfilePage() {
               <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mt: 1, flexWrap: 'wrap', gap: 1 }}>
                 <Chip
                   icon={<span style={{ fontSize: 14 }}>{gamificationProfile.currentLevel?.icon}</span>}
-                  label={gamificationProfile.currentLevel?.nameBn}
+                  label={gamificationProfile.currentLevel?.nameEn}
                   size="small"
                   sx={{
                     fontWeight: 700,
@@ -1413,7 +1413,7 @@ export default function ProfilePage() {
                       বর্তমান কথা Rank
                     </Typography>
                     <Typography variant="h5" sx={{ fontWeight: 800, color: gamificationProfile.currentLevel?.color || 'text.primary' }}>
-                      {gamificationProfile.currentLevel?.nameBn}
+                      {gamificationProfile.currentLevel?.nameEn}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       মোট অর্জন: <strong>{gamificationProfile.karmaPoints}</strong> রসগোল্লা
@@ -1433,7 +1433,7 @@ export default function ProfilePage() {
                 <Box sx={{ mt: 3 }}>
                   <Stack direction="row" sx={{ justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="caption" color="text.secondary">
-                      পরবর্তী Rank: {gamificationProfile.nextLevel.icon} <strong>{gamificationProfile.nextLevel.nameBn}</strong>
+                      পরবর্তী Rank: {gamificationProfile.nextLevel.icon} <strong>{gamificationProfile.nextLevel.nameEn}</strong>
                     </Typography>
                     <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main' }}>
                       {gamificationProfile.progressPercent}% ({gamificationProfile.nextLevel.minPoints - gamificationProfile.karmaPoints} পয়েন্ট বাকি)
