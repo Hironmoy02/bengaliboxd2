@@ -82,7 +82,12 @@ export async function processUserGamificationAction(
     }
   } else if (actionType === 'LIKE_RECEIVED') basePoints = 15;
   else if (actionType === 'STORY_ADDED') basePoints = 20;
-  else if (actionType === 'LOGIN') basePoints = 5;
+  else if (actionType === 'LOGIN') {
+    // Only award daily login points once per day — guard against repeated
+    // calls from Navbar re-fetching gamification on every page navigation.
+    const alreadyAwardedToday = lastActiveStr === todayStr;
+    if (!alreadyAwardedToday) basePoints = 5;
+  }
 
   user.karmaPoints += basePoints;
 
