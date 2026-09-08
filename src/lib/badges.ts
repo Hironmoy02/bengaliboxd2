@@ -18,6 +18,7 @@ export interface LevelTier {
   maxPoints: number;
   icon: string;
   color: string;
+  motto: string;
 }
 
 export const LEVEL_TIERS: LevelTier[] = [
@@ -29,6 +30,7 @@ export const LEVEL_TIERS: LevelTier[] = [
     maxPoints: 249,
     icon: '🐟',
     color: '#3b82f6', // Tully blue — Riverlands, leaping trout
+    motto: 'Family, Duty, Honor',
   },
   {
     level: 2,
@@ -38,6 +40,7 @@ export const LEVEL_TIERS: LevelTier[] = [
     maxPoints: 499,
     icon: '🦅',
     color: '#7dd3fc', // Arryn sky blue — Vale of Arryn, soaring falcon
+    motto: 'As High as Honor',
   },
   {
     level: 3,
@@ -47,6 +50,7 @@ export const LEVEL_TIERS: LevelTier[] = [
     maxPoints: 749,
     icon: '☀️',
     color: '#fb923c', // Martell orange — Dorne, sun pierced by spear
+    motto: 'Unbowed, Unbent, Unbroken',
   },
   {
     level: 4,
@@ -56,6 +60,7 @@ export const LEVEL_TIERS: LevelTier[] = [
     maxPoints: 999,
     icon: '🦑',
     color: '#a3a3a3', // Greyjoy iron grey — Iron Islands, golden kraken
+    motto: 'We Do Not Sow',
   },
   {
     level: 5,
@@ -65,6 +70,7 @@ export const LEVEL_TIERS: LevelTier[] = [
     maxPoints: 1249,
     icon: '🌹',
     color: '#4ade80', // Tyrell green — the Reach, golden rose
+    motto: 'Growing Strong',
   },
   {
     level: 6,
@@ -74,6 +80,7 @@ export const LEVEL_TIERS: LevelTier[] = [
     maxPoints: 1499,
     icon: '🦁',
     color: '#fbbf24', // Lannister gold — Casterly Rock, lion
+    motto: 'Hear Me Roar',
   },
   {
     level: 7,
@@ -83,6 +90,7 @@ export const LEVEL_TIERS: LevelTier[] = [
     maxPoints: 1749,
     icon: '🦌',
     color: '#f59e0b', // Baratheon storm gold — Storm's End, crowned stag
+    motto: 'Ours is the Fury',
   },
   {
     level: 8,
@@ -92,6 +100,7 @@ export const LEVEL_TIERS: LevelTier[] = [
     maxPoints: 1999,
     icon: '🐺',
     color: '#94a3b8', // Stark grey — Winterfell, direwolf
+    motto: 'Winter is Coming',
   },
   {
     level: 9,
@@ -101,6 +110,7 @@ export const LEVEL_TIERS: LevelTier[] = [
     maxPoints: Infinity,
     icon: '🐉',
     color: '#ef4444', // Targaryen red — Dragonstone, three-headed dragon
+    motto: 'Fire and Blood',
   },
 ];
 
