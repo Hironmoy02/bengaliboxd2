@@ -17,7 +17,11 @@ import {
   Divider,
   useMediaQuery,
   useTheme,
+  Chip,
+  Tooltip,
+  Fade,
 } from '@mui/material';
+import { getLevelTier, LEVEL_TIERS } from '@/lib/badges';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LoginIcon from '@mui/icons-material/Login';
@@ -43,8 +47,48 @@ export default function Navbar() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileAnchor, setMobileAnchor] = useState<null | HTMLElement>(null);
   const [profileAnchor, setProfileAnchor] = useState<null | HTMLElement>(null);
+  const [rankOpen, setRankOpen] = useState(false);
+  const [rankPos, setRankPos] = useState<{ top: number; left: number } | null>(null);
+  const rankChipRef = React.useRef<HTMLDivElement>(null);
   const [streak, setStreak] = useState<{ current: number; longest: number }>({ current: 0, longest: 0 });
   const [karmaPoints, setKarmaPoints] = useState<number>(0);
+
+  const currentTier = getLevelTier(karmaPoints);
+
+  const openRank = () => {
+    if (rankChipRef.current) {
+      const rect = rankChipRef.current.getBoundingClientRect();
+      setRankPos({ top: rect.bottom + 8, left: rect.left + rect.width / 2 });
+    }
+    setRankOpen(true);
+  };
+
+  const closeRank = () => setRankOpen(false);
+
+  // Close rank panel after scrolling 60px
+  React.useEffect(() => {
+    if (!rankOpen) return;
+    const scrollStart = window.scrollY;
+    const onScroll = () => {
+      if (Math.abs(window.scrollY - scrollStart) > 60) closeRank();
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [rankOpen]);
+
+  // Close on click outside
+  React.useEffect(() => {
+    if (!rankOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (rankChipRef.current && !rankChipRef.current.closest('[data-rank-panel]')) {
+        const panel = document.querySelector('[data-rank-panel]');
+        if (panel && panel.contains(e.target as Node)) return;
+        closeRank();
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [rankOpen]);
 
   const fetchGamification = React.useCallback(() => {
     if (user) {
@@ -320,6 +364,142 @@ export default function Navbar() {
                 <Box data-tour="nav-streak" sx={{ display: 'inline-flex', alignItems: 'center' }}>
                   <StreakFlame currentStreak={streak.current} longestStreak={streak.longest} size="small" />
                 </Box>
+
+                {/* Rank Chip */}
+                <Tooltip title="View all ranks" placement="bottom">
+                  <Chip
+                    ref={rankChipRef}
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <span style={{ fontSize: '15px', lineHeight: 1 }}>{currentTier.icon}</span>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: currentTier.color }}>
+                          {currentTier.nameEn}
+                        </span>
+                      </Box>
+                    }
+                    onClick={openRank}
+                    size="small"
+                    sx={{
+                      height: 26,
+                      cursor: 'pointer',
+                      bgcolor: 'action.hover',
+                      border: '1px solid',
+                      borderColor: currentTier.color + '55',
+                      boxShadow: `0 0 8px ${currentTier.color}33`,
+                      '& .MuiChip-label': { px: '8px' },
+                      '&:hover': { bgcolor: 'action.selected', borderColor: currentTier.color },
+                      transition: 'all 0.2s ease',
+                    }}
+                  />
+                </Tooltip>
+
+                {/* Rank Panel — custom fixed dropdown, no scroll lock */}
+                <Fade in={rankOpen} timeout={180}>
+                  <Box
+                    data-rank-panel
+                    sx={{
+                      position: 'fixed',
+                      top: rankPos?.top ?? 60,
+                      left: rankPos ? Math.min(rankPos.left, window.innerWidth - 460) : 'auto',
+                      transform: 'translateX(-50%)',
+                      zIndex: 1400,
+                      width: 440,
+                      borderRadius: '12px',
+                      bgcolor: '#0f0f12',
+                      border: '1px solid rgba(255,255,255,0.09)',
+                      boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
+                      overflow: 'hidden',
+                      pointerEvents: rankOpen ? 'auto' : 'none',
+                    }}
+                  >
+                    {/* Header */}
+                    <Box sx={{ px: 3, pt: 2.5, pb: 2, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                      <Typography sx={{ fontSize: '16px', fontWeight: 800, color: 'text.primary', letterSpacing: 0.5 }}>
+                        ⚔️ House Rankings
+                      </Typography>
+                      <Typography sx={{ fontSize: '12px', color: 'text.disabled', mt: 0.4 }}>
+                        Earn রসগোল্লা to climb the houses
+                      </Typography>
+                    </Box>
+
+                    {/* House rows */}
+                    <Box sx={{ py: 0.5 }}>
+                      {LEVEL_TIERS.map((tier) => {
+                        const isCurrentTier = tier.level === currentTier.level;
+                        return (
+                          <Box
+                            key={tier.level}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 2,
+                              px: 3,
+                              py: '10px',
+                              transition: 'background 0.15s',
+                              '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' },
+                            }}
+                          >
+                            {/* Icon */}
+                            <Box sx={{ fontSize: '22px', lineHeight: 1, minWidth: 30, textAlign: 'center' }}>
+                              {tier.icon}
+                            </Box>
+
+                            {/* Name + Motto */}
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Typography sx={{ fontSize: '14px', fontWeight: 700, color: tier.color, lineHeight: 1 }}>
+                                  {tier.nameEn}
+                                </Typography>
+                                {isCurrentTier && (
+                                  <Box
+                                    component="span"
+                                    sx={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontSize: '13px',
+                                      lineHeight: 1,
+                                      filter: `drop-shadow(0 0 5px ${tier.color})`,
+                                      animation: 'rankCrownPulse 2s ease-in-out infinite',
+                                      '@keyframes rankCrownPulse': {
+                                        '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+                                        '50%': { opacity: 0.7, transform: 'scale(1.2)' },
+                                      },
+                                    }}
+                                  >
+                                    👑
+                                  </Box>
+                                )}
+                              </Box>
+                              <Typography sx={{ fontSize: '11px', fontStyle: 'italic', color: 'text.disabled', lineHeight: 1.3, mt: '3px' }}>
+                                &ldquo;{tier.motto}&rdquo;
+                              </Typography>
+                            </Box>
+
+                            {/* Rosogolla range */}
+                            <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+                              <Typography sx={{ fontSize: '12px', fontWeight: 600, color: isCurrentTier ? tier.color : 'text.secondary' }}>
+                                {tier.maxPoints === Infinity
+                                  ? `${tier.minPoints.toLocaleString()}+`
+                                  : `${tier.minPoints.toLocaleString()}\u2013${tier.maxPoints.toLocaleString()}`}
+                              </Typography>
+                              <Typography sx={{ fontSize: '10px', color: 'text.disabled' }}>রসগোল্লা</Typography>
+                            </Box>
+                          </Box>
+                        );
+                      })}
+                    </Box>
+
+                    {/* Footer */}
+                    <Box sx={{ px: 3, py: 2, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Typography sx={{ fontSize: '12px', color: 'text.disabled' }}>Your total</Typography>
+                      <Typography sx={{ fontSize: '14px', fontWeight: 800, color: 'text.primary' }}>
+                        {karmaPoints.toLocaleString()} রসগোল্লা
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Fade>
+
                 <Typography
                   component={Link}
                   href="/profile"

@@ -1415,7 +1415,12 @@ export default function ProfilePage() {
                     <Typography variant="h5" sx={{ fontWeight: 800, color: gamificationProfile.currentLevel?.color || 'text.primary' }}>
                       {gamificationProfile.currentLevel?.nameEn}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    {gamificationProfile.currentLevel?.motto && (
+                      <Typography variant="caption" sx={{ fontStyle: 'italic', color: gamificationProfile.currentLevel.color, opacity: 0.85, letterSpacing: 0.5 }}>
+                        &ldquo;{gamificationProfile.currentLevel.motto}&rdquo;
+                      </Typography>
+                    )}
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                       মোট অর্জন: <strong>{gamificationProfile.karmaPoints}</strong> রসগোল্লা
                     </Typography>
                   </Box>
@@ -1431,6 +1436,9 @@ export default function ProfilePage() {
               {/* Progress to Next Level */}
               {gamificationProfile.nextLevel ? (
                 <Box sx={{ mt: 3 }}>
+                  <Typography variant="caption" sx={{ display: 'block', mb: 1, fontStyle: 'italic', color: 'text.disabled' }}>
+                    Next sworn house: {gamificationProfile.nextLevel.icon} <strong style={{ color: gamificationProfile.nextLevel.color }}>{gamificationProfile.nextLevel.nameEn}</strong> &mdash; &ldquo;{gamificationProfile.nextLevel.motto}&rdquo;
+                  </Typography>
                   <Stack direction="row" sx={{ justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="caption" color="text.secondary">
                       পরবর্তী Rank: {gamificationProfile.nextLevel.icon} <strong>{gamificationProfile.nextLevel.nameEn}</strong>
@@ -1455,7 +1463,7 @@ export default function ProfilePage() {
                 </Box>
               ) : (
                 <Typography variant="caption" sx={{ display: 'block', mt: 2, color: 'primary.main', fontWeight: 700 }}>
-                  💎 Maximum Rank Achieved! You are a legendary Maha Shrota.
+                  🐉 Maximum Rank Achieved! Fire and Blood — you have claimed the Iron Throne of Bangla Audio.
                 </Typography>
               )}
             </Paper>
