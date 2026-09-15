@@ -14,6 +14,7 @@ const PUBLIC_PATHS = [
   '/register',
   '/forgot-password',
   '/reset-password',
+  '/explore',
 ];
 
 const PUBLIC_API_PREFIXES = [
@@ -34,7 +35,7 @@ const ADMIN_API_PREFIXES = ['/api/admin', '/api/stories/bulk', '/api/stories/*/a
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.includes(pathname)) return true;
-  if (pathname.startsWith('/stories/') || pathname.startsWith('/writers/')) return true;
+  if (pathname.startsWith('/story/') || pathname.startsWith('/stories/') || pathname.startsWith('/writers/')) return true;
   return false;
 }
 
