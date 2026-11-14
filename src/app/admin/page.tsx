@@ -121,6 +121,8 @@ export default function AdminPage() {
   const [syncReport, setSyncReport] = useState<{ channel: string; fetched: number; imported: { title: string; youtubeId: string; writer: string; narrators: string; duration: string }[]; skipped: string[] }[] | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkInProgress, setBulkInProgress] = useState(false);
+  // Per-story collection assignment: storyId → array of collectionIds to add on approve
+  const [storyCollectionMap, setStoryCollectionMap] = useState<Record<string, string[]>>({});
 
   interface FeedbackItem { _id: string; userId: { username: string; email: string }; category: string; message: string; status: string; createdAt: string; }
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
@@ -333,7 +335,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (!user || user.role !== 'admin') return;
     if (activeTab === 0) fetchStats();
-    if (activeTab === 1) fetchPendingStories();
+    if (activeTab === 1) { fetchPendingStories(); fetchCollections(); }
     if (activeTab === 2) fetchUsers();
     if (activeTab === 4) fetchAllStories();
     if (activeTab === 6) fetchCollections();
@@ -415,10 +417,22 @@ export default function AdminPage() {
   };
 
   const handleApproveStory = async (storyId: string) => {
+    const selectedCollIds = storyCollectionMap[storyId] || [];
+    const collectionNames = selectedCollIds.map((cid) => collections.find((c) => c._id === cid)?.name).filter(Boolean).join(', ');
+    const collectionNote = collectionNames ? ` and add to: ${collectionNames}` : '';
     setConfirmModal({
-      open: true, title: 'Approve Story', message: 'This story will be published to the public lobby.', severity: 'warning', action: async () => {
+      open: true, title: 'Approve Story', message: `This story will be published to the public lobby${collectionNote}.`, severity: 'warning', action: async () => {
         setError(''); setSuccess(''); setActionInProgress(storyId);
-        try { const { data } = await api.post(`/api/stories/${storyId}/approve`); setSuccess(data.message); fetchPendingStories(); }
+        try {
+          const { data } = await api.post(`/api/stories/${storyId}/approve`);
+          // Add to selected collections
+          for (const collectionId of selectedCollIds) {
+            try { await api.post(`/api/collections/${collectionId}/stories`, { storyId }); } catch { /* ignore */ }
+          }
+          setSuccess(data.message + (collectionNames ? ` · Added to ${collectionNames}` : ''));
+          setStoryCollectionMap((prev) => { const next = { ...prev }; delete next[storyId]; return next; });
+          fetchPendingStories();
+        }
         catch (err) { setError(getErrorMessage(err) || 'Failed to approve story'); }
         finally { setActionInProgress(null); setConfirmModal((p) => ({ ...p, open: false })); }
       }
@@ -1057,6 +1071,38 @@ export default function AdminPage() {
                       {story.youtubeUrl && <Button size="small" href={story.youtubeUrl} target="_blank" startIcon={<OpenInNewIcon sx={{ fontSize: 12 }} />} sx={{ mt: 0.5, textTransform: 'none' }} onClick={(e) => e.stopPropagation()}>
                         Play on YouTube
                       </Button>}
+                      {/* Collection picker — click to toggle */}
+                      {collections.length > 0 && (
+                        <Box sx={{ mt: 1 }} onClick={(e) => e.stopPropagation()}>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                            Add to collection:
+                          </Typography>
+                          <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+                            {collections.map((col) => {
+                              const picked = (storyCollectionMap[story._id] || []).includes(col._id);
+                              return (
+                                <Chip
+                                  key={col._id}
+                                  label={col.name}
+                                  size="small"
+                                  variant={picked ? 'filled' : 'outlined'}
+                                  color={picked ? 'success' : 'default'}
+                                  onClick={() => setStoryCollectionMap((prev) => {
+                                    const current = prev[story._id] || [];
+                                    return {
+                                      ...prev,
+                                      [story._id]: picked
+                                        ? current.filter((id) => id !== col._id)
+                                        : [...current, col._id],
+                                    };
+                                  })}
+                                  sx={{ cursor: 'pointer', borderColor: 'divider', fontSize: '0.7rem' }}
+                                />
+                              );
+                            })}
+                          </Stack>
+                        </Box>
+                      )}
                     </Box>
                     <Stack direction="row" spacing={1} sx={{ flexShrink: 0, opacity: selectedIds.size > 0 ? 0.35 : 1, pointerEvents: selectedIds.size > 0 ? 'none' : 'auto', transition: 'opacity 0.2s ease' }} onClick={(e) => e.stopPropagation()}>
                       <Button variant="outlined" size="small" startIcon={<EditOutlinedIcon sx={{ fontSize: 14 }} />} onClick={(e) => { e.stopPropagation(); handleEditPendingStory(story); }} disabled={actionInProgress !== null || editingPendingStory !== null || selectedIds.size > 0} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
