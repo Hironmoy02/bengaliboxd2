@@ -327,6 +327,10 @@ export const CHARACTER_WRITER_MAP: { pattern: RegExp; writer: string }[] = [
   { pattern: /\b(?:ghanada)\b/i, writer: 'Premendra Mitra' },
   { pattern: /\b(?:mitin mashi)\b/i, writer: 'Suchitra Bhattacharya' },
   { pattern: /\b(?:kiriti|mohan samanta)\b/i, writer: 'Nihar Ranjan Gupta' },
+  // Taranath Tantrik — recurring character by Tarashankar Bandyopadhyay
+  { pattern: /(?:তারানাথ\s*তান্ত্রিক|taranath\s*tantrik|taranath)/i, writer: 'Tarashankar Bandyopadhyay' },
+  // Bhaduri Moshai / Niren Bhaduri — recurring character by Shirshendu Mukhopadhyay
+  { pattern: /(?:bhaduri\s*moshai|niren\s*bhaduri|\bbhaduri\b|ভাদুড়ি\s*মশাই|নিরেন\s*ভাদুড়ি|\bভাদুড়ি\b)/i, writer: 'Shirshendu Mukhopadhyay' },
 ];
 
 export function matchAlias(alias: string, text: string): boolean {

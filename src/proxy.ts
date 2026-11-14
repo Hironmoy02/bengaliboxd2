@@ -28,6 +28,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/stories',
   '/api/writers',
   '/api/cron',
+  '/api/collections',
 ];
 
 const ADMIN_PATHS = ['/admin'];

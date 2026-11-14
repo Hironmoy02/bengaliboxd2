@@ -97,9 +97,10 @@ export function smartCleanTitle(rawTitle: string, writer: string = '', descripti
       segments[0] = byWriterMatch[1].trim();
     }
 
-    // Series name patterns — segments that are just the series identifier.
-    // When we encounter one, we should SKIP it but preserve the next non-noise segment.
-    const SERIES_ONLY_RE = /^(?:Feluda|Tarini\s*Khuro|Tarinikhuro|Sherlock\s*Holmes|Byomkesh\s*Bakshi|ব্যোমকেশ\s*বক্সী|Daroga)$/i;
+    // Series name patterns — segments that are just the series identifier (a character/franchise name,
+    // NOT the actual story title). When we encounter one, we SKIP it but preserve the next non-noise segment.
+    // Add any recurring character names here so the STORY title (the next segment) is picked instead.
+    const SERIES_ONLY_RE = /^(?:Feluda|Tarini\s*Khuro|Tarinikhuro|Sherlock\s*Holmes|Byomkesh\s*Bakshi|ব্যোমকেশ\s*বক্সী|Daroga|তারানাথ\s*তান্ত্রিক|Taranath\s*Tantrik|Taranath|Kakababu|কাকাবাবু|Tenida|টেনিদা|Ghanada|ঘনদা|Kiriti|কিরীটী|Mitin\s*Mashi|মিতিন\s*মাশি|Professor\s*Shonku|Shonku|শঙ্কু|Chandrabindu|চন্দ্রবিন্দু|Bhaduri\s*Moshai|Niren\s*Bhaduri|Bhaduri|ভাদুড়ি\s*মশাই|নিরেন\s*ভাদুড়ি|ভাদুড়ি)$/i;
 
     // Cast/narrator-only segments to silently drop
     const CAST_ONLY_RE = /^(?:Mir|Deep|Somak|Godhuli|Papiya|Roy|Agni|Pushpal|Anujoy|Sree|Richard|Sudip|Kaizar|Buddhadev|Sankari|Rounak|Shovan|Rituparna|Maitrayee|Shakya|Aikayan|Anirban Bhattacharya|Pradyut Chatterjea|Srijan Chatterjee|Complete Story)$/i;
@@ -123,8 +124,8 @@ export function smartCleanTitle(rawTitle: string, writer: string = '', descripti
   }
 
 
-  // 4b. Strip series prefix names e.g. "Feluda - ", "Tarini Khuro - ", "Sherlock Holmes - ", "Byomkesh Bakshi - "
-  t = t.replace(/^(?:Feluda|Tarini\s*Khuro|Tarinikhuro|Sherlock\s*Holmes|Byomkesh\s*Bakshi|ব্যোমকেশ\s*বক্সী|Daroga)\s*[-–—:]\s*/gi, '');
+  // 4b. Strip series prefix names e.g. "Feluda - ", "Taranath Tantrik - ", "Byomkesh Bakshi - "
+  t = t.replace(/^(?:Feluda|Tarini\s*Khuro|Tarinikhuro|Sherlock\s*Holmes|Byomkesh\s*Bakshi|ব্যোমকেশ\s*বক্সী|Daroga|তারানাথ\s*তান্ত্রিক|Taranath\s*Tantrik|Taranath|Kakababu|কাকাবাবু|Tenida|টেনিদা|Professor\s*Shonku|Shonku|শঙ্কু|Bhaduri\s*Moshai|Niren\s*Bhaduri|Bhaduri|ভাদুড়ি\s*মশাই|নিরেন\s*ভাদুড়ি|ভাদুড়ি)\s*[-–—:]\s*/gi, '');
 
   // 5. Remove "By [Writer]" or "By [Author]"
   t = t.replace(/\bby\s+[A-Za-z\s\u0980-\u09ff]+/gi, '');
